@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<!--
+/*=========================================================================
+* @author Derry Everson
+*========================================================================*/
+-->
+<html lang="en" dir="ltr" ng-app="ccApp">
+<head>
+  <title>Character Creator</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="X-UA-Compatible" content="IE=8,IE=9">
+  <meta http-equiv="PRAGMA" content="NO-CACHE">
+  <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
+  <link rel="shortcut icon" href="favicon.png" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/bootstrap/4.2.1/bootstrap.min.css" />
+  <link rel="stylesheet" href="css/cc.css">
+
+  <!-- JS -->
+  <script src="js/jquery/3.3.1/jquery.min.js"></script>
+  <script src="js/angularjs/1.7.8/angular.min.js"></script>
+  <script src="js/popper/popper.min.js"></script>
+  <script src="js/bootstrap/4.2.1/bootstrap.min.js"></script>
+  <script src="js/primaryController.js"></script>
+
+</head>
+
+<body ng-controller="ccCtrl">
+
+  <!--==== Header ====-->
+  <header>
+    <!-- <h1>Character Creator</h1> -->
+    <h1>CC</h1>
+  </header>
+
+  <div ng-if="true">
+    <div class="container">
+      <div class="row">
+        <div class="input-group mb-3">
+          <div class="input-group-prepend">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Books</button>
+            <ul class="dropdown-menu checkbookList">
+              <li class="input-group" ng-repeat="book in books" ng-click="checkboxSwitch(book); checkboxTextUpdate(books);" data-toggle="tT" title="">
+                <input type="text" class="form-control" value="{{book.name}} ({{book.source}})" readonly>
+                <span class="input-group-addon largerCheckboxPadding">
+                  <input type="checkbox" ng-model="book.status" ng-click="checkboxSwitchInline(book); checkboxTextUpdate(books);">
+                </span>
+              </li>
+            </ul>
+          </div> <!-- End of Input Group Prepend -->
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.selectedBooks" readonly>
+        </div> <!-- End of Input Group -->
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+
+  <div ng-if="true">
+    <div class="container">
+      <div class="row">
+        <div class="input-group mb-5">
+          <div class="input-group-prepend" ng-init="statType='Roll 4d6k3';matrix=0">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{statType}}</button>
+            <div class="dropdown-menu">
+              <a class="dropdown-item" ng-click="statType='Roll 4d6k3'; rollStats4d6k3()">Roll 4d6k3</a>
+              <a class="dropdown-item" ng-click="statType='Roll 4d6k3r1'; rollStats4d6k3r1()">Roll 4d6k3r1</a>
+              <a class="dropdown-item" ng-click="statType='Roll 3d6'; rollStats3d6()">Roll 3d6</a>
+              <a class="dropdown-item" ng-click="statType='Roll 3d6r1'; rollStats3d6r1()">Roll 3d6r1</a>
+              <a class="dropdown-item" ng-click="statType='Roll Matrix'; rollStatsMatrix()">Roll Matrix</a>
+              <a class="dropdown-item" ng-click="statType='Array'; arrayStats()">Array</a>
+              <a class="dropdown-item" ng-click="statType='Point Buy'; pbStats()">Point Buy</a>
+            </div> <!-- End of Dropdown Menu -->
+          </div> <!-- End of Input Group Prepend -->
+          <div class="input-group-append" ng-if="true">
+            <button type="button" class="btn btn-success" ng-click="rollStats4d6k3()" ng-if="statType=='Roll 4d6k3'">Roll</button>
+            <button type="button" class="btn btn-success" ng-click="rollStats4d6k3r1()" ng-if="statType=='Roll 4d6k3r1'">Roll</button>
+            <button type="button" class="btn btn-success" ng-click="rollStats3d6()" ng-if="statType=='Roll 3d6'">Roll</button>
+            <button type="button" class="btn btn-success" ng-click="rollStats3d6r1()" ng-if="statType=='Roll 3d6r1'">Roll</button>
+            <button type="button" class="btn btn-success" ng-click="rollStatsMatrix(); matrix=1" ng-if="statType=='Roll Matrix'">Roll</button>
+          </div> <!-- End of Input Group Append -->
+          <div class="rolledContainer" ng-repeat="stat in data.char.rolledStats" ng-if="statType!='Roll Matrix'">
+            <span class="rolled" ng-class="{'color-green':stat[0]>=15,'color-blue':stat[0]>=9,'color-red':stat[0]<=8}">{{stat[0]}}</span><span class="rolledMod">{{stat[1]}}</span>
+          </div> <!-- End of Rolled Container -->
+        </div> <!-- End of Input Group -->
+      </div> <!-- End of Row -->
+      <div ng-if="statType=='Roll Matrix'">
+        <div class="row">
+          <table class="table table-bordered rollMatrixTable">
+            <tbody>
+              <tr ng-repeat="col in data.char.rolledMatrixStats">
+                <td class="rollMatrixTd" ng-repeat="row in col" ng-class="{'color-green':row[0]>=15,'color-blue':row[0]>=9,'color-red':row[0]<=8&&row[4]!=1 ,'color-success':row[4]==1}">{{row[0]}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div> <!-- End of Row -->
+      </div> <!-- End of NG-IF -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+
+  <div ng-if="true">
+    <div class="container">
+      <div class="row">
+
+      </div> <!-- End of Row -->
+  </div> <!-- End of Container -->
+</div> <!-- End of NG-IF -->
+
+
+
+
+
+
+
+
+
+</body>
+</html>

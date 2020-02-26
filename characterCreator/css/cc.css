@@ -1,0 +1,150 @@
+html,body{
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+}
+
+.checkbookList{
+  min-width: 450px;
+  padding: 0;
+  right: -1px;
+}
+.checkbookList li span, .checkbookList li input{
+  border: none;
+}
+.largerCheckboxPadding {
+  padding: 0;
+}
+input:read-only{
+  background-color: #fff !important;
+  cursor: default;
+}
+input[readOnly]{
+  background-color: #fff !important;
+  cursor: default;
+}
+input[type='checkbox']{
+  height: 26px;
+  margin-top: 3px !important;
+  width: 32px;
+}
+
+.rolled{
+  border-radius: 5%;
+  margin: 0 auto;
+  padding: 8px;
+  background: #fff;
+  border: 2px solid #666;
+  color: #666;
+  text-align: center;
+  font: 32px Arial, sans-serif;
+}
+.rolledInput{
+  width: 19%;
+  height: 52%;
+  border-radius: 5%;
+  margin: 0 auto;
+  padding: 8px;
+  background: #fff;
+  border: 2px solid #666;
+  color: #666;
+  text-align: center;
+  font: 32px Arial, sans-serif;
+}
+.rolledMod{
+  border-radius: 50%;
+  margin: 0 auto;
+  padding: 8px 12px;
+  background: #fff;
+  border: 2px solid #666;
+  color: #666;
+  text-align: center;
+  font: 14px Arial, sans-serif;
+  font-weight: bold;
+  position: relative;
+  right: 50%;
+  top: 90%;
+}
+.rollMatrixTable{
+  width: 50%;
+  margin: 0 auto;
+  text-align-last: center;
+}
+.rollMatrixTd{
+  text-align-last: center;
+}
+.rolledContainer{
+    margin: 0 auto;
+}
+.table-bordered td, .table-bordered th {
+    border: 1px solid #ffffff;
+}
+
+li{
+  list-style-type: none;
+}
+ul{
+  padding-left:5px;
+}
+
+
+
+h1{
+  text-align: center;
+}
+
+
+
+.color-blue{
+  background-color: #d9edf7;
+  border-color: #bce8f1;
+  color: #31708f;
+  font-weight: 500;
+}
+.color-green{
+  background-color: #dff0d8;
+  border-color: #d6e9c6;
+  color: #3c763d;
+  font-weight: 500;
+}
+.color-success{
+  background-color: #28a745;
+  color: #fff;
+  font-weight: 500;
+}
+.color-grey{
+  background-color: #f1f1f1;
+  border-color: #eaeaea;
+  color: #989898;
+  font-weight: 500;
+}
+.color-red{
+  background-color: #f2dede;
+  border-color: #ebccd1;
+  color: #a94442;
+  font-weight: 500;
+}
+.color-yellow{
+  background-color: #ffe7be;
+  border-color: #eea236;
+  color: #bf7917;
+  font-weight: 500;
+}
+
+footer {
+  bottom: 0;
+  left: 0;
+  position: fixed;
+  text-align: center;
+  width: 100%;
+}
+
+@media (max-width: 420px) {
+  footer {
+    display: none;
+  }
+
+}
