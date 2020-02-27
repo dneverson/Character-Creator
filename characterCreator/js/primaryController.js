@@ -267,11 +267,13 @@ app.controller("ccCtrl", function($scope, $http){
   function setBest(){
     var arrBest = findBest();
     var arr = $scope.data.char.rolledMatrixStats;
-    for (var i=0; i<arrBest[0].length; i++){
-      var y = arrBest[0][i][2];
-      var x = arrBest[0][i][3];
-      arr[y][x].push(1)
-    }
+    for (var i = 0; i < arrBest.length-1; i++) {
+      if(i%2!==0) continue;
+      for (var j=0; j<arrBest[i].length; j++){
+        var y = arrBest[i][j][2];
+        var x = arrBest[i][j][3];
+        arr[y][x].push(1)
+    }}
   };
 
   function findBest(){
@@ -283,21 +285,36 @@ app.controller("ccCtrl", function($scope, $http){
     for (var i=0; i<arr.length;i++){
       var value = arr[i].reduce((a, b) => a + b[0], 0);
       if(value>bestCol[1]) bestCol = [arr[i],[value]];
+      else if (value==bestCol[1]) bestCol.push(arr[i],[value]);
     }
     //Best Row
     for (var i=0; i<arr.length;i++){
       var value = arr.reduce((a, b) => a + b[i][0], 0);
       if(value>bestRow[1]) bestRow = [arr.map((x,c) => x[i]),[value]];
+      else if (value==bestRow[1]) bestRow.push(arr.map((x,c) => x[i]),[value]);
     }
     //Diag top left to bottom right
     var tmp1 = arr.reduce((a, b, c) => a + b[c][0], 0);
     if(tmp1>bestDia[1]) bestDia = [arr.map((x,i) => x[i]),[tmp1]];
+    else if (tmp1==bestDia[1]) bestDia.push(arr.map((x,i) => x[i]),[tmp1]);
     //Diag top right to bottom left
     var tmp2 = arr.slice(0).reverse().reduce((a, b, c) => a + b[c][0], 0);
     if(tmp2>bestDia[1]) bestDia = [arr.slice(0).reverse().map((x,i) => x[i]),[tmp2]];
+    else if (tmp2==bestDia[1]) bestDia.push(arr.slice(0).reverse().map((x,i) => x[i]),[tmp2]);
 
-    var result = (bestCol[1]>bestRow[1])&&(bestCol[1]>bestDia[1])?bestCol:bestRow[1]>bestDia[1]?bestRow:bestDia;
-    return result;
+    var x = bestCol[1][0];
+    var y = bestRow[1][0];
+    var z = bestDia[1][0];
+    var best = bestCol;
+
+    if (best[1]<y) best = bestRow;
+    if (best[1]<z) best = bestDia;
+    if (best[1]==x&&x==y&&x==z) best = bestCol.concat(bestRow).concat(bestDia);
+    else if (best[1]==x&&x==y) best = bestCol.concat(bestRow);
+    else if (best[1]==x&&x==z) best = bestCol.concat(bestDia);
+    else if (best[1]==y&&y==z) best = bestCol.concat(bestDia);
+
+    return best;
   }
 
   $scope.checkboxSwitch = function(item){
