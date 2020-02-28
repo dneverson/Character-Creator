@@ -17,6 +17,7 @@
 
   <!-- CSS -->
   <link rel="stylesheet" href="css/bootstrap/4.2.1/bootstrap.min.css" />
+  <link rel="stylesheet" href="css/fontawesome/4.7.0/all.css" />
   <link rel="stylesheet" href="css/cc.css">
 
   <!-- JS -->
@@ -25,6 +26,7 @@
   <script src="js/popper/popper.min.js"></script>
   <script src="js/bootstrap/4.2.1/bootstrap.min.js"></script>
   <script src="js/primaryController.js"></script>
+  <script src="js/diceService.js"></script>
 
 </head>
 
@@ -36,6 +38,7 @@
     <h1>CC</h1>
   </header>
 
+  <!--==== START Book Selection ====-->
   <div ng-if="true">
     <div class="container">
       <div class="row">
@@ -56,11 +59,13 @@
       </div> <!-- End of Row -->
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
+  <!--==== END Book Selection ====-->
 
+  <!--==== START Stat Rolls ====-->
   <div ng-if="true">
     <div class="container">
       <div class="row">
-        <div class="input-group mb-5">
+        <div class="input-group mb-5 mt-3">
           <div class="input-group-prepend" ng-init="statType='Roll 4d6k3';matrix=0">
             <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{statType}}</button>
             <div class="dropdown-menu">
@@ -98,14 +103,43 @@
       </div> <!-- End of NG-IF -->
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
+  <!--==== END Stat Rolls ====-->
 
+  <!--==== START Class and Level Selection ====-->
   <div ng-if="true">
     <div class="container">
-      <div class="row">
-
+      <div class="row  mt-5">
+        <div ng-repeat="class in data.char.class track by $index" class="full mb-3">
+          <div class="input-group">
+            <div class="input-group-prepend">
+              <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Class</button>
+              <div class="dropdown-menu">
+                <table class="table-sm table-striped table-hover">
+                  <tbody  class="">
+                    <tr ng-repeat="choice in classOptions" ng-click="loadClass(choice.path, class.level); class.name=choice.name" class="dropdown-item">
+                      <td><strong>{{choice.name}}</strong></td>
+                      <td>[{{choice.proficiency[0]}},{{choice.proficiency[1]}}]</td>
+                      <td>{{choice.hd.number}}d{{choice.hd.faces}}</td>
+                      <td>{{choice.spellcastingAbility}}</td>
+                      <td>(<i>{{choice.source}}</i>)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="class.name" readonly>
+            <div class="input-group-append">
+              <span class="input-group-text">Levels</span>
+            </div>
+            <input type="number" class="form-control" aria-label="" ng-model="class.level" ng-change="updateLevels()" min="1" required max="{{data.char.levelsCur+data.char.levelsRem}}">  <!-- min="0" max="{{data.char.levelsMax-data.char.levelsCur}}"-->
+            <button class="btn btn-danger btn-sm btnRemove" ng-click="removeIndexClass($index); updateLevels()" type="button"><span class="fas fa-minus"></span></button>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" ng-click="addClass()" type="button"><span class="fas fa-plus"></span> Add Multi-Class</button>
       </div> <!-- End of Row -->
   </div> <!-- End of Container -->
 </div> <!-- End of NG-IF -->
+<!--==== END Class and Level Selection ====-->
 
 
 
