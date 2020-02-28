@@ -2,7 +2,7 @@
 * @author Derry Everson
 *============================================================================*/
 var app = angular.module("ccApp", []);
-app.controller("ccCtrl", function($scope, $http){
+app.controller("ccCtrl", function($scope, $http, dice){
 
   /*=========================================================================
   * Used for diffrent browser adjustments
@@ -20,26 +20,13 @@ app.controller("ccCtrl", function($scope, $http){
   var races;
   var feats;
   var backgrounds;
-  var classMenu;
 
   $scope.data = {
     ccView: {classes:1,races:0,backgrounds:0},
     char: {
-      name: "",
-      class: {},
-      race: {},
-      background: {},
-      alignment:"",
-      exp: 0,
-      speed: 0,
-      personality: [],
-      ideals: [],
-      bonds: [],
-      flaws: [],
-      allies: [],
-      backgroundStory: [],
-      notes: [],
-      feats: {},
+      name:"",class:[{name:"",level:1}],race:{},background: {},alignment:"",
+      exp:0,speed:0,personality:[],ideals:[],levelsMax:20,levelsCur:1,levelsRem:20,
+      flaws:[],allies:[],backgroundStory:[],notes:[],feats:{},bonds:[],
       selectedBooks: ["PHB","MM","DMG"],
       carryCapacity: {mod: "str", multVar:15, multEnc:5, sMod:0, val: 0, speed:-10},
       spells: {0:{}, 1:{}, 2:{}, 3:{}, 4:{}, 5:{}, 6:{}, 7:{}, 8:{}, 9:{}},
@@ -51,14 +38,7 @@ app.controller("ccCtrl", function($scope, $http){
       armorClass: {mod: "dex", aMod:0, sMod:0, val: 0}, //armorMod and SpecialMod
       initiative: {mod: "dex", smod:0, val:0},
       passivePerception: {mod: "wis", sMod:0, val:0, adv:0},
-      proficiencies: {
-        armor:        {},
-        instruments:  {},
-        kits:         {},
-        languages:    {},
-        tools:        {},
-        vehicles:     {},
-        weapons:      {}},
+      proficiencies: {armor:{},instruments:{},kits:{},languages:{},tools:{},vehicles:{},weapons:{}},
       rolledStats: [],
       stats: {
         str: {name: "Strength",     mod:0, val:0},
@@ -106,224 +86,35 @@ app.controller("ccCtrl", function($scope, $http){
     //console.log($scope.data.char.stats[yes].mod)
   };
 
-  function getRandomInt(min, max) {
-      var byteArray = new Uint8Array(1);
-      window.crypto.getRandomValues(byteArray);
-      var range = max - min + 1;
-      var max_range = 256;
-      if (byteArray[0] >= Math.floor(max_range / range) * range)
-          return getRandomInt(min, max);
-      return min + (byteArray[0] % range);
-  };
 
-  function rollDice(amnt,typ){
-    var arr = new Array(amnt).fill(1);
-    return arr.map(x => getRandomInt(1,typ));
-  };
-
-  function rollKeep(arr,keep){
-    arr.sort(function(a, b){return b-a});
-    result = arr.splice(0,keep);
-    return result;
-  };
-
-  function rollReroll(arr, diceType, reroll){
-    var result = arr.map(function(x){
-      if (x==reroll){
-        return rollDice(1, diceType)[0];
-      }
-      return x
-    })
-    return result;
-  };
-
-  function getStatMod(stat){
-    return (Math.floor(stat/2)-5);
-  };
-
-  function rollSum(arr){
-    return arr.reduce((a, b) => a + b, 0)
-  };
-
-  function getStatTotalMod(arr){
-    var ppl = [];
-    arr.map(x => ppl.push(getStatMod(x[0])));
-    return ppl.reduce((a, b) => a + b, 0)
-  };
-
-  $scope.rollStats4d6k3 = function(){
-    const amnt = 4;
-    const diceType = 6;
-    var result = [];
-    for (var i=0; i<6; i++){
-      var diceRolls = rollDice(amnt,diceType);
-      var diceKeeps = rollKeep(diceRolls,3);
-      var diceSum = rollSum(diceKeeps);
-      var diceMod = getStatMod(diceSum);
-      result.push([diceSum, diceMod]);
-    }
-    $scope.data.char.rolledStats = result
-  };
-
-  $scope.rollStats4d6k3r1 = function(){
-    const amnt = 4;
-    const diceType = 6;
-    var result = [];
-    for (var i=0; i<6; i++){
-      var diceRolls = rollDice(amnt,diceType);
-      var diceReroll = rollReroll(diceRolls,6,1);
-      var diceKeeps = rollKeep(diceReroll,3);
-      var diceSum = rollSum(diceKeeps);
-      var diceMod = getStatMod(diceSum);
-      result.push([diceSum, diceMod]);
-    }
-    $scope.data.char.rolledStats = result
-  };
-
-  $scope.rollStats3d6 = function(){
-    const amnt = 3;
-    const diceType = 6;
-    var result = [];
-    for (var i=0; i<6; i++){
-      var diceRolls = rollDice(amnt,diceType);
-      var diceSum = rollSum(diceRolls);
-      var diceMod = getStatMod(diceSum);
-      result.push([diceSum, diceMod]);
-    }
-    $scope.data.char.rolledStats = result
-  };
-
-  $scope.rollStats3d6r1 = function(){
-    const amnt = 3;
-    const diceType = 6;
-    var result = [];
-    for (var i=0; i<6; i++){
-      var diceRolls = rollDice(amnt,diceType);
-      var diceReroll = rollReroll(diceRolls,6,1);
-      var diceSum = rollSum(diceReroll);
-      var diceMod = getStatMod(diceSum);
-      result.push([diceSum, diceMod]);
-    }
-    $scope.data.char.rolledStats = result
-  };
-
-  $scope.arrayStats = function(){
-    var arr = [15, 14, 13, 12, 10, 8];
-    var result = [];
-    for (var i=0; i<arr.length; i++){
-      var diceMod = getStatMod(arr[i]);
-      result.push([arr[i], diceMod])
-    }
-    $scope.data.char.rolledStats = result
-  };
-
-  $scope.pbStats = function(){
-    var arr = [8, 8, 8, 8, 8, 8];
-    var result = [];
-    for (var i=0; i<arr.length; i++){
-      var diceMod = getStatMod(arr[i]);
-      result.push([arr[i], diceMod])
-    }
-    $scope.data.char.rolledStats = result
-  };
-
-
-  //Took 784025 Rolls to get 17,3 - 16,3 - 18,4 - 17,3 - 18,4 - 18,4
-  //Total sum of mods = 21
-  // var yes = true;
-  // count = 0
-  // while (yes){
-  //   var tmp = getStatTotalMod($scope.data.char.rolledStats);
-  //   if (tmp<=20){
-  //     count ++;
-  //     $scope.rollStats();
-  //     console.log(count)
-  //   }else{
-  //     yes = false;
-  //   }
-  // }
-  // console.log("Took "+count+" Rolls")
-  // console.log("Total sum of mods = "+ getStatTotalMod($scope.data.char.rolledStats))
-
-
+  /*=======================================================================*
+  * Temp While a Generic Function is created for all deez
+  *========================================================================*/
+  //  Amount, Dice Type, Keep Amount, Reroll [ARRAY]
+  $scope.roll = function(amnt,dt,kp,rr){$scope.data.char.rolledStats = dice.rollDicess(amnt,dt,kp,rr)};
+  $scope.rollStats4d6k3 = function(){$scope.data.char.rolledStats = dice.rollStats4d6k3()};
+  $scope.rollStats4d6k3r1 = function(){$scope.data.char.rolledStats = dice.rollStats4d6k3r1()};
+  $scope.rollStats3d6 = function(){$scope.data.char.rolledStats = dice.rollStats3d6()};
+  $scope.rollStats3d6r1 = function(){ $scope.data.char.rolledStats = dice.rollStats3d6r1()};
+  $scope.arrayStats = function(){ $scope.data.char.rolledStats = dice.arrayStats()};
+  $scope.pbStats = function(){ $scope.data.char.rolledStats = dice.pbStats() };
   $scope.rollStatsMatrix = function(){
-    const amnt = 3;
-    const diceType = 6;
-    var result = [];
-    for (var i=0;i<6;i++){
-      var col = [];
-      for (var j=0; j<6; j++){
-        var diceRolls = rollDice(amnt,diceType);
-        var diceSum = rollSum(diceRolls);
-        var diceMod = getStatMod(diceSum);
-        col.push([diceSum, diceMod, i, j]);
-      }
-      result.push(col);
-    }
-    $scope.data.char.rolledMatrixStats = result;
-    setBest();
+    $scope.data.char.rolledMatrixStats = dice.rollStatsMatrix(6,6);
+    dice.setBest($scope.data.char.rolledMatrixStats);
   };
 
-  function setBest(){
-    var arrBest = findBest();
-    var arr = $scope.data.char.rolledMatrixStats;
-    for (var i = 0; i < arrBest.length-1; i++) {
-      if(i%2!==0) continue;
-      for (var j=0; j<arrBest[i].length; j++){
-        var y = arrBest[i][j][2];
-        var x = arrBest[i][j][3];
-        arr[y][x].push(1)
-    }}
-  };
 
-  function findBest(){
-    var arr = $scope.data.char.rolledMatrixStats;
-    var bestCol = [[],[0]];
-    var bestRow = [[],[0]];
-    var bestDia = [[],[0]];
-    //Best Col
-    for (var i=0; i<arr.length;i++){
-      var value = arr[i].reduce((a, b) => a + b[0], 0);
-      if(value>bestCol[1]) bestCol = [arr[i],[value]];
-      else if (value==bestCol[1]) bestCol.push(arr[i],[value]);
-    }
-    //Best Row
-    for (var i=0; i<arr.length;i++){
-      var value = arr.reduce((a, b) => a + b[i][0], 0);
-      if(value>bestRow[1]) bestRow = [arr.map((x,c) => x[i]),[value]];
-      else if (value==bestRow[1]) bestRow.push(arr.map((x,c) => x[i]),[value]);
-    }
-    //Diag top left to bottom right
-    var tmp1 = arr.reduce((a, b, c) => a + b[c][0], 0);
-    if(tmp1>bestDia[1]) bestDia = [arr.map((x,i) => x[i]),[tmp1]];
-    else if (tmp1==bestDia[1]) bestDia.push(arr.map((x,i) => x[i]),[tmp1]);
-    //Diag top right to bottom left
-    var tmp2 = arr.slice(0).reverse().reduce((a, b, c) => a + b[c][0], 0);
-    if(tmp2>bestDia[1]) bestDia = [arr.slice(0).reverse().map((x,i) => x[i]),[tmp2]];
-    else if (tmp2==bestDia[1]) bestDia.push(arr.slice(0).reverse().map((x,i) => x[i]),[tmp2]);
 
-    var x = bestCol[1][0];
-    var y = bestRow[1][0];
-    var z = bestDia[1][0];
-    var best = bestCol;
 
-    if (best[1]<y) best = bestRow;
-    if (best[1]<z) best = bestDia;
-    if (best[1]==x&&x==y&&x==z) best = bestCol.concat(bestRow).concat(bestDia);
-    else if (best[1]==x&&x==y) best = bestCol.concat(bestRow);
-    else if (best[1]==x&&x==z) best = bestCol.concat(bestDia);
-    else if (best[1]==y&&y==z) best = bestCol.concat(bestDia);
-
-    return best;
-  }
-
+  /*=======================================================================*
+  * DOM FUNCTIONS MOVE TO SERVICE?
+  *========================================================================*/
   $scope.checkboxSwitch = function(item){
     item.status = item.status?false:true;
   };
   $scope.checkboxSwitchInline = function(item){
     if(isIE) item.status = item.status?false:true;
   };
-
   $scope.checkboxTextUpdate = function(books){
     $scope.data.char.selectedBooks = []
     for (var i=0; i<books.length; i++){
@@ -332,7 +123,6 @@ app.controller("ccCtrl", function($scope, $http){
       if (status) $scope.data.char.selectedBooks.push(source)
     }
   };
-
   function isChecked(){
     sb = $scope.data.char.selectedBooks;
     bk = $scope.books
@@ -342,15 +132,57 @@ app.controller("ccCtrl", function($scope, $http){
     }}
   };
 
+
+  function checkbooks(){
+
+  };
+
+
+  //WTF?!?!?!? When adding a multiclass it resets itself or looks at a old copy/new copy?? IDK!!
+  $scope.updateLevels = function(){
+    var sum = 0;
+    var obj = $scope.data.char;
+    for (var i=0; i<obj.class.length; i++){
+      sum += obj.class[i].level
+    }
+    obj.levelsCur = sum
+    obj.levelsRem = ((obj.levelsMax)-(obj.levelsCur));
+  };
+
+  $scope.addClass = function(){
+    var obj = $scope.data.char;
+    var maxLen = obj.levelsMax-obj.levelsCur;
+
+    console.log(obj.levelsMax,obj.levelsCur,maxLen)
+
+    if(obj.class.length-1 < maxLen){
+      console.log(obj.class.length-1)
+      obj.class.push({name:"",level:1});
+    }else window.alert("Maximum Level Reached ("+obj.levelsMax+")");
+  };
+
+  $scope.removeIndexClass = function(loc){
+    $scope.data.char.class.splice(loc,1);
+  };
+
+
+
+  $scope.loadClass = function(path, level){
+    $http.get('./data/class/'+path).then(function(response){
+      var obj = $scope.data.char.class
+      obj[obj.length-1] = response.data.class[0];
+      obj[obj.length-1].level = level;
+    });
+
+  }
+
   /*=======================================================================*
   * Gets json file from external local file
   *========================================================================*/
   $scope.$watch('$viewContentLoaded', function(event){
     $http.get('./data/class/index.json').then(function(response){
-      classMenu = response.data;
-      //console.log(classMenu)
-    }).then(function(result){
-      //Do stuff
+      $scope.classOptions = response.data;
+      console.log(response.data)
     });
 
     $http.get('./data/books.json').then(function(response){
