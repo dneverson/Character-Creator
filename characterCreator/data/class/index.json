@@ -1,0 +1,16 @@
+{
+  "artificer":{"name":"Artificer","source":"UAArtificer","page":1,"isReprinted":true,"hd":{"number":1,"faces":8},"proficiency":["con","int"],"spellcastingAbility":"int","path":"class-artificer.json"},
+  "barbarian":{"name":"Barbarian","source":"PHB","page":46,"srd":true,"hd":{"number":1,"faces":12},"proficiency":["str","con"],"path":"class-barbarian.json"},
+  "bard":{"name":"Bard","source":"PHB","page":51,"srd":true,"hd":{"number":1,"faces":8},"proficiency":["dex","cha"],"spellcastingAbility":"cha","path":"class-bard.json"},
+  "cleric":{"name":"Cleric","source":"PHB","page":36,"srd":true,"hd":{"number":1,"faces":8},"proficiency":["wis","cha"],"spellcastingAbility":"wis","path":"class-cleric.json"},
+  "druid":{"name":"Druid","source":"PHB","page":64,"srd":true,"hd":{"number":1,"faces":8},"proficiency":["int","wis"],"spellcastingAbility":"wis","path":"class-druid.json"},
+  "fighter":{"name":"Fighter","source":"PHB","page":70,"srd":true,"hd":{"number":1,"faces":10},"proficiency":["str","con"], "path":"class-fighter.json"},
+  "monk":{"name":"Monk","source":"PHB","page":76,"srd":true,"hd":{"number":1,"faces":8},"proficiency":["str","dex"], "path":"class-monk.json"},
+  "mystic":{"name":"Mystic","source":"UATheMysticClass","page":1,"hd":{"number":1,"faces":8},"proficiency":["int","wis"], "path":"class-mystic.json"},
+  "paladin":{"name":"Paladin","source":"PHB","page":82,"srd":true,"hd":{"number":1,"faces":10},"proficiency":["wis","cha"],"spellcastingAbility":"cha","path":"class-paladin.json"},
+  "ranger":{"name":"Ranger","source":"PHB","page":89,"srd":true,"hd":{"number":1,"faces":10},"proficiency":["str","dex"],"spellcastingAbility":"wis","path":"class-ranger.json"},
+  "rogue":{"name":"Rogue","source":"PHB","page":94,"srd":true,"hd":{"number":1,"faces":8},"proficiency":["dex","int"], "path":"class-rogue.json"},
+  "sorcerer":{"name":"Sorcerer","source":"PHB","page":99,"srd":true,"hd":{"number":1,"faces":6},"proficiency":["con","cha"],"spellcastingAbility":"cha","path":"class-sorcerer.json"},
+  "warlock":{"name":"Warlock","source":"PHB","page":105,"srd":true,"hd":{"number":1,"faces":8},"proficiency":["wis","cha"], "spellcastingAbility":"cha","path":"class-warlock.json"},
+  "wizard":{"name":"Wizard","source":"PHB","page":112,"srd":true,"hd":{"number":1,"faces":6},"proficiency":["int","wis"], "spellcastingAbility":"int","path":"class-wizard.json"}
+}
