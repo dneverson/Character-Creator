@@ -116,7 +116,7 @@
               <div class="dropdown-menu">
                 <table class="table-sm table-striped table-hover">
                   <tbody  class="">
-                    <tr ng-repeat="choice in classOptions" ng-click="loadClass(choice.path, class.level); class.name=choice.name" class="dropdown-item">
+                    <tr ng-repeat="choice in classOptions" ng-click="loadClass(choice.path, class.level); class.name=choice.name; updateClasses();" class="dropdown-item">
                       <td><strong>{{choice.name}}</strong></td>
                       <td>[{{choice.proficiency[0]}},{{choice.proficiency[1]}}]</td>
                       <td>{{choice.hd.number}}d{{choice.hd.faces}}</td>
@@ -131,11 +131,11 @@
             <div class="input-group-append">
               <span class="input-group-text">Levels</span>
             </div>
-            <input type="number" class="form-control" aria-label="" ng-model="class.level" ng-change="updateLevels()" min="1" required max="{{class.level+data.char.levelsRem}}">  <!-- min="0" max="{{data.char.levelsMax-data.char.levelsCur}}"-->
+            <input type="number" class="form-control" aria-label="" ng-model="class.level" ng-change="updateLevels()" min="1" required max="{{class.level+data.char.levelsRem}}">
             <button class="btn btn-danger btn-sm btnRemove" ng-click="removeIndexClass($index); updateLevels()" type="button"><span class="fas fa-minus"></span></button>
           </div>
         </div>
-        <button class="btn btn-primary btn-sm" ng-click="addClass()" type="button"><span class="fas fa-plus"></span> Add Multi-Class</button>
+        <button class="btn btn-primary btn-sm" ng-click="addClass(); updateLevels(); updateClasses();" ng-if="true" type="button"><span class="fas fa-plus"></span> Add Multi-Class</button>
       </div> <!-- End of Row -->
   </div> <!-- End of Container -->
 </div> <!-- End of NG-IF -->
