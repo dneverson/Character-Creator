@@ -131,7 +131,7 @@
             <div class="input-group-append">
               <span class="input-group-text">Levels</span>
             </div>
-            <input type="number" class="form-control" aria-label="" ng-model="class.level" ng-change="updateLevels()" min="1" required max="{{data.char.levelsCur+data.char.levelsRem}}">  <!-- min="0" max="{{data.char.levelsMax-data.char.levelsCur}}"-->
+            <input type="number" class="form-control" aria-label="" ng-model="class.level" ng-change="updateLevels()" min="1" required max="{{class.level+data.char.levelsRem}}">  <!-- min="0" max="{{data.char.levelsMax-data.char.levelsCur}}"-->
             <button class="btn btn-danger btn-sm btnRemove" ng-click="removeIndexClass($index); updateLevels()" type="button"><span class="fas fa-minus"></span></button>
           </div>
         </div>

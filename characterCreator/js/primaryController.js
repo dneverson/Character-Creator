@@ -138,7 +138,6 @@ app.controller("ccCtrl", function($scope, $http, dice){
   };
 
 
-  //WTF?!?!?!? When adding a multiclass it resets itself or looks at a old copy/new copy?? IDK!!
   $scope.updateLevels = function(){
     var sum = 0;
     var obj = $scope.data.char;
