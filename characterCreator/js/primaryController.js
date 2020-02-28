@@ -21,6 +21,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
   var feats;
   var backgrounds;
 
+
   $scope.data = {
     ccView: {classes:1,races:0,backgrounds:0},
     char: {
@@ -139,23 +140,23 @@ app.controller("ccCtrl", function($scope, $http, dice){
 
 
   $scope.updateLevels = function(){
-    var sum = 0;
-    var obj = $scope.data.char;
-    for (var i=0; i<obj.class.length; i++){
-      sum += obj.class[i].level
+    try{
+      var sum = 0;
+      var obj = $scope.data.char;
+      for (var i=0; i<obj.class.length; i++){
+        sum += obj.class[i].level
+      }
+      obj.levelsCur = sum
+      obj.levelsRem = ((obj.levelsMax)-(obj.levelsCur));
+    }catch(e){
+      console.log("error");
     }
-    obj.levelsCur = sum
-    obj.levelsRem = ((obj.levelsMax)-(obj.levelsCur));
   };
 
   $scope.addClass = function(){
     var obj = $scope.data.char;
     var maxLen = obj.levelsMax-obj.levelsCur;
-
-    console.log(obj.levelsMax,obj.levelsCur,maxLen)
-
-    if(obj.class.length-1 < maxLen){
-      console.log(obj.class.length-1)
+    if(obj.levelsCur < obj.levelsMax){
       obj.class.push({name:"",level:1});
     }else window.alert("Maximum Level Reached ("+obj.levelsMax+")");
   };
@@ -165,12 +166,21 @@ app.controller("ccCtrl", function($scope, $http, dice){
   };
 
 
+  $scope.updateClasses = function(){
+    console.log($scope.classOptions, $scope.classOptions2)
+    $scope.classOptions = angular.copy($scope.classOptions2);
+    for (clss in $scope.classOptions2) {
+      for (var i=0; i<$scope.data.char.class.length; i++){
+        if($scope.data.char.class[i].name.toUpperCase() == clss.toUpperCase()) delete $scope.classOptions[clss]
+      }}
+  };
 
   $scope.loadClass = function(path, level){
     $http.get('./data/class/'+path).then(function(response){
       var obj = $scope.data.char.class
       obj[obj.length-1] = response.data.class[0];
       obj[obj.length-1].level = level;
+
     });
 
   }
@@ -180,8 +190,9 @@ app.controller("ccCtrl", function($scope, $http, dice){
   *========================================================================*/
   $scope.$watch('$viewContentLoaded', function(event){
     $http.get('./data/class/index.json').then(function(response){
-      $scope.classOptions = response.data;
-      console.log(response.data)
+      var data = response.data
+      $scope.classOptions = angular.copy(data);
+      $scope.classOptions2 = angular.copy(data);
     });
 
     $http.get('./data/books.json').then(function(response){
