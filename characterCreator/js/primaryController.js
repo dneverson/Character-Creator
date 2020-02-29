@@ -175,12 +175,11 @@ app.controller("ccCtrl", function($scope, $http, dice){
       }}
   };
 
-  $scope.loadClass = function(path, level){
+  $scope.loadClass = function(path, level, index){
     $http.get('./data/class/'+path).then(function(response){
       var obj = $scope.data.char.class
-      obj[obj.length-1] = response.data.class[0];
-      obj[obj.length-1].level = level;
-
+      obj[index] = response.data.class[0];
+      obj[index].level = level;
     });
 
   }

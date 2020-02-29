@@ -109,14 +109,14 @@
   <div ng-if="true">
     <div class="container">
       <div class="row  mt-5">
-        <div ng-repeat="class in data.char.class track by $index" class="full mb-3">
+        <div ng-repeat="class in data.char.class track by $index" class="full mb-3" ng-init="classid = $index">
           <div class="input-group">
             <div class="input-group-prepend">
               <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Class</button>
               <div class="dropdown-menu">
                 <table class="table-sm table-striped table-hover">
                   <tbody  class="">
-                    <tr ng-repeat="choice in classOptions" ng-click="loadClass(choice.path, class.level); class.name=choice.name; updateClasses();" class="dropdown-item">
+                    <tr ng-repeat="choice in classOptions" ng-click="loadClass(choice.path, class.level, classid); class.name=choice.name; updateClasses();" class="dropdown-item">
                       <td><strong>{{choice.name}}</strong></td>
                       <td>[{{choice.proficiency[0]}},{{choice.proficiency[1]}}]</td>
                       <td>{{choice.hd.number}}d{{choice.hd.faces}}</td>
