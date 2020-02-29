@@ -19,7 +19,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
   *========================================================================*/
   var races;
   var feats;
-  var backgrounds;
+  var backgrounds;  
 
 
   $scope.data = {
