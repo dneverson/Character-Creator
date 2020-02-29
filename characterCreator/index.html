@@ -86,7 +86,7 @@
             <button type="button" class="btn btn-success" ng-click="rollStatsMatrix(); matrix=1" ng-if="statType=='Roll Matrix'">Roll</button>
           </div> <!-- End of Input Group Append -->
           <div class="rolledContainer" ng-repeat="stat in data.char.rolledStats" ng-if="statType!='Roll Matrix'">
-            <span class="rolled" ng-class="{'color-green':stat[0]>=15,'color-blue':stat[0]>=9,'color-red':stat[0]<=8}">{{stat[0]}}</span><span class="rolledMod">{{stat[1]}}</span>
+            <span class="rolled" ng-class="{'color-green':stat[0]>=16,'color-blue':stat[0]>=10,'color-red':stat[0]<=9}">{{stat[0]}}</span><span class="rolledMod">{{stat[1]}}</span>
           </div> <!-- End of Rolled Container -->
         </div> <!-- End of Input Group -->
       </div> <!-- End of Row -->
@@ -95,7 +95,7 @@
           <table class="table table-bordered rollMatrixTable">
             <tbody>
               <tr ng-repeat="col in data.char.rolledMatrixStats">
-                <td class="rollMatrixTd" ng-repeat="row in col" ng-class="{'color-green':row[0]>=15,'color-blue':row[0]>=9,'color-red':row[0]<=8&&row[4]!=1 ,'color-success':row[4]==1}">{{row[0]}}</td>
+                <td class="rollMatrixTd" ng-repeat="row in col" ng-class="{'color-green':row[0]>=16,'color-blue':row[0]>=10,'color-red':row[0]<=9 && row[4]!=1 ,'color-success':row[4]==1}">{{row[0]}}</td>
               </tr>
             </tbody>
           </table>
