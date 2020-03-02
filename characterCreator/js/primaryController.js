@@ -159,6 +159,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
     if(obj.levelsCur < obj.levelsMax){
       obj.class.push({name:"",level:1});
     }else window.alert("Maximum Level Reached ("+obj.levelsMax+")");
+	 console.log($scope.data.char)
   };
 
   $scope.removeIndexClass = function(loc){
@@ -200,7 +201,31 @@ app.controller("ccCtrl", function($scope, $http, dice){
     });
 
     $http.get('./data/races.json').then(function(response){
-      $scope.races = response.data.race;
+		 $scope.races = [];
+		 response.data.race.forEach(race => {
+			 if (race.subraces) {
+				 race.subraces.forEach(subrace => {
+					 let temp = angular.copy(race);
+					 delete temp.subraces;
+					 temp.ability ? subrace.ability ? temp.ability[0] = $.extend(temp.ability[0], subrace.ability[0]) : {} : temp.ability = subrace.ability;
+					 subrace.darkvision ? temp.darkvision = subrace.darkvision : {};
+					 temp.entries = temp.entries.concat(subrace.entries);
+					 subrace.languageProficiencies ? temp.languageProficiencies ? temp.languageProficiencies = temp.languageProficiencies.concat(subrace.languageProficiencies) : temp.languageProficiencies = subrace.languageProficiencies : {};
+					 temp.name = subrace.name ? race.name + ' (' + subrace.name + ')' : race.name;
+					 subrace.page ? temp.page = subrace.page : {};
+					 subrace.size ? temp.size = subrace.size : {};
+					 subrace.skillProficiencies ? temp.skillProficiencies ? temp.skillProficiencies = temp.skillProficiencies.concat(subrace.skillProficiencies) : temp.skillProficiencies = subrace.skillProficiencies : {};
+					 subrace.soundClip ? temp.soundClip = subrace.soundClip : {};
+					 subrace.source ? temp.source = subrace.source : {};
+					 subrace.speed ? temp.speed = subrace.speed : {};
+					 subrace.traitTags ? temp.traitTags ? temp.traitTags = temp.traitTags.concat(subrace.traitTags) : temp.traitTags = subrace.traitTags : {};
+
+					 $scope.races.push(temp);
+				 });
+			 }
+		 });
+		 //console.log($scope.races)
+      //$scope.races = response.data.race;
     });
 
     $http.get('./data/backgrounds.json').then(function(response){
