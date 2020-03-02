@@ -223,8 +223,6 @@ app.controller("ccCtrl", function($scope, $http, dice){
 				 });
 			 }
 		 });
-		 console.log($scope.races)
-      //$scope.races = response.data.race;
     });
 
     $http.get('./data/backgrounds.json').then(function(response){
