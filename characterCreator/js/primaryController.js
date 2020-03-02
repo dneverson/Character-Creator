@@ -203,6 +203,10 @@ app.controller("ccCtrl", function($scope, $http, dice){
       $scope.races = response.data.race;
     });
 
+    $http.get('./data/backgrounds.json').then(function(response){
+      $scope.backgrounds = response.data.background;
+    });
+
     $http.get('./data/books.json').then(function(response){
       $scope.books = response.data.book;
     }).then(function(result){

@@ -137,91 +137,126 @@
         </div>
         <button class="btn btn-primary btn-sm" ng-click="addClass(); updateLevels(); updateClasses();" ng-if="true" type="button"><span class="fas fa-plus"></span> Add Multi-Class</button>
       </div> <!-- End of Row -->
-  </div> <!-- End of Container -->
-</div> <!-- End of NG-IF -->
-<!--==== END Class and Level Selection ====-->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Class and Level Selection ====-->
 
-<!--==== START Race Selection ====-->
-<div ng-if="true">
-  <div class="container">
-    <div class="row  mt-4">
+  <!--==== START Race Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4">
 
-      <div class="input-group">
-        <div class="input-group-prepend">
-          <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Race</button>
-          <div class="dropdown-menu">
-            <table class="table-sm table-striped table-hover">
-              <tbody  class="">
-                <tr ng-repeat="race in races | orderBy: 'name'" ng-click="data.char.class.race = race;" class="dropdown-item">
-                  <td><strong>{{race.name}}</strong></td>
-                  <td ng-repeat="(key, data) in race.ability[0]">
-                    <span ng-if="key != 'choose'">[{{key}} +{{data}}]</span>
-                    <span ng-if="key == 'choose'">[choose +{{data.count}}]</span>
-                  </td>
-                  <td ng-if="isNumber(race.speed)"> [walk: {{race.speed}}]</td>
-                  <td ng-if="!isNumber(race.speed)"ng-repeat="(key2, data2) in race.speed">[{{key2}}: {{data2}}]</td>
-                  <td>(<i>{{race.source}}</i>)</td>
-                </tr>
-              </tbody>
-            </table>
+        <div class="input-group">
+          <div class="input-group-prepend">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Race</button>
+            <div class="dropdown-menu">
+              <table class="table-sm table-striped table-hover">
+                <tbody  class="">
+                  <tr ng-repeat="race in races | orderBy: 'name'" ng-click="data.char.class.race = race;" class="dropdown-item">
+                    <td><strong>{{race.name}}</strong></td>
+                    <td ng-repeat="(key, data) in race.ability[0]">
+                      <span ng-if="key != 'choose'">[{{key}} +{{data}}]</span>
+                      <span ng-if="key == 'choose'">[choose +{{data.count}}]</span>
+                    </td>
+                    <td ng-if="isNumber(race.speed)"> [walk: {{race.speed}}]</td>
+                    <td ng-if="!isNumber(race.speed)"ng-repeat="(key2, data2) in race.speed">[{{key2}}: {{data2}}]</td>
+                    <td>(<i>{{race.source}}</i>)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.class.race.name" readonly>
         </div>
-        <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.class.race.name" readonly>
-      </div>
 
-    </div> <!-- End of Row -->
-</div> <!-- End of Container -->
-</div> <!-- End of NG-IF -->
-<!--==== END Race Selection ====-->
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Race Selection ====-->
 
-<!--==== START Attributes Selection ====-->
-<div ng-if="true">
-  <div class="container">
-    <div class="row  mt-4">
+  <!--==== START Attributes Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4">
 
-      <table class="table-sm table-striped table-hover tableAttributes">
-        <thead>
-          <tr>
-            <th class="text-center"></th>
-            <th class="text-right">Score</th>
-            <th class="text-left"></th>
-            <th class="text-center">Racial</th>
-            <th class="text-center">Other</th>
-            <th class="text-left"></th>
-            <th class="text-center">Total</th>
-            <th class="text-left">Mod</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr ng-repeat="(key, playerStat) in data.char.stats">
-            <td class="text-center"><strong>{{key.toUpperCase()}}</strong></td>
-            <td class="text-center">
-              <div class="input-group" style="place-content: flex-end;">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" ng-class="{'color-green':playerStat.sVal>=16,'color-blue':playerStat.sVal>=10,'color-red':playerStat.sVal<=9}"><strong>{{playerStat.sVal}}</strong></button>
-                <div class="dropdown-menu">
-                  <a class="dropdown-item" ng-repeat="rolledStat in data.char.rolledStats" ng-click="playerStat.sVal = rolledStat[0]; playerStat.sMod = rolledStat[1];" ng-class="{'color-green':rolledStat[0]>=16,'color-blue':rolledStat[0]>=10,'color-red':rolledStat[0]<=9}">{{rolledStat[0]}}</a>
-                </div> <!-- End of Dropdown Menu -->
-              </div> <!-- End of Input Group -->
-            </td>
-            <td><span class="rolledModTable">{{playerStat.sMod}}</span></td>
-            <td class="text-center"><strong>+{{playerStat.rVal}}</strong></td>
-            <td class="text-center" width="10%">
-              <div class="input-group">
-                <input type="number" class="form-control" aria-label="Text input with segmented dropdown button" ng-model="playerStat.oVal" ng-change="updateMod(playerStat)">
-              </div>
-            </td>
-            <td></td>
-            <td class="text-center" ng-class="{'color-green':playerStat.sVal+playerStat.rVal+playerStat.oVal>=16,'color-blue':playerStat.sVal+playerStat.rVal+playerStat.oVal>=10,'color-red':playerStat.sVal+playerStat.rVal+playerStat.oVal<=9}"><strong>{{playerStat.sVal+playerStat.rVal+playerStat.oVal}}</strong></td>
-            <td class="text-left"><span class="rolledModTable">{{playerStat.sMod+playerStat.rMod+playerStat.oMod}}</span></td>
-          </tr>
-        </tbody>
-      </table>
+        <table class="table-sm table-striped table-hover tableAttributes">
+          <thead>
+            <tr>
+              <th class="text-center"></th>
+              <th class="text-right">Score</th>
+              <th class="text-left"></th>
+              <th class="text-center">Racial</th>
+              <th class="text-center">Other</th>
+              <th class="text-left"></th>
+              <th class="text-center">Total</th>
+              <th class="text-left">Mod</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="(key, playerStat) in data.char.stats">
+              <td class="text-center"><strong>{{key.toUpperCase()}}</strong></td>
+              <td class="text-center">
+                <div class="input-group" style="place-content: flex-end;">
+                  <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" ng-class="{'color-green':playerStat.sVal>=16,'color-blue':playerStat.sVal>=10,'color-red':playerStat.sVal<=9}"><strong>{{playerStat.sVal}}</strong></button>
+                  <div class="dropdown-menu">
+                    <a class="dropdown-item" ng-repeat="rolledStat in data.char.rolledStats" ng-click="playerStat.sVal = rolledStat[0]; playerStat.sMod = rolledStat[1];" ng-class="{'color-green':rolledStat[0]>=16,'color-blue':rolledStat[0]>=10,'color-red':rolledStat[0]<=9}">{{rolledStat[0]}}</a>
+                  </div> <!-- End of Dropdown Menu -->
+                </div> <!-- End of Input Group -->
+              </td>
+              <td><span class="rolledModTable">{{playerStat.sMod}}</span></td>
+              <td class="text-center"><strong>+{{playerStat.rVal}}</strong></td>
+              <td class="text-center" width="10%">
+                <div class="input-group">
+                  <input type="number" class="form-control" aria-label="Text input with segmented dropdown button" ng-model="playerStat.oVal" ng-change="updateMod(playerStat)">
+                </div>
+              </td>
+              <td></td>
+              <td class="text-center" ng-class="{'color-green':playerStat.sVal+playerStat.rVal+playerStat.oVal>=16,'color-blue':playerStat.sVal+playerStat.rVal+playerStat.oVal>=10,'color-red':playerStat.sVal+playerStat.rVal+playerStat.oVal<=9}"><strong>{{playerStat.sVal+playerStat.rVal+playerStat.oVal}}</strong></td>
+              <td class="text-left"><span class="rolledModTable">{{playerStat.sMod+playerStat.rMod+playerStat.oMod}}</span></td>
+            </tr>
+          </tbody>
+        </table>
 
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Attributes Selection ====-->
 
-    </div> <!-- End of Row -->
-</div> <!-- End of Container -->
-</div> <!-- End of NG-IF -->
-<!--==== END Attributes Selection ====-->
+  <!--==== START Race Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4">
+
+        <div class="input-group">
+          <div class="input-group-prepend">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Background</button>
+            <div class="dropdown-menu">
+              <table class="table-sm table-striped table-hover">
+                <tbody  class="">
+                  <tr ng-repeat="background in backgrounds | orderBy: 'name'" ng-click="data.char.class.race = race;" class="dropdown-item">
+                    <td><strong>{{background.name}}</strong></td>
+                    <td>{{background.entries[0].items[0].entry}}</td>
+
+                    <td ng-if="background._copy">See: {{background._copy.name}}</td>
+                    <!-- <td ng-repeat="(key, data) in race.ability[0]">
+                      <span ng-if="key != 'choose'">[{{key}} +{{data}}]</span>
+                      <span ng-if="key == 'choose'">[choose +{{data.count}}]</span>
+                    </td>
+                    <td ng-if="isNumber(race.speed)"> [walk: {{race.speed}}]</td>
+                    <td ng-if="!isNumber(race.speed)"ng-repeat="(key2, data2) in race.speed">[{{key2}}: {{data2}}]</td> -->
+                    <td>(<i>{{background.source}}</i>)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.class.race.name" readonly>
+        </div>
+
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Race Selection ====-->
 
 
 
