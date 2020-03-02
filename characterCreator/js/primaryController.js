@@ -42,12 +42,12 @@ app.controller("ccCtrl", function($scope, $http, dice){
       proficiencies: {armor:{},instruments:{},kits:{},languages:{},tools:{},vehicles:{},weapons:{}},
       rolledStats: [],
       stats: {
-        str: {name: "Strength",     mod:0, val:0},
-        dex: {name: "Dexterity",    mod:0, val:0},
-        con: {name: "Constitution", mod:0, val:0},
-        wis: {name: "Wisdom",       mod:0, val:0},
-        int: {name: "Intelligence", mod:0, val:0},
-        cha: {name: "Charisma",     mod:0, val:0}},
+        str: {name: "Strength",     sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0},
+        dex: {name: "Dexterity",    sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0},
+        con: {name: "Constitution", sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0},
+        wis: {name: "Wisdom",       sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0},
+        int: {name: "Intelligence", sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0},
+        cha: {name: "Charisma",     sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0}},
       savingThrows: {
         str: {mod: "str", sMod:0, val:0, actv:0},
         dex: {mod: "dex", sMod:0, val:0, actv:0},
@@ -184,6 +184,10 @@ app.controller("ccCtrl", function($scope, $http, dice){
   };
 
   $scope.isNumber = angular.isNumber;
+
+  $scope.updateMod = function(stat){
+    stat.oMod = (Math.floor((stat.oVal+10)/2)-5);
+  }
 
   /*=======================================================================*
   * Gets json file from external local file
