@@ -19,7 +19,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
   *========================================================================*/
   var races;
   var feats;
-  var backgrounds;  
+  var backgrounds;
 
 
   $scope.data = {
@@ -167,7 +167,6 @@ app.controller("ccCtrl", function($scope, $http, dice){
 
 
   $scope.updateClasses = function(){
-    console.log($scope.classOptions, $scope.classOptions2)
     $scope.classOptions = angular.copy($scope.classOptions2);
     for (clss in $scope.classOptions2) {
       for (var i=0; i<$scope.data.char.class.length; i++){
@@ -182,7 +181,9 @@ app.controller("ccCtrl", function($scope, $http, dice){
       obj[index].level = level;
     });
 
-  }
+  };
+
+  $scope.isNumber = angular.isNumber;
 
   /*=======================================================================*
   * Gets json file from external local file
@@ -192,6 +193,10 @@ app.controller("ccCtrl", function($scope, $http, dice){
       var data = response.data
       $scope.classOptions = angular.copy(data);
       $scope.classOptions2 = angular.copy(data);
+    });
+
+    $http.get('./data/races.json').then(function(response){
+      $scope.races = response.data.race;
     });
 
     $http.get('./data/books.json').then(function(response){

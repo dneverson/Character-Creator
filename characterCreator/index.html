@@ -141,6 +141,46 @@
 </div> <!-- End of NG-IF -->
 <!--==== END Class and Level Selection ====-->
 
+<!--==== START Class and Level Selection ====-->
+<div ng-if="true">
+  <div class="container">
+    <div class="row  mt-5">
+
+        <div class="input-group">
+          <div class="input-group-prepend">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Race</button>
+            <div class="dropdown-menu">
+              <table class="table-sm table-striped table-hover">
+                <tbody  class="">
+                  <tr ng-repeat="race in races | orderBy: 'name'" ng-click="data.char.class.race = race;" class="dropdown-item">
+                    <td><strong>{{race.name}}</strong></td>
+
+                    <td ng-repeat="(key, data) in race.ability[0]">
+                      <span ng-if="key != 'choose'">[{{key}} +{{data}}]</span>
+
+                      <span ng-if="key == 'choose'">[choose +{{data.count}}]</span>
+                    </td>
+
+
+
+                    <td ng-if="isNumber(race.speed)"> [walk: {{race.speed}}]</td>
+                    <td ng-if="!isNumber(race.speed)"ng-repeat="(key2, data2) in race.speed">[{{key2}}: {{data2}}]</td>
+
+
+                    <td>(<i>{{race.source}}</i>)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.class.race.name" readonly>
+        </div>
+
+    </div> <!-- End of Row -->
+</div> <!-- End of Container -->
+</div> <!-- End of NG-IF -->
+<!--==== END Class and Level Selection ====-->
+
 
 
 
