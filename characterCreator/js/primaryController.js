@@ -219,12 +219,11 @@ app.controller("ccCtrl", function($scope, $http, dice){
 					 subrace.source ? temp.source = subrace.source : {};
 					 subrace.speed ? temp.speed = subrace.speed : {};
 					 subrace.traitTags ? temp.traitTags ? temp.traitTags = temp.traitTags.concat(subrace.traitTags) : temp.traitTags = subrace.traitTags : {};
-
 					 $scope.races.push(temp);
 				 });
 			 }
 		 });
-		 //console.log($scope.races)
+		 console.log($scope.races)
       //$scope.races = response.data.race;
     });
 
