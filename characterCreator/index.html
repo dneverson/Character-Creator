@@ -160,7 +160,8 @@
                     </td>
                     <td ng-if="isNumber(race.speed)"> [walk: {{race.speed}}]</td>
                     <td ng-if="!isNumber(race.speed)"ng-repeat="(key2, data2) in race.speed">[{{key2}}: {{data2}}]</td>
-                    <td>(<i>{{race.source}}</i>)</td>
+                    <td ng-if="race.darkvision"> [DV: {{race.darkvision}}]</td>
+                    <td><small>(<i>{{race.source}}: {{race.page}}</i>)</small></td>
                   </tr>
                 </tbody>
               </table>
@@ -243,7 +244,7 @@
                     </td>
                     <td ng-if="isNumber(race.speed)"> [walk: {{race.speed}}]</td>
                     <td ng-if="!isNumber(race.speed)"ng-repeat="(key2, data2) in race.speed">[{{key2}}: {{data2}}]</td> -->
-                    <td>(<i>{{background.source}}</i>)</td>
+                    <td><small>(<i>{{background.source}}: {{background.page}}</i>)</small></td>
                   </tr>
                 </tbody>
               </table>

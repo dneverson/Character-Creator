@@ -101,7 +101,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
   $scope.pbStats = function(){ $scope.data.char.rolledStats = dice.pbStats() };
   $scope.rollStatsMatrix = function(){
     $scope.data.char.rolledMatrixStats = dice.rollStatsMatrix(6,6);
-    dice.setBest($scope.data.char.rolledMatrixStats);
+    console.log(dice.setBest($scope.data.char.rolledMatrixStats));
   };
 
 
@@ -155,21 +155,11 @@ app.controller("ccCtrl", function($scope, $http, dice){
 
   $scope.updateRStats = function(){
     var obj = $scope.data.char;
-
     for (skey in obj.stats){
       for (rkey in obj.race.ability[0]){
-        if(skey == rkey){
-          obj.stats[skey].rVal = obj.race.ability[0][rkey]
-        }
-      }
-
-    }
-
-
-
-
-    console.log(obj.race)
-  }
+        if(skey == rkey) obj.stats[skey].rVal = obj.race.ability[0][rkey]
+    }}
+  };
 
   $scope.addClass = function(){
     var obj = $scope.data.char;
