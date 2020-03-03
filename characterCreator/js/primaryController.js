@@ -193,6 +193,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
   $scope.updateRStats = function(){
     var obj = $scope.data.char;
     for (skey in obj.stats){
+      obj.stats[skey].rVal = 0;
       for (rkey in obj.race.ability[0]){
         if(skey == rkey) obj.stats[skey].rVal = obj.race.ability[0][rkey]
     }}

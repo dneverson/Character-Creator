@@ -1,4 +1,4 @@
-# D&amp;D Character Creator
+# D&amp;D Character Creator - 5th Edition
 D&amp;D 5e Character Creator - Data Provided by 5e.tools
 
 ![GitHub Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=plastic)
@@ -40,11 +40,12 @@ ALPHA V1.0
 13.  [ ] Background Story
 
 ### Character Creator Needs Worked on:
-1.   [ ] Point Buy needs implemented
-2.   [ ] Matrix Roll needs implemented on the ability table
-3.   [ ] Backgrounds that are cloned need to display cloned skills in menu
-4.   [ ] Backgrounds need to display "Stealth" NOT "{@skill Stealth}"
-5.   [ ] Selected books need to filter all menu items
+1.   [ ] Race Choose x amount needs implemented
+2.   [ ] Point Buy needs implemented
+3.   [ ] Matrix Roll needs implemented on the ability table
+4.   [ ] Backgrounds that are cloned need to display cloned skills in menu
+5.   [ ] Backgrounds need to display "Stealth" NOT "{@skill Stealth}"
+6.   [ ] Selected books need to filter all menu items
 
 ### Character Creator Features:
 1.   [ ] Main thing he said is feat vs Ability score increase.
