@@ -1,4 +1,4 @@
-# Character-Creator
+# D&amp;D Character Creator
 D&amp;D 5e Character Creator - Data Provided by 5e.tools
 
 ![GitHub Version](https://img.shields.io/badge/Version-1.0-blue.svg?style=plastic)
