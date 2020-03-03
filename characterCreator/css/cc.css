@@ -85,9 +85,9 @@ input[type='checkbox']{
   font-weight: bold;
 }
 .dropdown-menu{
-  overflow: scroll;
-    max-height: 400px;
-    max-width: 600px;
+  overflow: auto;
+  max-height: 450px;
+  max-width: 600px;
 }
 .rollMatrixTable{
   width: 50%;
