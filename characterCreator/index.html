@@ -232,7 +232,7 @@
             <div class="dropdown-menu">
               <table class="table-sm table-striped table-hover">
                 <tbody  class="">
-                  <tr ng-repeat="background in backgrounds | orderBy: 'name'" ng-click="data.char.class.race = race;" class="dropdown-item">
+                  <tr ng-repeat="background in backgrounds | orderBy: 'name'" ng-click="data.char.background = background;" class="dropdown-item">
                     <td><strong>{{background.name}}</strong></td>
                     <td>{{background.entries[0].items[0].entry}}</td>
 
@@ -249,7 +249,7 @@
               </table>
             </div>
           </div>
-          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.class.race.name" readonly>
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.background.name" readonly>
         </div>
 
       </div> <!-- End of Row -->
