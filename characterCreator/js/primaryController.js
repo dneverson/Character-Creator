@@ -42,12 +42,12 @@ app.controller("ccCtrl", function($scope, $http, dice){
       proficiencies: {armor:{},instruments:{},kits:{},languages:{},tools:{},vehicles:{},weapons:{}},
       rolledStats: [],
       stats: {
-        str: {name: "Strength",     sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0},
-        dex: {name: "Dexterity",    sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0},
-        con: {name: "Constitution", sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0},
-        wis: {name: "Wisdom",       sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0},
-        int: {name: "Intelligence", sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0},
-        cha: {name: "Charisma",     sMod:0, rMod:0, oMod:0, sVal:0, rVal:0, oVal:0}},
+        str: {name: "Strength",     sVal:0, rVal:0, oVal:0},
+        dex: {name: "Dexterity",    sVal:0, rVal:0, oVal:0},
+        con: {name: "Constitution", sVal:0, rVal:0, oVal:0},
+        wis: {name: "Wisdom",       sVal:0, rVal:0, oVal:0},
+        int: {name: "Intelligence", sVal:0, rVal:0, oVal:0},
+        cha: {name: "Charisma",     sVal:0, rVal:0, oVal:0}},
       savingThrows: {
         str: {mod: "str", sMod:0, val:0, actv:0},
         dex: {mod: "dex", sMod:0, val:0, actv:0},
@@ -153,6 +153,24 @@ app.controller("ccCtrl", function($scope, $http, dice){
     }
   };
 
+  $scope.updateRStats = function(){
+    var obj = $scope.data.char;
+
+    for (skey in obj.stats){
+      for (rkey in obj.race.ability[0]){
+        if(skey == rkey){
+          obj.stats[skey].rVal = obj.race.ability[0][rkey]
+        }
+      }
+
+    }
+
+
+
+
+    console.log(obj.race)
+  }
+
   $scope.addClass = function(){
     var obj = $scope.data.char;
     var maxLen = obj.levelsMax-obj.levelsCur;
@@ -187,7 +205,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
   $scope.isNumber = angular.isNumber;
 
   $scope.updateMod = function(stat){
-    stat.oMod = (Math.floor((stat.oVal+10)/2)-5);
+    return (Math.floor((stat)/2)-5);
   }
 
   /*=======================================================================*
@@ -223,8 +241,6 @@ app.controller("ccCtrl", function($scope, $http, dice){
 				 });
 			 }
 		 });
-		 console.log($scope.races)
-      //$scope.races = response.data.race;
     });
 
     $http.get('./data/backgrounds.json').then(function(response){

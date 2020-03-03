@@ -85,8 +85,8 @@
             <button type="button" class="btn btn-success" ng-click="rollStats3d6r1()" ng-if="statType=='Roll 3d6r1'">Roll</button>
             <button type="button" class="btn btn-success" ng-click="rollStatsMatrix(); matrix=1" ng-if="statType=='Roll Matrix'">Roll</button>
           </div> <!-- End of Input Group Append -->
-          <div class="rolledContainer" ng-repeat="stat in data.char.rolledStats  | orderBy:'stat[0]'" ng-if="statType!='Roll Matrix'">
-            <span class="rolled" ng-class="{'color-green':stat[0]>=16,'color-blue':stat[0]>=10,'color-red':stat[0]<=9}">{{stat[0]}}</span><span class="rolledMod">{{stat[1]}}</span>
+          <div class="rolledContainer" ng-repeat="stat in data.char.rolledStats track by $index" ng-if="statType!='Roll Matrix'">
+            <span class="rolled" ng-class="{'color-green':stat>=16,'color-blue':stat>=10,'color-red':stat<=9}">{{stat}}</span><span class="rolledMod">{{updateMod(stat)}}</span>
           </div> <!-- End of Rolled Container -->
         </div> <!-- End of Input Group -->
       </div> <!-- End of Row -->
@@ -152,7 +152,7 @@
             <div class="dropdown-menu">
               <table class="table-sm table-striped table-hover">
                 <tbody  class="">
-                  <tr ng-repeat="race in races | orderBy: 'name'" ng-click="data.char.class.race = race;" class="dropdown-item">
+                  <tr ng-repeat="race in races | orderBy: 'name'" ng-click="data.char.race = race; updateRStats();" class="dropdown-item">
                     <td><strong>{{race.name}}</strong></td>
                     <td ng-repeat="(key, data) in race.ability[0]">
                       <span ng-if="key != 'choose'">[{{key}} +{{data}}]</span>
@@ -166,7 +166,7 @@
               </table>
             </div>
           </div>
-          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.class.race.name" readonly>
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.race.name" readonly>
         </div>
 
       </div> <!-- End of Row -->
@@ -199,20 +199,20 @@
                 <div class="input-group" style="place-content: flex-end;">
                   <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" ng-class="{'color-green':playerStat.sVal>=16,'color-blue':playerStat.sVal>=10,'color-red':playerStat.sVal<=9}"><strong>{{playerStat.sVal}}</strong></button>
                   <div class="dropdown-menu">
-                    <a class="dropdown-item" ng-repeat="rolledStat in data.char.rolledStats" ng-click="playerStat.sVal = rolledStat[0]; playerStat.sMod = rolledStat[1];" ng-class="{'color-green':rolledStat[0]>=16,'color-blue':rolledStat[0]>=10,'color-red':rolledStat[0]<=9}">{{rolledStat[0]}}</a>
+                    <a class="dropdown-item" ng-repeat="rolledStat in data.char.rolledStats track by $index" ng-click="playerStat.sVal = rolledStat;" ng-class="{'color-green':rolledStat>=16,'color-blue':rolledStat>=10,'color-red':rolledStat<=9}">{{rolledStat}}</a>
                   </div> <!-- End of Dropdown Menu -->
                 </div> <!-- End of Input Group -->
               </td>
-              <td><span class="rolledModTable">{{playerStat.sMod}}</span></td>
+              <td><span class="rolledModTable">{{updateMod(playerStat.sVal)}}</span></td>
               <td class="text-center"><strong>+{{playerStat.rVal}}</strong></td>
               <td class="text-center" width="10%">
                 <div class="input-group">
-                  <input type="number" class="form-control" aria-label="Text input with segmented dropdown button" ng-model="playerStat.oVal" ng-change="updateMod(playerStat)">
+                  <input type="number" class="form-control" aria-label="Text input with segmented dropdown button" ng-model="playerStat.oVal" >
                 </div>
               </td>
               <td></td>
               <td class="text-center" ng-class="{'color-green':playerStat.sVal+playerStat.rVal+playerStat.oVal>=16,'color-blue':playerStat.sVal+playerStat.rVal+playerStat.oVal>=10,'color-red':playerStat.sVal+playerStat.rVal+playerStat.oVal<=9}"><strong>{{playerStat.sVal+playerStat.rVal+playerStat.oVal}}</strong></td>
-              <td class="text-left"><span class="rolledModTable">{{playerStat.sMod+playerStat.rMod+playerStat.oMod}}</span></td>
+              <td class="text-left"><span class="rolledModTable">{{updateMod(playerStat.sVal+playerStat.rVal+playerStat.oVal)}}</span></td>
             </tr>
           </tbody>
         </table>

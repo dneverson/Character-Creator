@@ -115,8 +115,7 @@ app.service('dice', function() {
     var arr = [8, 8, 8, 8, 8, 8];
     var result = [];
     for (var i=0; i<arr.length; i++){
-      var diceMod = getStatMod(arr[i]);
-      result.push([arr[i], diceMod])
+      result.push(arr[i])
     }
     return result
   };
@@ -128,8 +127,7 @@ app.service('dice', function() {
     var arr = [15, 14, 13, 12, 10, 8];
     var result = [];
     for (var i=0; i<arr.length; i++){
-      var diceMod = getStatMod(arr[i]);
-      result.push([arr[i], diceMod])
+      result.push(arr[i])
     }
     return result
   };
@@ -165,11 +163,11 @@ app.service('dice', function() {
       var diceRolls = rollDice(amnt,diceType);
       var diceReroll = rollReroll(diceRolls,6,1);
       var diceSum = rollSum(diceReroll);
-      var diceMod = getStatMod(diceSum);
-      result.push([diceSum, diceMod]);
+      result.push(diceSum);
     }
     return result;
   };
+
   this.rollStats3d6 = function(){
     const amnt = 3;
     const diceType = 6;
@@ -177,11 +175,11 @@ app.service('dice', function() {
     for (var i=0; i<6; i++){
       var diceRolls = rollDice(amnt,diceType);
       var diceSum = rollSum(diceRolls);
-      var diceMod = getStatMod(diceSum);
-      result.push([diceSum, diceMod]);
+      result.push(diceSum);
     }
     return result;
   };
+
   this.rollStats4d6k3 = function(){
     const amnt = 4;
     const diceType = 6;
@@ -190,11 +188,11 @@ app.service('dice', function() {
       var diceRolls = rollDice(amnt,diceType);
       var diceKeeps = rollKeep(diceRolls,3);
       var diceSum = rollSum(diceKeeps);
-      var diceMod = getStatMod(diceSum);
-      result.push([diceSum, diceMod]);
+      result.push(diceSum);
     }
     return result
   };
+  
   this.rollStats4d6k3r1 = function(){
     const amnt = 4;
     const diceType = 6;
@@ -204,8 +202,7 @@ app.service('dice', function() {
       var diceReroll = rollReroll(diceRolls,6,1);
       var diceKeeps = rollKeep(diceReroll,3);
       var diceSum = rollSum(diceKeeps);
-      var diceMod = getStatMod(diceSum);
-      result.push([diceSum, diceMod]);
+      result.push(diceSum);
     }
     return result;
   };
