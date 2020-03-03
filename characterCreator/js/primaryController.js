@@ -17,9 +17,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
   /*=======================================================================*
   * Global Varibles
   *========================================================================*/
-  var races;
-  var feats;
-  var backgrounds;
+
 
 
   $scope.data = {

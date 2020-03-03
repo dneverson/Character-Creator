@@ -24,8 +24,38 @@ ALPHA V1.0
 * **Derry Everson**
 * **Mikel Jensen**
 
-### Desktop View:
-![GitHub Logo]()
+### Character Creator Order:
+1.   [X] Book Selection
+2.   [X] Roll Dice for Stats
+3.   [X] Class / Muli-Class Selection and Levels
+4.   [X] Race Selection
+5.   [X] Stat Attributes
+6.   [X] Background Selection
+7.   [ ] Class / Multi-Class lvl up selections and features
+8.   [ ] Skills
+9.   [ ] Hit Dice
+10.  [ ] Spells
+11.  [ ] Druid Wild-Shape
+12.  [ ] Equipment / Items
+13.  [ ] Background Story
 
-### Mobile View:
-![GitHub Logo]()
+### Character Creator Needs Worked on:
+1.   [ ] Point Buy needs implemented
+2.   [ ] Matrix Roll needs implemented on the ability table
+3.   [ ] Backgrounds that are cloned need to display cloned skills in menu
+4.   [ ] Backgrounds need to display "Stealth" NOT "{@skill Stealth}"
+5.   [ ] Selected books need to filter all menu items
+
+### Character Creator Features:
+1.   [ ] Main thing he said is feat vs Ability score increase.
+2.   [ ] Is it better to take a feat at 4? 8? etc...
+3.   [ ] Best single round burst damage assuming average rolls.
+4.   [ ] Suggested Stats priorities
+5.   [ ] Suggested Race
+6.   [ ] Suggested Background
+7.   [ ] Suggested Skills (Dungeons / Surface Land / Cities / Etc.. / Adventures being used)
+8.   [ ] Suggested Languages (Dungeons / Surface Land / Cities / Etc.. / Adventures being used)
+9.   [ ] Suggested Spells
+10.  [ ] Suggested Starting Equipment / Items / Magical Items
+11.  [ ] 100% Random Rolled Characters (for fun)
+12.  [ ] Pre-built Characters (Max DMG, Max AC, Max HP, Etc...)(class specific)

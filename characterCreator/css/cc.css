@@ -165,11 +165,9 @@ small{
   margin: 0 auto;
 }
 footer {
-  bottom: 0;
-  left: 0;
-  position: fixed;
   text-align: center;
   width: 100%;
+  z-index: -1;
 }
 
 @media (max-width: 420px) {
