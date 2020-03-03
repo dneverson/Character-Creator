@@ -36,6 +36,11 @@ input[type='checkbox']{
   margin-top: 3px !important;
   width: 32px;
 }
+.books li input:read-only:hover, .books li:hover, .diceMenu a:hover{
+  background-color: #ececec !important;
+  cursor: default;
+}
+
 
 .rolled{
   border-radius: 5%;
@@ -88,6 +93,7 @@ input[type='checkbox']{
   overflow: auto;
   max-height: 450px;
   max-width: 600px;
+  padding: 0;
 }
 .rollMatrixTable{
   width: 50%;
@@ -155,6 +161,9 @@ h1{
   font-weight: 500;
 }
 
+small{
+  margin: 0 auto;
+}
 footer {
   bottom: 0;
   left: 0;

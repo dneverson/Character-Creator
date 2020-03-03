@@ -87,21 +87,26 @@ app.controller("ccCtrl", function($scope, $http, dice){
     //console.log($scope.data.char.stats[yes].mod)
   };
 
+  $scope.resetStats = function(){
+    $scope.rolledStats = angular.copy($scope.data.char.rolledStats);
+    var obj = $scope.data.char.stats;
+    for (stat in obj) obj[stat].sVal = obj[stat].oVal = 0;
+  };
 
   /*=======================================================================*
   * Temp While a Generic Function is created for all deez
   *========================================================================*/
   //  Amount, Dice Type, Keep Amount, Reroll [ARRAY]
   $scope.roll = function(amnt,dt,kp,rr){$scope.data.char.rolledStats = dice.rollDicess(amnt,dt,kp,rr)};
-  $scope.rollStats4d6k3 = function(){$scope.data.char.rolledStats = dice.rollStats4d6k3()};
-  $scope.rollStats4d6k3r1 = function(){$scope.data.char.rolledStats = dice.rollStats4d6k3r1()};
-  $scope.rollStats3d6 = function(){$scope.data.char.rolledStats = dice.rollStats3d6()};
-  $scope.rollStats3d6r1 = function(){ $scope.data.char.rolledStats = dice.rollStats3d6r1()};
-  $scope.arrayStats = function(){ $scope.data.char.rolledStats = dice.arrayStats()};
-  $scope.pbStats = function(){ $scope.data.char.rolledStats = dice.pbStats() };
+  $scope.rollStats4d6k3 = function(){$scope.data.char.rolledStats = dice.rollStats4d6k3(); $scope.resetStats();};
+  $scope.rollStats4d6k3r1 = function(){$scope.data.char.rolledStats = dice.rollStats4d6k3r1(); $scope.resetStats();};
+  $scope.rollStats3d6 = function(){$scope.data.char.rolledStats = dice.rollStats3d6(); $scope.resetStats();};
+  $scope.rollStats3d6r1 = function(){ $scope.data.char.rolledStats = dice.rollStats3d6r1(); $scope.resetStats();};
+  $scope.arrayStats = function(){ $scope.data.char.rolledStats = dice.arrayStats(); $scope.resetStats();};
+  $scope.pbStats = function(){ $scope.data.char.rolledStats = dice.pbStats(); $scope.resetStats();};
   $scope.rollStatsMatrix = function(){
     $scope.data.char.rolledMatrixStats = dice.rollStatsMatrix(6,6);
-    console.log(dice.setBest($scope.data.char.rolledMatrixStats));
+    dice.setBest($scope.data.char.rolledMatrixStats);
   };
 
 
@@ -139,6 +144,40 @@ app.controller("ccCtrl", function($scope, $http, dice){
   };
 
 
+
+
+  $scope.addClass = function(){
+    var obj = $scope.data.char;
+    var maxLen = obj.levelsMax-obj.levelsCur;
+    if(obj.levelsCur < obj.levelsMax){
+      obj.class.push({name:"",level:1});
+    }else window.alert("Maximum Level Reached ("+obj.levelsMax+")");
+  };
+
+  $scope.removeIndexClass = function(loc){
+    $scope.data.char.class.splice(loc,1);
+  };
+
+  $scope.updateRollSelection = function(num){
+    for (var i=0; i<$scope.rolledStats.length; i++){
+      if($scope.rolledStats[i] == num){
+        $scope.rolledStats.splice(i,1);
+        break;
+      }
+    }
+  };
+
+  $scope.rolledStats = angular.copy($scope.data.char.rolledStats);
+
+
+  $scope.updateClasses = function(){
+    $scope.classOptions = angular.copy($scope.classOptions2);
+    for (clss in $scope.classOptions2) {
+      for (var i=0; i<$scope.data.char.class.length; i++){
+        if($scope.data.char.class[i].name.toUpperCase() == clss.toUpperCase()) delete $scope.classOptions[clss]
+      }}
+  };
+
   $scope.updateLevels = function(){
     try{
       var sum = 0;
@@ -161,27 +200,9 @@ app.controller("ccCtrl", function($scope, $http, dice){
     }}
   };
 
-  $scope.addClass = function(){
-    var obj = $scope.data.char;
-    var maxLen = obj.levelsMax-obj.levelsCur;
-    if(obj.levelsCur < obj.levelsMax){
-      obj.class.push({name:"",level:1});
-    }else window.alert("Maximum Level Reached ("+obj.levelsMax+")");
-	 console.log($scope.data.char)
-  };
-
-  $scope.removeIndexClass = function(loc){
-    $scope.data.char.class.splice(loc,1);
-  };
-
-
-  $scope.updateClasses = function(){
-    $scope.classOptions = angular.copy($scope.classOptions2);
-    for (clss in $scope.classOptions2) {
-      for (var i=0; i<$scope.data.char.class.length; i++){
-        if($scope.data.char.class[i].name.toUpperCase() == clss.toUpperCase()) delete $scope.classOptions[clss]
-      }}
-  };
+  $scope.updateMod = function(stat){
+    return (Math.floor((stat)/2)-5);
+  }
 
   $scope.loadClass = function(path, level, index){
     $http.get('./data/class/'+path).then(function(response){
@@ -194,9 +215,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
 
   $scope.isNumber = angular.isNumber;
 
-  $scope.updateMod = function(stat){
-    return (Math.floor((stat)/2)-5);
-  }
+
 
   /*=======================================================================*
   * Gets json file from external local file
