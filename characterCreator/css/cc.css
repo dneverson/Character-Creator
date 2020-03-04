@@ -160,6 +160,10 @@ h1{
   color: #bf7917;
   font-weight: 500;
 }
+.classFeatures{
+  width: 100% !important;
+  padding: 0;
+}
 
 small{
   margin: 0 auto;

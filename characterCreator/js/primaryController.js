@@ -15,11 +15,8 @@ app.controller("ccCtrl", function($scope, $http, dice){
   var isChrome = !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime);
 
   /*=======================================================================*
-  * Global Varibles
+  * Globals
   *========================================================================*/
-
-
-
   $scope.data = {
     ccView: {classes:1,races:0,backgrounds:0},
     char: {
@@ -75,16 +72,21 @@ app.controller("ccCtrl", function($scope, $http, dice){
     },
   };
 
-  function printSavingThrow(){
-    var yes = $scope.data.char.savingThrows.str.mod
-    //console.log($scope.data.char.stats[yes].mod)
+  /*=======================================================================*
+  * Book Checkbox Sync for Book menu
+  *========================================================================*/
+  function isChecked(){
+    sb = $scope.data.char.selectedBooks;
+    bk = $scope.books
+    for (var i=0; i<sb.length; i++){
+      for (var x=0; x<bk.length;x++){
+        if(bk[x].source == sb[i]) bk[x].status = true;
+    }}
   };
 
-  function printSkill(){
-    var yes = $scope.data.char.skills.arcana.mod
-    //console.log($scope.data.char.stats[yes].mod)
-  };
-
+  /*=======================================================================*
+  * Resets Attributes to 0 when re-rolling stats  MINUS Racial Attributes
+  *========================================================================*/
   $scope.resetStats = function(){
     $scope.rolledStats = angular.copy($scope.data.char.rolledStats);
     var obj = $scope.data.char.stats;
@@ -116,68 +118,62 @@ app.controller("ccCtrl", function($scope, $http, dice){
   $scope.checkboxSwitch = function(item){
     item.status = item.status?false:true;
   };
+  //BETTER WAY TO DO THIS ASK MIKEL
   $scope.checkboxSwitchInline = function(item){
     if(isIE) item.status = item.status?false:true;
   };
   $scope.checkboxTextUpdate = function(books){
-    $scope.data.char.selectedBooks = []
+    var obj = $scope.data.char.selectedBooks = []
     for (var i=0; i<books.length; i++){
-      var source = books[i].source;
-      var status = books[i].status;
-      if (status) $scope.data.char.selectedBooks.push(source)
-    }
-  };
-  function isChecked(){
-    sb = $scope.data.char.selectedBooks;
-    bk = $scope.books
-    for (var i=0; i<sb.length; i++){
-      for (var x=0; x<bk.length;x++){
-        if(bk[x].source == sb[i]) bk[x].status = true;
-    }}
-  };
+      if (books[i].status) obj.push(books[i].source);
+  }};
 
-
-  function checkbooks(){
-
-  };
-
-
-
-
+  /*=======================================================================*
+  * Adds a blank class to the class / multi-class container and data JSON
+  *========================================================================*/
   $scope.addClass = function(){
     var obj = $scope.data.char;
     var maxLen = obj.levelsMax-obj.levelsCur;
     if(obj.levelsCur < obj.levelsMax){
       obj.class.push({name:"",level:1});
+      // MAKE BETTER ALERT NOT STUPID WINDOW
     }else window.alert("Maximum Level Reached ("+obj.levelsMax+")");
   };
 
+  /*=======================================================================*
+  * Removes selected class from class menu list
+  *========================================================================*/
   $scope.removeIndexClass = function(loc){
     $scope.data.char.class.splice(loc,1);
   };
 
+  /*=======================================================================*
+  * Sets / gets rolled dice menu list depenidng on what has been selected
+  *========================================================================*/
   $scope.updateRollSelection = function(num){
     for (var i=0; i<$scope.rolledStats.length; i++){
       if($scope.rolledStats[i] == num){
         $scope.rolledStats.splice(i,1);
         break;
-      }
-    }
-  };
+  }}};
 
-  $scope.rolledStats = angular.copy($scope.data.char.rolledStats);
-
-
+  /*=======================================================================*
+  * Sets / gets class menu list depenidng on what has been selected
+  *========================================================================*/
   $scope.updateClasses = function(){
     $scope.classOptions = angular.copy($scope.classOptions2);
     for (clss in $scope.classOptions2) {
       for (var i=0; i<$scope.data.char.class.length; i++){
         if($scope.data.char.class[i].name.toUpperCase() == clss.toUpperCase()) delete $scope.classOptions[clss]
-      }}
+  }}
+  // TEMP WHILE DOING CLASS FEATURES
+  console.log($scope.data.char.class)
   };
 
+  /*=======================================================================*
+  * Sets levels remaining for max value in the class selection
+  *========================================================================*/
   $scope.updateLevels = function(){
-    try{
       var sum = 0;
       var obj = $scope.data.char;
       for (var i=0; i<obj.class.length; i++){
@@ -185,47 +181,59 @@ app.controller("ccCtrl", function($scope, $http, dice){
       }
       obj.levelsCur = sum
       obj.levelsRem = ((obj.levelsMax)-(obj.levelsCur));
-    }catch(e){
-      console.log("error");
-    }
-  };
+    };
 
+  /*=======================================================================*
+  * Sets / Resets racial abilities
+  *========================================================================*/
   $scope.updateRStats = function(){
     var obj = $scope.data.char;
     for (skey in obj.stats){
       obj.stats[skey].rVal = 0;
       for (rkey in obj.race.ability[0]){
         if(skey == rkey) obj.stats[skey].rVal = obj.race.ability[0][rkey]
-    }}
-  };
+  }}};
 
+  /*=======================================================================*
+  * Calculates Mod value of stat provided
+  *========================================================================*/
   $scope.updateMod = function(stat){
     return (Math.floor((stat)/2)-5);
-  }
+  };
 
+  /*=======================================================================*
+  * Sets Character Class via JSON file
+  *========================================================================*/
   $scope.loadClass = function(path, level, index){
     $http.get('./data/class/'+path).then(function(response){
       var obj = $scope.data.char.class
       obj[index] = response.data.class[0];
       obj[index].level = level;
     });
-
   };
 
+  /*=======================================================================*
+  * Checks if Race Speed is a number to diff from array
+  *========================================================================*/
   $scope.isNumber = angular.isNumber;
 
-
-
   /*=======================================================================*
-  * Gets json file from external local file
+  * JSON Gets on AngularJS INIT
   *========================================================================*/
   $scope.$watch('$viewContentLoaded', function(event){
+
+    /*=======================================================================*
+    * Gets Class JSON for Class Menu
+    *========================================================================*/
     $http.get('./data/class/index.json').then(function(response){
       var data = response.data
       $scope.classOptions = angular.copy(data);
       $scope.classOptions2 = angular.copy(data);
     });
 
+    /*=======================================================================*
+    * Gets Race JSON for Race Menu
+    *========================================================================*/
     $http.get('./data/races.json').then(function(response){
 		 $scope.races = [];
 		 response.data.race.forEach(race => {
@@ -251,13 +259,20 @@ app.controller("ccCtrl", function($scope, $http, dice){
 		 });
     });
 
+    /*=======================================================================*
+    * Gets Background JSON for Backgrounds Menu
+    *========================================================================*/
     $http.get('./data/backgrounds.json').then(function(response){
       $scope.backgrounds = response.data.background;
     });
 
+    /*=======================================================================*
+    * Gets Book JSON for Book Menu
+    *========================================================================*/
     $http.get('./data/books.json').then(function(response){
       $scope.books = response.data.book;
     }).then(function(result){
+      // Only needed when default books are selected
       isChecked();
     });
   });
@@ -266,9 +281,12 @@ app.controller("ccCtrl", function($scope, $http, dice){
   * INIT
   *========================================================================*/
   function init(){
+    // These are not connected to what is being showed / what is being rolled at init
     $scope.rollStats4d6k3();
+    // Probably a better way of doing This
+    $scope.rolledStats = angular.copy($scope.data.char.rolledStats);
+    // Is this needed anymore? I dont think so...
     $scope.rollStatsMatrix();
-
   };
   init();
 

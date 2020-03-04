@@ -40,12 +40,13 @@ ALPHA V1.0
 13.  [ ] Background Story
 
 ### Character Creator Needs Worked on:
-1.   [ ] Race Choose x amount needs implemented
-2.   [ ] Point Buy needs implemented
-3.   [ ] Matrix Roll needs implemented on the ability table
-4.   [ ] Backgrounds that are cloned need to display cloned skills in menu
-5.   [ ] Backgrounds need to display "Stealth" NOT "{@skill Stealth}"
-6.   [ ] Selected books need to filter all menu items
+1.   [ ] Multi-Class requirements Checking
+2.   [ ] Race Choose x amount needs implemented
+3.   [ ] Point Buy needs implemented
+4.   [ ] Matrix Roll needs implemented on the ability table
+5.   [ ] Backgrounds that are cloned need to display cloned skills in menu
+6.   [ ] Backgrounds need to display "Stealth" NOT "{@skill Stealth}"
+7.   [ ] Selected books need to filter all menu items
 
 ### Character Creator Features:
 1.   [ ] Main thing he said is feat vs Ability score increase.
