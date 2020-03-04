@@ -254,24 +254,35 @@
       <div >
 
         <div class="row  mt-4 mb-3" ng-repeat="class in data.char.class">
-          <div class="col-sm-12">
+          <div class="col-sm-12 classFeatures">
             <h2>{{class.name}}</h2>
           </div>
           <div class="col-sm-8 classFeatures">
             <table class="table-sm table-striped table-hover classFeatures">
+              <thead>
+                <tr>
+                  <td>Level</td>
+                  <td>Class Features</td>
+                </tr>
+              </thead>
               <tbody  class="">
                 <tr ng-repeat="(key, level) in class.classFeatures | limitTo:class.level" ng-click="">
-                  <td>Level {{key+1}}</td>
-                  <td ng-repeat="feature in level">{{feature.name}}</td>
+                  <td  width="10%">{{key+1}}</td>
+                  <td><span ng-repeat="feature in level">[{{feature.name}}] </span></td>
+
                 </tr>
               </tbody>
             </table>
           </div>
           <div class="col-sm-4 classFeatures">
             <table class="table-sm table-striped table-hover classFeatures">
+              <thead>
+                <tr>
+                  <td>1</td>
+                </tr>
+              </thead>
               <tbody  class="">
                 <tr ng-repeat="(key, row) in class.classTableGroups[1].rows | limitTo:class.level " ng-click="">
-                  <td>Level {{key+1}}</td>
                   <td ng-repeat="entry in row track by $index">{{entry}}</td>
                 </tr>
               </tbody>
