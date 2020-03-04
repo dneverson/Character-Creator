@@ -217,11 +217,33 @@ app.controller("ccCtrl", function($scope, $http, dice){
   *========================================================================*/
   $scope.isNumber = angular.isNumber;
 
+
+
+  //"(a) a {@item handaxe|phb} and a {@item light hammer|phb} or (b) any two {@filter simple weapons|items|source=phb|category=basic|type=simple weapon}"
+  //"(a) a [handaxe] and a [light hammer] or (b) any two [simple weapons]" [text][0] convert to array and replace text for array at pos 0
+  //"a {@item light crossbow|phb} and {@item crossbow bolts (20)|phb|20 bolts}"
+  //"a [light crossbow] and [crossbow bolts (20)]"
+  //"{@filter Cantrips Known|spells|level=0|class=bard}"
+  //"[Cantrips Known]"
+  //"{@filter 1st|spells|level=1|class=bard}"
+  //"[1st]"
+  $scope.parseClassFeatureHeader = function(text){
+    var type = (text).replace(/[{}]/g,"").replace(/ .*/,"");
+    if (type == "@filter"){
+      var result = (text).replace(/[{}]/g,"").replace(type+" ","").split("|");
+      console.log(result);
+    }
+    if (type == "@item"){
+      var result = (text).replace(/[{}]/g,"").replace(type+" ","").split("|");
+      console.log(result);
+    }
+  };
+
+
   /*=======================================================================*
   * JSON Gets on AngularJS INIT
   *========================================================================*/
   $scope.$watch('$viewContentLoaded', function(event){
-
     /*=======================================================================*
     * Gets Class JSON for Class Menu
     *========================================================================*/
@@ -230,7 +252,6 @@ app.controller("ccCtrl", function($scope, $http, dice){
       $scope.classOptions = angular.copy(data);
       $scope.classOptions2 = angular.copy(data);
     });
-
     /*=======================================================================*
     * Gets Race JSON for Race Menu
     *========================================================================*/
