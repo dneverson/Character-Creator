@@ -54,7 +54,7 @@
               </li>
             </ul>
           </div> <!-- End of Input Group Prepend -->
-          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.selectedBooks" readonly>
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.selectedBooks" data-toggle="dropdown" readonly>
         </div> <!-- End of Input Group -->
       </div> <!-- End of Row -->
     </div> <!-- End of Container -->
@@ -127,7 +127,7 @@
                 </table>
               </div> <!-- End of Dropdown Menu -->
             </div> <!-- End of Input Group Prepend -->
-            <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="class.name" readonly>
+            <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="class.name" data-toggle="dropdown" readonly>
             <div class="input-group-append">
               <span class="input-group-text">Levels</span>
             </div> <!-- End of Input Group Append -->
@@ -167,7 +167,7 @@
               </table>
             </div> <!-- End of Dropdown Menu -->
           </div> <!-- End of Input Group Prepend -->
-          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.race.name" readonly>
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" data-toggle="dropdown" ng-model="data.char.race.name" readonly>
         </div> <!-- End of Input Group -->
       </div> <!-- End of Row -->
     </div> <!-- End of Container -->
@@ -241,7 +241,7 @@
               </table>
             </div> <!-- End of Dropdown Menu -->
           </div> <!-- End of Input Group Prepend -->
-          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.background.name" readonly>
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.background.name" data-toggle="dropdown" readonly>
         </div> <!-- End of Input Group -->
       </div> <!-- End of Row -->
     </div> <!-- End of Container -->
@@ -261,15 +261,21 @@
             <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classFeatures">
               <thead>
                 <tr>
-                  <th class=""><div><span>Level</span></div></th>
-                  <th class=""><div><span>Class Features</span></div></th>
-
+                  <th class="text-center"><div><span>Level</span></div></th>
+                  <th class="text-center"><div><span>Class Features</span></div></th>
                 </tr>
               </thead>
               <tbody  class="">
                 <tr ng-repeat="(key, level) in class.classFeatures | limitTo:class.level" ng-click="">
                   <td>{{key+1}}</td>
-                  <td><span ng-repeat="feature in level">[{{feature.name}}] </span></td>
+                  <td>
+                    <span ng-repeat="feature in level">
+                      <button class="btn btn-sm btn-outline-secondary btn-dropdown-toggle" type="button" data-toggle="dropdown" ng-click="printss(feature)">{{feature.name}}</button>
+                      <div class="dropdown-menu">
+                        <a class="dropdown-item" ng-repeat="sub in class.subclasses track by $index" ng-click="" ng-class="">{{sub.name}}</a>
+                      </div> <!-- End of Dropdown Menu -->
+                    </span>
+                  </td>
 
                 </tr>
               </tbody>
@@ -278,7 +284,7 @@
             <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[0].rows">
               <thead>
                 <tr>
-                  <th class="rotate-45"><div><span>1</span></div></th>
+                  <th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[0].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th>
                 </tr>
               </thead>
               <tbody  class="">
@@ -291,10 +297,7 @@
             <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[1].rows">
               <thead>
                 <tr>
-                  <th class="rotate-45"><div><span>1st</span></div></th>
-                  <th class="rotate-45"><div><span>2nd</span></div></th>
-                  <th class="rotate-45"><div><span>3rd</span></div></th>
-                  <th class="rotate-45"><div><span>4th</span></div></th>
+                  <th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[1].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th>
                 </tr>
               </thead>
               <tbody  class="">
@@ -307,7 +310,7 @@
             <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[2].rows">
               <thead>
                 <tr>
-                  <th class="rotate-45"><div><span>1</span></div></th>
+                  <th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[2].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th>
                 </tr>
               </thead>
               <tbody  class="">

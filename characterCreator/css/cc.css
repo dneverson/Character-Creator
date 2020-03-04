@@ -174,13 +174,14 @@ h1{
   border-top: 1px solid #dddddd;
   border-left: 1px solid #dddddd;
   border-right: 1px solid #dddddd;
+  height: 34px;
   vertical-align: middle;
   white-space: nowrap;
   text-align: center;
 }
 
 .table-header-rotated th.rotate-45{
-  height: 50px;
+  height: 80px;
   width: 30px;
   min-width: 30px;
   max-width: 30px;
@@ -194,7 +195,7 @@ h1{
 .table-header-rotated th.rotate-45 > div{
   position: relative;
   top: 0px;
-  left: 25px; /* 80 * tan(45) / 2 = 40 where 80 is the height on the cell and 45 is the transform angle*/
+  left: 40px; /* 80 * tan(45) / 2 = 40 where 80 is the height on the cell and 45 is the transform angle*/
   height: 100%;
   -ms-transform:skew(-45deg,0deg);
   -moz-transform:skew(-45deg,0deg);
