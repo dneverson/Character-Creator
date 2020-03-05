@@ -251,81 +251,73 @@
   <!--==== START Class/Multi-Class Feature Selection ====-->
   <div ng-if="true">
     <div class="container">
-      <div >
-
-        <div class="row  mt-4 mb-3" ng-repeat="class in data.char.class">
-          <div class="col-sm-12 classFeatures">
-            <h2>{{class.name}}</h2>
-          </div>
-          <div class="col-sm-12 classFeatures scrollable-table">
-            <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classFeatures">
-              <thead>
-                <tr>
-                  <th class="text-center"><div><span>Level</span></div></th>
-                  <th class="text-center"><div><span>Class Features</span></div></th>
-                </tr>
-              </thead>
-              <tbody  class="">
-                <tr ng-repeat="(key, level) in class.classFeatures | limitTo:class.level" ng-click="">
-                  <td>{{key+1}}</td>
-                  <td>
-                    <span ng-repeat="feature in level">
-                      <button class="btn btn-sm btn-outline-secondary btn-dropdown-toggle" type="button" data-toggle="dropdown" ng-click="printss(feature)">{{feature.name}}</button>
-                      <div class="dropdown-menu">
-                        <a class="dropdown-item" ng-repeat="sub in class.subclasses track by $index" ng-click="" ng-class="">{{sub.name}}</a>
-                      </div> <!-- End of Dropdown Menu -->
-                    </span>
-                  </td>
-
-                </tr>
-              </tbody>
-            </table>
-
-            <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[0].rows">
-              <thead>
-                <tr>
-                  <th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[0].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th>
-                </tr>
-              </thead>
-              <tbody  class="">
-                <tr ng-repeat="(key, row) in class.classTableGroups[0].rows | limitTo:class.level " ng-click="">
-                  <td ng-repeat="entry in row track by $index">{{entry}}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[1].rows">
-              <thead>
-                <tr>
-                  <th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[1].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th>
-                </tr>
-              </thead>
-              <tbody  class="">
-                <tr ng-repeat="(key, row) in class.classTableGroups[1].rows | limitTo:class.level " ng-click="">
-                  <td ng-repeat="entry in row track by $index">{{entry}}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[2].rows">
-              <thead>
-                <tr>
-                  <th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[2].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th>
-                </tr>
-              </thead>
-              <tbody  class="">
-                <tr ng-repeat="(key, row) in class.classTableGroups[2].rows | limitTo:class.level " ng-click="">
-                  <td ng-repeat="entry in row track by $index">{{entry}}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
 
 
+      <div class="row  mt-4 mb-3" ng-repeat="class in data.char.class">
+        <div class="col-sm-12 classFeatures">
+          <h2>{{class.name}}</h2>
+        </div>
+        <div class="col-sm-12 classFeatures scrollable-table">
+          <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classFeatures">
+            <thead>
+              <tr>
+                <th class="text-center"><div><span>Level</span></div></th>
+                <th class="text-center"><div><span>Class Features</span></div></th>
+              </tr>
+            </thead>
+            <tbody  class="">
+              <tr ng-repeat="(key, level) in class.classFeatures | limitTo:class.level" ng-click="">
+                <td>{{key+1}}</td>
+                <td>
+                  <span ng-repeat="feature in level" class="">
+                    <!-- This is used becuase pooper.js transform3d generator is garbage -->
+                    <div class="dropdown" ng-click="isOpen = toggle(isOpen)" ng-mouseleave="isOpen=0">
+                      <button class="btn btn-sm btn-outline-secondary btn-dropdown-toggle">{{feature.name}}</button>
+                      <div class="dropdown-content" ng-class="{'open':isOpen}">
+                        <a class="dropdown-item" ng-repeat="sub in class.subclasses track by $index"  ng-click="printss(sub)">{{sub.name}}</a>
+                      </div>
+                    </div>
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
+          <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[0].rows">
+            <thead>
+              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[0].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th></tr>
+            </thead>
+            <tbody  class="">
+              <tr ng-repeat="(key, row) in class.classTableGroups[0].rows | limitTo:class.level " ng-click="">
+                <td ng-repeat="entry in row track by $index">{{entry}}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[1].rows">
+            <thead>
+              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[1].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th></tr>
+            </thead>
+            <tbody  class="">
+              <tr ng-repeat="(key, row) in class.classTableGroups[1].rows | limitTo:class.level " ng-click="">
+                <td ng-repeat="entry in row track by $index">{{entry}}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[2].rows">
+            <thead>
+              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[2].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th></tr>
+            </thead>
+            <tbody  class="">
+              <tr ng-repeat="(key, row) in class.classTableGroups[2].rows | limitTo:class.level " ng-click="">
+                <td ng-repeat="entry in row track by $index">{{entry}}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-      </div> <!-- End of Row -->
+      </div><!-- End of Row -->
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
   <!--==== END Class/Multi-Class Feature Selection ====-->

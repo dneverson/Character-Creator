@@ -219,7 +219,11 @@ app.controller("ccCtrl", function($scope, $http, dice){
 
   $scope.printss = function(feature){
     console.log(feature);
-  }
+  };
+  $scope.toggle = function(obj){
+    obj = obj?0:1;
+    return obj
+  };
 
   //"(a) a {@item handaxe|phb} and a {@item light hammer|phb} or (b) any two {@filter simple weapons|items|source=phb|category=basic|type=simple weapon}"
   //"(a) a [handaxe] and a [light hammer] or (b) any two [simple weapons]" [text][0] convert to array and replace text for array at pos 0
