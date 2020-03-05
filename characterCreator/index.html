@@ -272,9 +272,9 @@
                   <span ng-repeat="feature in level" class="">
                     <!-- This is used becuase pooper.js transform3d generator is garbage -->
                     <div class="dropdown" ng-click="isOpen = toggle(isOpen)" ng-mouseleave="isOpen=0">
-                      <button class="btn btn-sm btn-outline-secondary btn-dropdown-toggle">{{feature.name}}</button>
+                      <button class="btn btn-sm btn-outline-secondary btn-dropdown-toggle" ng-click="printss(feature)" data-toggle="tT" title="{{feature.entries[0]}}">{{feature.name}}</button>
                       <div class="dropdown-content" ng-class="{'open':isOpen}">
-                        <a class="dropdown-item" ng-repeat="sub in class.subclasses track by $index"  ng-click="printss(sub)">{{sub.name}}</a>
+                        <a class="dropdown-item" ng-repeat="sub in class.subclasses track by $index"  ng-click="printss(sub)" data-toggle="tT" title="">{{sub.name}}</a>
                       </div>
                     </div>
                   </span>
