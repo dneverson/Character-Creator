@@ -66,7 +66,7 @@
     <div class="container">
       <div class="row">
         <div class="input-group mb-5 mt-3">
-          <div class="input-group-prepend" ng-init="statType='Roll 4d6k3';matrix=0" style="display:block;">
+          <div class="input-group-prepend d-block" ng-init="statType='Roll 4d6k3';matrix=0">
             <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{statType}}</button>
             <div class="dropdown-menu diceMenu">
               <a class="dropdown-item" ng-click="statType='Roll 4d6k3'; rollStats4d6k3()">Roll 4d6k3</a>
@@ -78,18 +78,18 @@
               <a class="dropdown-item" ng-click="statType='Point Buy'; pbStats()">Point Buy</a>
             </div> <!-- End of Dropdown Menu -->
           </div> <!-- End of Input Group Prepend -->
-          <div class="input-group-append" ng-if="true" style="display:block;">
+          <div class="input-group-append d-block" ng-if="true">
             <button type="button" class="btn btn-success" ng-click="rollStats4d6k3()" ng-if="statType=='Roll 4d6k3'">Roll</button>
             <button type="button" class="btn btn-success" ng-click="rollStats4d6k3r1()" ng-if="statType=='Roll 4d6k3r1'">Roll</button>
             <button type="button" class="btn btn-success" ng-click="rollStats3d6()" ng-if="statType=='Roll 3d6'">Roll</button>
             <button type="button" class="btn btn-success" ng-click="rollStats3d6r1()" ng-if="statType=='Roll 3d6r1'">Roll</button>
             <button type="button" class="btn btn-success" ng-click="rollStatsMatrix(); matrix=1" ng-if="statType=='Roll Matrix'">Roll</button>
           </div> <!-- End of Input Group Append -->
-          <div class="input-group-append" style="display:block; border:none; margin: 0 auto;">
+          <div class="input-group-append mx-auto d-block border-0 mt-n2">
             <table class="table inline" ng-if="statType!='Roll Matrix'">
               <tbody>
                 <tr >
-                  <td class="" ng-repeat="stat in data.char.rolledStats | orderBy:'-' track by $index" style="border:none; padding: 0 0 0 1em;">
+                  <td class="border-0" ng-repeat="stat in data.char.rolledStats | orderBy:'-' track by $index" > <!-- style="padding: 0 0 0 1em;" -->
                     <span class="rolled" ng-class="{'color-green':stat>=16,'color-blue':stat>=10,'color-red':stat<=9}">{{stat}}</span><span class="rolledMod">{{updateMod(stat)}}</span>
                   </td>
                 </tr>
@@ -99,8 +99,8 @@
         </div> <!-- End of Input Group -->
       </div> <!-- End of Row -->
       <div ng-if="statType=='Roll Matrix'">
-        <div class="row">
-          <table class="table table-bordered rollMatrixTable">
+        <div class="row mt-n5">
+          <table class="table table-bordered rollMatrixTable mt-n5">
             <tbody>
               <tr ng-repeat="col in data.char.rolledMatrixStats">
                 <td class="rollMatrixTd" ng-repeat="row in col" ng-class="{'color-green':row[0]>=16,'color-blue':row[0]>=10,'color-red':row[0]<=9 && row[4]!=1 ,'color-success':row[4]==1}">{{row[0]}}</td>
@@ -328,7 +328,7 @@
   <div ng-if="true">
     <div class="container">
       <div class="row  mt-4 mb-3">
-        <div class="col-sm-4" ng-if="data.char.class[0].name" style="padding-left: 0">
+        <div class="col-sm-4 pl-0" ng-if="data.char.class[0].name">
           <strong>{{data.char.class[0].name}} <span ng-if="isNumber(data.char.class[0].startingProficiencies.skills[0].choose.count)">Choose: {{data.char.class[0].startingProficiencies.skills[0].choose.count}}</span></strong>
           <ul class="hover">
             <li class="input-group pewww" ng-repeat="(key, skill) in data.char.class[0].startingProficiencies.skills[0].choose.from" ng-click="skillToggle(data.char.skills[skill], data.char.class[0].startingProficiencies.skills[0].choose)" data-toggle="tT" title="">
@@ -340,7 +340,7 @@
           </ul>
         </div> <!-- End of Col 4 -->
 
-        <div class="col-sm-4" ng-if="data.char.background.name">
+        <div class="col-sm-4 pl-0" ng-if="data.char.background.name">
           <strong>{{data.char.background.name}} <span ng-if="isNumber(data.char.background.skillProficiencies[0].choose.count)">Choose: {{data.char.background.skillProficiencies[0].choose.count}}</span></strong>
           <ul class="hover">
             <li class="input-group pewww" ng-repeat="(key, skill) in data.char.background.skillProficiencies[0]" ng-click="" data-toggle="tT" title="" ng-if="key !='choose'">
@@ -358,7 +358,7 @@
           </ul>
         </div> <!-- End of Col 4 -->
 
-        <div class="col-sm-4" ng-if="data.char.class[0].name || data.char.background.name" style="padding-left: 0">
+        <div class="col-sm-4 pl-0" ng-if="data.char.class[0].name || data.char.background.name">
           <strong>All Skills</strong>
           <ul class="hover">
             <li class="input-group pewww" ng-repeat="(key, skill) in data.char.skills" data-toggle="tT" title="">
@@ -432,7 +432,7 @@
           <div class="row">
             <div class="col-sm-12 text-center">
               <h4>RickRoll'D</h4>
-              <img src="images/rickroll.gif" alt="RickRoll" style="width 100%">
+              <img class="w-100"src="images/rickroll.gif" alt="RickRoll">
             </div> <!-- End of Col 12 -->
             <div class="col-sm-12 text-center">
               <a href="https://youtu.be/oHg5SJYRHA0" target="_blank">
@@ -460,7 +460,7 @@
       <div class="row">
         <small>
           Dungeons & Dragons 5th Edition Character Creator. Arthors: Derry Everson & Mikel Jensen. Contact/Issues: <a href="https://github.com/dneverson/Character-Creator">Github</a>
-          <button type="button" class="btn btn-primary btn-xs inline" data-toggle="modal" data-target="#eModal" style="background:transparent; border:none; color:transparent; cursor: default;"></button>
+          <button type="button" class="btn btn-primary btn-xs inline border-0" data-toggle="modal" data-target="#eModal" style="background:transparent; color:transparent; cursor: default;"></button>
         </small>
       </div> <!-- End of Row -->
     </div> <!-- End of Container -->
