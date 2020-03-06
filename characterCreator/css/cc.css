@@ -14,8 +14,11 @@ html,body{
 .checkbookList li span, .checkbookList li input{
   border: none;
 }
-
-
+.form-control:disabled, .form-control[readonly]{
+    background-color: rgba(0,0,0,.05);
+    color: #424242;
+    opacity: 1;
+}
 input[readOnly]{
   background-color: #fff !important;
   cursor: default;

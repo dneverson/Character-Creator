@@ -261,41 +261,23 @@ app.controller("ccCtrl", function($scope, $http, dice){
     return result;
   }
 
-
-  //"(a) a {@item handaxe|phb} and a {@item light hammer|phb} or (b) any two {@filter simple weapons|items|source=phb|category=basic|type=simple weapon}"
-  //"(a) a [handaxe] and a [light hammer] or (b) any two [simple weapons]" [text][0] convert to array and replace text for array at pos 0
-  //"a {@item light crossbow|phb} and {@item crossbow bolts (20)|phb|20 bolts}"
-  //"a [light crossbow] and [crossbow bolts (20)]"
-  //"{@filter Cantrips Known|spells|level=0|class=bard}"
-  //"[Cantrips Known]"
-  //"{@filter 1st|spells|level=1|class=bard}"
-  //"[1st]"
-  $scope.parseClassFeatureHeader = function(text){
-    var type = (text).replace(/[{}]/g,"").replace(/ .*/,"");
-    if (type == "@filter"){
-      var result = (text).replace(/[{}]/g,"").replace(type+" ","").split("|");
-    }
-    if (type == "@item"){
-      var result = (text).replace(/[{}]/g,"").replace(type+" ","").split("|");
-    }
-  };
-
-
   $scope.parseString = function(text) {
 	  while (text.indexOf('{@') > -1) {
 		  let info = text.substring(text.indexOf('{@')+1, text.indexOf('}'));
 		  let type = info.split(' ')[0];
 		  if (type == '@book') {
 			  info = info.substring(6).split('|');
-			  text = text.replace(/{@\w+ ([\w\d\s()×])+[}]/, `${info[1]}: ${info[0]}`);
+			  text = text.replace(/{@\w+ ([\w\d\s()×|])+[}]/, `${info[1]}: ${info[0]}`);
 		  } else if (type == '@condition') {
 			  text = text.replace(/{@\w+ ([\w\d\s()×]+)}/, '[$1]');
-		  } else {
+		  } else if (type == '@skill') {
+        text = text.replace(/{@\w+ ([\w\d\s()×]+)[|\w\s\d=()×]+}/, '$1');
+      } else {
 			 text = text.replace(/{@\w+ ([\w\d\s()×]+)[|\w\s\d=()×]+}/, '[$1]');
 		  }
 		}
 		return text;
-	}
+	};
 
 
   /*=======================================================================*
