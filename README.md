@@ -32,7 +32,7 @@ ALPHA V1.0
 5.   [X] Stat Attributes
 6.   [X] Background Selection
 7.   [ ] Class / Multi-Class lvl up selections and features
-8.   [ ] Skills
+8.   [X] Skills
 9.   [ ] Hit Dice
 10.  [ ] Spells
 11.  [ ] Druid Wild-Shape
@@ -41,11 +41,11 @@ ALPHA V1.0
 
 ### Character Creator Needs Worked on:
 1.   [ ] Multi-Class requirements Checking
-2.   [ ] Race Choose x amount needs implemented
+2.   [X] Race Choose x amount needs implemented
 3.   [ ] Point Buy needs implemented
 4.   [ ] Matrix Roll needs implemented on the ability table
-5.   [ ] Backgrounds that are cloned need to display cloned skills in menu
-6.   [ ] Backgrounds need to display "Stealth" NOT "{@skill Stealth}"
+5.   [X] Backgrounds that are cloned need to display cloned skills in menu
+6.   [X] Backgrounds need to display "Stealth" NOT "{@skill Stealth}"
 7.   [ ] Selected books need to filter all menu items
 
 ### Character Creator Features:
