@@ -263,6 +263,11 @@ app.controller("ccCtrl", function($scope, $http, dice){
 
   $scope.parseString = function(text) {
     try {
+      if(text.type == "dice") return (text.toRoll[0].number+"d"+text.toRoll[0].faces)
+      else if(text.type == "bonusSpeed" ) return ("+"+text.value+"ft")
+      else if(text.type == "bonus" ) return ("+"+text.value)
+    } catch (e) {}
+    try {
       while (text.indexOf('{@') > -1) {
         let info = text.substring(text.indexOf('{@')+1, text.indexOf('}'));
         let type = info.split(' ')[0];
@@ -277,8 +282,9 @@ app.controller("ccCtrl", function($scope, $http, dice){
          text = text.replace(/{@\w+ ([\w\d\s()×]+)[|\w\s\d=()×]+}/, '[$1]');
         }
       }
-      return text;
+
     } catch (e) {}
+    return text;
 	};
 
 
@@ -289,7 +295,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
     /*=======================================================================*
     * Gets Class JSON for Class Menu
     *========================================================================*/
-    $http.get('./data/class/index.json').then(function(response){
+    $http.get('./data/class/classOptions.json').then(function(response){
       var data = response.data
       $scope.classOptions = angular.copy(data);
       $scope.classOptions2 = angular.copy(data);
@@ -321,14 +327,12 @@ app.controller("ccCtrl", function($scope, $http, dice){
 			 }
 		 });
     });
-
     /*=======================================================================*
     * Gets Background JSON for Backgrounds Menu
     *========================================================================*/
     $http.get('./data/backgrounds.json').then(function(response){
       $scope.backgrounds = response.data.background;
     });
-
     /*=======================================================================*
     * Gets Book JSON for Book Menu
     *========================================================================*/

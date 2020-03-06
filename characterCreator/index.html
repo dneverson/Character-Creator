@@ -293,7 +293,7 @@
             </thead>
             <tbody  class="">
               <tr ng-repeat="(key, row) in class.classTableGroups[0].rows | limitTo:class.level " ng-click="">
-                <td ng-repeat="entry in row track by $index">{{entry}}</td>
+                <td ng-repeat="entry in row track by $index">{{parseString(entry)}}</td>
               </tr>
             </tbody>
           </table>
