@@ -281,6 +281,23 @@ app.controller("ccCtrl", function($scope, $http, dice){
   };
 
 
+  $scope.parseString = function(text) {
+	  while (text.indexOf('{@') > -1) {
+		  let info = text.substring(text.indexOf('{@')+1, text.indexOf('}'));
+		  let type = info.split(' ')[0];
+		  if (type == '@book') {
+			  info = info.substring(6).split('|');
+			  text = text.replace(/{@\w+ ([\w\d\s()×])+[}]/, `${info[1]}: ${info[0]}`);
+		  } else if (type == '@condition') {
+			  text = text.replace(/{@\w+ ([\w\d\s()×]+)}/, '[$1]');
+		  } else {
+			 text = text.replace(/{@\w+ ([\w\d\s()×]+)[|\w\s\d=()×]+}/, '[$1]');
+		  }
+		}
+		return text;
+	}
+
+
   /*=======================================================================*
   * JSON Gets on AngularJS INIT
   *========================================================================*/
