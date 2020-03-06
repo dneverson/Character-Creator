@@ -6,12 +6,6 @@ html,body{
   min-height: 100%;
   max-height: 100%;
 }
-.tableAttributes{
-  width: 100%;
-}
-.full{
-  width: 100% !important;
-}
 .checkbookList{
   min-width: 450px;
   padding: 0;
@@ -20,9 +14,7 @@ html,body{
 .checkbookList li span, .checkbookList li input{
   border: none;
 }
-.largerCheckboxPadding {
-  padding: 0;
-}
+
 
 input[readOnly]{
   background-color: #fff !important;
@@ -49,18 +41,6 @@ input[type='checkbox']{
   text-align: center;
   font: 32px Arial, sans-serif;
 }
-.rolledInput{
-  width: 19%;
-  height: 52%;
-  border-radius: 5%;
-  margin: 0 auto;
-  padding: 8px;
-  background: #fff;
-  border: 2px solid #666;
-  color: #666;
-  text-align: center;
-  font: 32px Arial, sans-serif;
-}
 .rolledMod{
   border-radius: 50%;
   margin: 0 auto;
@@ -73,7 +53,7 @@ input[type='checkbox']{
   font-weight: bold;
   position: relative;
   right: 50%;
-  top: 90%;
+  top: 30px;
 }
 .rolledModTable{
   border-radius: 50%;
@@ -91,38 +71,24 @@ input[type='checkbox']{
   max-height: 450px;
   max-width: 600px;
   padding: 0;
-
-  /* transform: translate3d(0px, 0px, 0px) !important; */
-
 }
-
-
-
-/* Dropdown Button */
-
-
-/* The container <div> - needed to position the dropdown content */
-.dropdown {
+.dropdown{
   position: relative;
   display: inline-block;
 }
-/* Dropdown Content (Hidden by Default) */
-.dropdown-content {
+.dropdown-content{
   display: none;
   position: absolute;
   background-color: #fff;
   border: #cecece 1px solid;
   text-align: left;
   min-width: 160px;
-  /* box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); */
   z-index: 1000;
 }
 .open{
   display: block;
 }
-
-/* Links inside the dropdown */
-.dropdown-content a {
+.dropdown-content a{
   color: #495057;
   padding: .25rem 1.5rem;
   clear: both;
@@ -135,13 +101,12 @@ input[type='checkbox']{
 .striped:nth-of-type(odd){
   background-color: rgba(0,0,0,.05) !important;
 }
-/* Change color of dropdown links on hover */
-.dropdown-content a:hover {background-color: #ddd;}
-/* Show the dropdown menu on hover */
-/* .dropdown:hover .dropdown-content {display: block;} */
-/* Change the background color of the dropdown button when the dropdown content is shown */
-.dropdown:hover .dropbtn {background-color: #3e8e41;}
-
+.dropdown-content a:hover{
+  background-color: #ddd;
+}
+.dropdown:hover .dropbtn{
+  background-color: #3e8e41;
+}
 .rollMatrixTable{
   width: 50%;
   margin: 0 auto;
@@ -150,10 +115,7 @@ input[type='checkbox']{
 .rollMatrixTd{
   text-align-last: center;
 }
-.rolledContainer{
-    margin: 0 auto;
-}
-.table-bordered td, .table-bordered th {
+.table-bordered td, .table-bordered th{
     border: 1px solid #fff;
 }
 
@@ -165,21 +127,14 @@ ul{
 }
 .peww{
   border: none;
-
 }
 .pewww{
   border: 1px solid #ced4da;
   border-radius: .25rem;
 }
-
-
-
 h1{
   text-align: center;
 }
-
-
-
 .color-blue{
   background-color: #d9edf7;
   border-color: #bce8f1;
@@ -220,11 +175,9 @@ h1{
 
   padding: 0;
 }
-
 .table-header-rotated th.row-header{
   width: auto;
 }
-
 .table-header-rotated td{
   border-left: 1px solid #ddd;
   border-right: 1px solid #ddd;
@@ -245,7 +198,6 @@ h1{
   font-size: 12px;
   line-height: 0.8;
 }
-
 .table-header-rotated th.rotate-45 > div{
   position: relative;
   top: 4px;
@@ -257,11 +209,10 @@ h1{
   -o-transform:skew(-45deg,0deg);
   transform:skew(-45deg,0deg);
   overflow: hidden;
-  border-left: 1px solid #dddddd;
-  border-right: 1px solid #dddddd;
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
 }
-
-.table-header-rotated th.rotate-45 span {
+.table-header-rotated th.rotate-45 span{
   -ms-transform:skew(45deg,0deg) rotate(315deg);
   -moz-transform:skew(45deg,0deg) rotate(315deg);
   -webkit-transform:skew(45deg,0deg) rotate(315deg);
@@ -271,24 +222,20 @@ h1{
   bottom: 30px; /* 40 cos(45) = 28 with an additional 2px margin*/
   left: -25px; /*Because it looked good, but there is probably a mathematical link here as well*/
   display: inline-block;
-
   width: 85px; /* 80 / cos(45) - 40 cos (45) = 85 where 80 is the height of the cell, 40 the width of the cell and 45 the transform angle*/
   text-align: left;
   white-space: nowrap; /*whether to display in one line or not*/
 }
-
 small{
   margin: 0 auto;
 }
-footer {
+footer{
   text-align: center;
   width: 100%;
   z-index: -1;
 }
-
-@media (max-width: 420px) {
-  footer {
+@media (max-width: 420px){
+  footer{
     display: none;
   }
-
 }

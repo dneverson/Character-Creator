@@ -48,7 +48,7 @@
             <ul class="dropdown-menu checkbookList hover">
               <li class="input-group" ng-repeat="book in books" ng-click="checkboxSwitch(book); checkboxTextUpdate(books);" data-toggle="tT" title="">
                 <input type="text" class="form-control" value="{{book.name}} ({{book.source}})" readonly>
-                <span class="input-group-addon largerCheckboxPadding">
+                <span class="input-group-addon">
                   <input type="checkbox" ng-model="book.status" ng-click="checkboxSwitchInline(book); checkboxTextUpdate(books);">
                 </span>
               </li>
@@ -66,7 +66,7 @@
     <div class="container">
       <div class="row">
         <div class="input-group mb-5 mt-3">
-          <div class="input-group-prepend" ng-init="statType='Roll 4d6k3';matrix=0">
+          <div class="input-group-prepend" ng-init="statType='Roll 4d6k3';matrix=0" style="display:block;">
             <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{statType}}</button>
             <div class="dropdown-menu diceMenu">
               <a class="dropdown-item" ng-click="statType='Roll 4d6k3'; rollStats4d6k3()">Roll 4d6k3</a>
@@ -78,16 +78,24 @@
               <a class="dropdown-item" ng-click="statType='Point Buy'; pbStats()">Point Buy</a>
             </div> <!-- End of Dropdown Menu -->
           </div> <!-- End of Input Group Prepend -->
-          <div class="input-group-append" ng-if="true">
+          <div class="input-group-append" ng-if="true" style="display:block;">
             <button type="button" class="btn btn-success" ng-click="rollStats4d6k3()" ng-if="statType=='Roll 4d6k3'">Roll</button>
             <button type="button" class="btn btn-success" ng-click="rollStats4d6k3r1()" ng-if="statType=='Roll 4d6k3r1'">Roll</button>
             <button type="button" class="btn btn-success" ng-click="rollStats3d6()" ng-if="statType=='Roll 3d6'">Roll</button>
             <button type="button" class="btn btn-success" ng-click="rollStats3d6r1()" ng-if="statType=='Roll 3d6r1'">Roll</button>
             <button type="button" class="btn btn-success" ng-click="rollStatsMatrix(); matrix=1" ng-if="statType=='Roll Matrix'">Roll</button>
           </div> <!-- End of Input Group Append -->
-          <div class="rolledContainer" ng-repeat="stat in data.char.rolledStats | orderBy:'-' track by $index" ng-if="statType!='Roll Matrix'">
-            <span class="rolled" ng-class="{'color-green':stat>=16,'color-blue':stat>=10,'color-red':stat<=9}">{{stat}}</span><span class="rolledMod">{{updateMod(stat)}}</span>
-          </div> <!-- End of Rolled Container -->
+          <div class="input-group-append" style="display:block; border:none; margin: 0 auto;">
+            <table class="table inline" ng-if="statType!='Roll Matrix'">
+              <tbody>
+                <tr >
+                  <td class="" ng-repeat="stat in data.char.rolledStats | orderBy:'-' track by $index" style="border:none; padding: 0 0 0 1em;">
+                    <span class="rolled" ng-class="{'color-green':stat>=16,'color-blue':stat>=10,'color-red':stat<=9}">{{stat}}</span><span class="rolledMod">{{updateMod(stat)}}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div> <!-- End of Input Group Append -->
         </div> <!-- End of Input Group -->
       </div> <!-- End of Row -->
       <div ng-if="statType=='Roll Matrix'">
@@ -109,7 +117,7 @@
   <div ng-if="true">
     <div class="container">
       <div class="row  mt-5">
-        <div ng-repeat="class in data.char.class track by $index" class="full mb-3" ng-init="classid = $index">
+        <div ng-repeat="class in data.char.class track by $index" class="w-100 mb-3" ng-init="classid = $index">
           <div class="input-group">
             <div class="input-group-prepend">
               <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Class</button>
@@ -178,7 +186,7 @@
   <div ng-if="true">
     <div class="container">
       <div class="row  mt-4 mb-3">
-        <table class="table-sm table-striped table-hover tableAttributes">
+        <table class="table-sm table-striped table-hover w-100">
           <thead>
             <tr>
               <th class="text-center"></th>
@@ -326,7 +334,7 @@
           <ul class="hover">
             <li class="input-group pewww" ng-repeat="(key, skill) in data.char.class[0].startingProficiencies.skills[0].choose.from" ng-click="skillToggle(data.char.skills[skill], data.char.class[0].startingProficiencies.skills[0].choose)" data-toggle="tT" title="">
               <input type="text" class="form-control peww" value="{{skill}} ({{data.char.skills[skill].mod}})" ng-disabled="data.char.skills[skill].lock" ng-readOnly="!data.char.skills[skill].lock">
-              <span class="input-group-addon largerCheckboxPadding">
+              <span class="input-group-addon">
                 <input type="checkbox" ng-model="data.char.skills[skill].prov" ng-disabled="data.char.skills[skill].lock || !data.char.class[0].startingProficiencies.skills[0].choose.count">
               </span>
             </li>
@@ -338,13 +346,13 @@
           <ul class="hover">
             <li class="input-group pewww" ng-repeat="(key, skill) in data.char.background.skillProficiencies[0]" ng-click="" data-toggle="tT" title="" ng-if="key !='choose'">
               <input type="text" class="form-control peww" value="{{key}} ({{data.char.skills[key].mod}})" ng-disabled="data.char.skills[key].lock" ng-readOnly="!data.char.skills[key].lock">
-              <span class="input-group-addon largerCheckboxPadding">
+              <span class="input-group-addon">
                 <input type="checkbox" ng-model="data.char.skills[key].prov" ng-click="" ng-init="data.char.skills[key].prov=true; data.char.skills[key].lock=true" disabled>
               </span>
             </li>
             <li class="input-group pewww" ng-repeat="(key, skill) in data.char.background.skillProficiencies[0].choose.from" ng-click="skillToggle(data.char.skills[skill], data.char.background.skillProficiencies[0].choose)" data-toggle="tT" title="">
               <input type="text" class="form-control peww" value="{{skill}}  ({{data.char.skills[skill].mod}})" ng-disabled="data.char.skills[skill].lock" ng-readOnly="!data.char.skills[skill].lock">
-              <span class="input-group-addon largerCheckboxPadding">
+              <span class="input-group-addon">
                 <input type="checkbox" ng-model="data.char.skills[skill].prov" ng-disabled="data.char.skills[skill].lock || !data.char.background.skillProficiencies[0].choose.count">
               </span>
             </li>
@@ -356,7 +364,7 @@
           <ul class="hover">
             <li class="input-group pewww" ng-repeat="(key, skill) in data.char.skills" data-toggle="tT" title="">
               <input type="text" class="form-control peww" value="{{key}} ({{data.char.skills[key].mod}})" disabled>
-              <span class="input-group-addon largerCheckboxPadding">
+              <span class="input-group-addon">
                 <input type="checkbox" ng-model="data.char.skills[key].prov" disabled>
               </span>
             </li>
