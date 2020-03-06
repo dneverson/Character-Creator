@@ -229,9 +229,6 @@ h1{
   text-align: left;
   white-space: nowrap; /*whether to display in one line or not*/
 }
-small{
-  margin: 0 auto;
-}
 footer{
   text-align: center;
   width: 100%;

@@ -261,6 +261,25 @@ app.controller("ccCtrl", function($scope, $http, dice){
     return result;
   }
 
+  $scope.calcHitDice = function(){
+    var obj = $scope.data.char;
+    var tough = 0;
+    var hill = 0;
+    var cMod = $scope.updateMod(obj.stats.con.sVal+obj.stats.con.rVal+obj.stats.con.oVal);
+    var arr = [];
+
+    for (var i=0; i<obj.feats.length; i++){
+      if( obj.feats[i] == "Tough") tough = obj.levelsCur*2;
+    }
+
+    if(obj.race.name == "Dwarf (Hill)") hill = obj.levelsCur
+
+    for (var i=0; i<obj.class.length; i++){
+
+    }
+
+  };
+
   $scope.parseString = function(text) {
     try {
       if(text.type == "dice") return (text.toRoll[0].number+"d"+text.toRoll[0].faces)
@@ -326,6 +345,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
 				 });
 			 }
 		 });
+     //console.log($scope.races)
     });
     /*=======================================================================*
     * Gets Background JSON for Backgrounds Menu
