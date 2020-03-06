@@ -241,7 +241,7 @@
                 <tbody  class="">
                   <tr ng-repeat="background in backgrounds | orderBy: 'name'" ng-click="data.char.background=background; getBackgroundSkillCount(data.char.background);" class="dropdown-item">
                     <td><strong>{{background.name}}</strong></td>
-                    <td>{{background.entries[0].items[0].entry}}</td>
+                    <td>{{parseString(background.entries[0].items[0].entry)}}</td>
                     <td ng-if="background._copy">See: {{background._copy.name}}</td>
                     <td><small>(<i>{{background.source}}: {{background.page}}</i>)</small></td>
                   </tr>
@@ -289,7 +289,7 @@
 
           <table class="table-sm  table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[0].rows">
             <thead>
-              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[0].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th></tr>
+              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[0].colLabels" ng-click=""><div><span>{{parseString(row)}}</span></div></th></tr>
             </thead>
             <tbody  class="">
               <tr ng-repeat="(key, row) in class.classTableGroups[0].rows | limitTo:class.level " ng-click="">
@@ -300,7 +300,7 @@
 
           <table class="table-sm  table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[1].rows">
             <thead>
-              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[1].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th></tr>
+              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[1].colLabels" ng-click=""><div><span>{{parseString(row)}}</span></div></th></tr>
             </thead>
             <tbody  class="">
               <tr ng-repeat="(key, row) in class.classTableGroups[1].rows | limitTo:class.level " ng-click="">
@@ -311,7 +311,7 @@
 
           <table class="table-sm  table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[2].rows">
             <thead>
-              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[2].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th></tr>
+              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[2].colLabels" ng-click=""><div><span>{{parseString(row)}}</span></div></th></tr>
             </thead>
             <tbody  class="">
               <tr ng-repeat="(key, row) in class.classTableGroups[2].rows | limitTo:class.level " ng-click="">
