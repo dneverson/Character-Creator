@@ -242,7 +242,6 @@
                   <tr ng-repeat="background in backgrounds | orderBy: 'name'" ng-click="data.char.background=background; getBackgroundSkillCount(data.char.background);" class="dropdown-item">
                     <td><strong>{{background.name}}</strong></td>
                     <td>{{parseString(background.entries[0].items[0].entry)}}</td>
-                    <td ng-if="background._copy">See: {{background._copy.name}}</td>
                     <td><small>(<i>{{background.source}}: {{background.page}}</i>)</small></td>
                   </tr>
                 </tbody>

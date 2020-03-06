@@ -331,30 +331,20 @@ app.controller("ccCtrl", function($scope, $http, dice){
     * Gets Background JSON for Backgrounds Menu
     *========================================================================*/
     $http.get('./data/backgrounds.json').then(function(response){
-      $scope.backgrounds = response.data.background;
-
-      // console.log(response.data.background)
-      // response.data.background.forEach(background => {
-      //   if (background._copy) {
-      //     console.log(background._copy)
-      //     background["_copy"].forEach(_copy => {
-      //       let temp = angular.copy(background);
- 			// 		  delete temp._copy;
-      //       temp.name = _copy.name ? background.name + ' (' + _copy.name + ')' : background.name;
-      //       _copy.source ? temp.source = _copy.source : {};
-      //       _copy.page ? temp.page = _copy.page : {};
-      //       _copy.srd ? temp.page = _copy.srd : false;
-      //       _copy.otherSources ? temp.otherSources = _copy.otherSources : {};
-      //       _copy.additionalSources ? temp.additionalSources = _copy.additionalSources : {};
-      //       temp.entries = temp.entries.concat(_copy.entries);
-      //       _copy.languageProficiencies ? temp.languageProficiencies ? temp.languageProficiencies = temp.languageProficiencies.concat(_copy.languageProficiencies) : temp.languageProficiencies = _copy.languageProficiencies : {};
-      //       _copy.skillProficiencies ? temp.skillProficiencies ? temp.skillProficiencies = temp.skillProficiencies.concat(_copy.skillProficiencies) : temp.skillProficiencies = _copy.skillProficiencies : {};
-      //       _copy.toolProficiencies ? temp.toolProficiencies ? temp.toolProficiencies = temp.toolProficiencies.concat(_copy.toolProficiencies) : temp.toolProficiencies = _copy.toolProficiencies : {};
-      //       $scope.backgrounds.push(temp);
-      //     });
-      //   }
-      // });
-
+      response.data.background.forEach(bk => {
+        if(bk._copy){
+          response.data.background.forEach(bk2 => {
+            if(bk._copy.name == bk2.name){
+              bk2.languageProficiencies ? bk.languageProficiencies = bk2.languageProficiencies : {};
+              bk2.skillProficiencies ? bk.skillProficiencies = bk2.skillProficiencies: {};
+              bk2.toolProficiencies ? bk.toolProficiencies = bk2.toolProficiencies: {};
+              bk2.entries ? bk.entries = bk2.entries: {};
+              bk2.otherSources ? bk.otherSources = bk2.otherSources: {};
+            }
+          });
+        }
+       });
+       $scope.backgrounds = response.data.background;
     });
     /*=======================================================================*
     * Gets Book JSON for Book Menu
