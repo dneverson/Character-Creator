@@ -51,24 +51,24 @@ app.controller("ccCtrl", function($scope, $http, dice){
         int: {mod: "int", sMod:0, val:0, actv:0},
         cha: {mod: "cha", sMod:0, val:0, actv:0}},
       skills: {
-        acrobatics:     {mod: "dex", sMod:0, val:0, actv:0, prov:0},
-        animalHandling: {mod: "wis", sMod:0, val:0, actv:0, prov:0},
-        arcana:         {mod: "int", sMod:0, val:0, actv:0, prov:0},
-        athletics:      {mod: "str", sMod:0, val:0, actv:0, prov:0},
-        deception:      {mod: "cha", sMod:0, val:0, actv:0, prov:0},
-        history:        {mod: "int", sMod:0, val:0, actv:0, prov:0},
-        insight:        {mod: "wis", sMod:0, val:0, actv:0, prov:0},
-        intimidation:   {mod: "cha", sMod:0, val:0, actv:0, prov:0},
-        investigation:  {mod: "int", sMod:0, val:0, actv:0, prov:0},
-        medicine:       {mod: "wis", sMod:0, val:0, actv:0, prov:0},
-        nature:         {mod: "int", sMod:0, val:0, actv:0, prov:0},
-        perception:     {mod: "wis", sMod:0, val:0, actv:0, prov:0},
-        performance:    {mod: "cha", sMod:0, val:0, actv:0, prov:0},
-        persuasion:     {mod: "cha", sMod:0, val:0, actv:0, prov:0},
-        religion:       {mod: "int", sMod:0, val:0, actv:0, prov:0},
-        sleightOfHand:  {mod: "dex", sMod:0, val:0, actv:0, prov:0},
-        stealth:        {mod: "dex", sMod:0, val:0, actv:0, prov:0},
-        survival:       {mod: "wis", sMod:0, val:0, actv:0, prov:0}},
+        acrobatics:     {mod: "dex", sMod:0, val:0, actv:0, prov:0, lock:0},
+        "animal handling": {mod: "wis", sMod:0, val:0, actv:0, prov:0, lock:0},
+        arcana:         {mod: "int", sMod:0, val:0, actv:0, prov:0, lock:0},
+        athletics:      {mod: "str", sMod:0, val:0, actv:0, prov:0, lock:0},
+        deception:      {mod: "cha", sMod:0, val:0, actv:0, prov:0, lock:0},
+        history:        {mod: "int", sMod:0, val:0, actv:0, prov:0, lock:0},
+        insight:        {mod: "wis", sMod:0, val:0, actv:0, prov:0, lock:0},
+        intimidation:   {mod: "cha", sMod:0, val:0, actv:0, prov:0, lock:0},
+        investigation:  {mod: "int", sMod:0, val:0, actv:0, prov:0, lock:0},
+        medicine:       {mod: "wis", sMod:0, val:0, actv:0, prov:0, lock:0},
+        nature:         {mod: "int", sMod:0, val:0, actv:0, prov:0, lock:0},
+        perception:     {mod: "wis", sMod:0, val:0, actv:0, prov:0, lock:0},
+        performance:    {mod: "cha", sMod:0, val:0, actv:0, prov:0, lock:0},
+        persuasion:     {mod: "cha", sMod:0, val:0, actv:0, prov:0, lock:0},
+        religion:       {mod: "int", sMod:0, val:0, actv:0, prov:0, lock:0},
+        "sleight of hand":  {mod: "dex", sMod:0, val:0, actv:0, prov:0, lock:0},
+        stealth:        {mod: "dex", sMod:0, val:0, actv:0, prov:0, lock:0},
+        survival:       {mod: "wis", sMod:0, val:0, actv:0, prov:0, lock:0}},
     },
   };
 
@@ -225,6 +225,43 @@ app.controller("ccCtrl", function($scope, $http, dice){
     return obj
   };
 
+  $scope.skillToggle = function(skill, choice){
+    if(!skill.lock){
+      if(choice.count && !skill.prov){
+        skill.prov = true;
+        choice.count--;
+      }
+      else if(skill.prov){
+        skill.prov = false;
+        choice.count++;
+      }
+    }
+
+  };
+
+  $scope.getBackgroundSkillCount = function(background){
+   try {
+     var obj = background.skillProficiencies[0].choose;
+     if(obj && !obj.count) obj.count = 1;
+   }catch(e){}
+  };
+
+  $scope.resetSkills = function(){
+    var obj = $scope.data.char.skills;
+    for (var skill in obj){
+      obj[skill].prov = obj[skill].lock = 0
+    }
+  };
+
+  $scope.makeArr = function(obj){
+    var result = [];
+    angular.forEach(obj, function (val, key) {
+        result.push({key: val, val: key});
+    });
+    return result;
+  }
+
+
   //"(a) a {@item handaxe|phb} and a {@item light hammer|phb} or (b) any two {@filter simple weapons|items|source=phb|category=basic|type=simple weapon}"
   //"(a) a [handaxe] and a [light hammer] or (b) any two [simple weapons]" [text][0] convert to array and replace text for array at pos 0
   //"a {@item light crossbow|phb} and {@item crossbow bolts (20)|phb|20 bolts}"
@@ -237,11 +274,9 @@ app.controller("ccCtrl", function($scope, $http, dice){
     var type = (text).replace(/[{}]/g,"").replace(/ .*/,"");
     if (type == "@filter"){
       var result = (text).replace(/[{}]/g,"").replace(type+" ","").split("|");
-      console.log(result);
     }
     if (type == "@item"){
       var result = (text).replace(/[{}]/g,"").replace(type+" ","").split("|");
-      console.log(result);
     }
   };
 

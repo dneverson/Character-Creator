@@ -30,10 +30,10 @@ input[readOnly]{
 }
 input[type='checkbox']{
   height: 26px;
-  margin-top: 3px !important;
+  margin-top: 6px !important;
   width: 32px;
 }
-.books li input:read-only:hover, .books li:hover, .diceMenu a:hover{
+.hover li input:read-only:hover, .hover li:hover, .diceMenu a:hover{
   background-color: #ececec !important;
   cursor: default;
 }
@@ -161,7 +161,15 @@ li{
   list-style-type: none;
 }
 ul{
-  padding-left:5px;
+  padding-left:0;
+}
+.peww{
+  border: none;
+
+}
+.pewww{
+  border: 1px solid #ced4da;
+  border-radius: .25rem;
 }
 
 
@@ -218,10 +226,9 @@ h1{
 }
 
 .table-header-rotated td{
-  border-top: 1px solid #dddddd;
-  border-left: 1px solid #dddddd;
-  border-right: 1px solid #dddddd;
-  height: 34px;
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+  height: 40px;
   vertical-align: middle;
   white-space: nowrap;
   text-align: center;
@@ -234,15 +241,15 @@ h1{
   max-width: 30px;
   position: relative;
   vertical-align: bottom;
-  padding: 1px 0;
+  padding: 4px 0;
   font-size: 12px;
   line-height: 0.8;
 }
 
 .table-header-rotated th.rotate-45 > div{
   position: relative;
-  top: 0px;
-  left: 40px; /* 80 * tan(45) / 2 = 40 where 80 is the height on the cell and 45 is the transform angle*/
+  top: 4px;
+  left: 37px; /* 80 * tan(45) / 2 = 40 where 80 is the height on the cell and 45 is the transform angle*/
   height: 100%;
   -ms-transform:skew(-45deg,0deg);
   -moz-transform:skew(-45deg,0deg);

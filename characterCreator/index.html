@@ -37,7 +37,7 @@
     <!-- <h1>Character Creator</h1> -->
     <h1>CC</h1>
   </header>
-
+  <hr>
   <!--==== START Book Selection ====-->
   <div ng-if="true">
     <div class="container">
@@ -45,7 +45,7 @@
         <div class="input-group mb-3">
           <div class="input-group-prepend">
             <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Books</button>
-            <ul class="dropdown-menu checkbookList books">
+            <ul class="dropdown-menu checkbookList hover">
               <li class="input-group" ng-repeat="book in books" ng-click="checkboxSwitch(book); checkboxTextUpdate(books);" data-toggle="tT" title="">
                 <input type="text" class="form-control" value="{{book.name}} ({{book.source}})" readonly>
                 <span class="input-group-addon largerCheckboxPadding">
@@ -60,7 +60,7 @@
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
   <!--==== END Book Selection ====-->
-
+  <hr>
   <!--==== START Stat Rolls ====-->
   <div ng-if="true">
     <div class="container">
@@ -104,7 +104,7 @@
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
   <!--==== END Stat Rolls ====-->
-
+  <hr>
   <!--==== START Class and Level Selection ====-->
   <div ng-if="true">
     <div class="container">
@@ -141,7 +141,7 @@
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
   <!--==== END Class and Level Selection ====-->
-
+  <hr>
   <!--==== START Race Selection ====-->
   <div ng-if="true">
     <div class="container">
@@ -173,7 +173,7 @@
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
   <!--==== END Race Selection ====-->
-
+  <hr>
   <!--==== START Attributes Selection ====-->
   <div ng-if="true">
     <div class="container">
@@ -220,7 +220,7 @@
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
   <!--==== END Attributes Selection ====-->
-
+  <hr>
   <!--==== START Background Selection ====-->
   <div ng-if="true">
     <div class="container">
@@ -231,7 +231,7 @@
             <div class="dropdown-menu">
               <table class="table-sm table-striped table-hover">
                 <tbody  class="">
-                  <tr ng-repeat="background in backgrounds | orderBy: 'name'" ng-click="data.char.background = background;" class="dropdown-item">
+                  <tr ng-repeat="background in backgrounds | orderBy: 'name'" ng-click="data.char.background=background; getBackgroundSkillCount(data.char.background);" class="dropdown-item">
                     <td><strong>{{background.name}}</strong></td>
                     <td>{{background.entries[0].items[0].entry}}</td>
                     <td ng-if="background._copy">See: {{background._copy.name}}</td>
@@ -247,22 +247,18 @@
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
   <!--==== END Background Selection ====-->
-
+  <hr>
   <!--==== START Class/Multi-Class Feature Selection ====-->
   <div ng-if="true">
     <div class="container">
+      <div class="row  mt-4 mb-5" ng-repeat="class in data.char.class">
 
-
-      <div class="row  mt-4 mb-3" ng-repeat="class in data.char.class">
-        <div class="col-sm-12 classFeatures">
-          <h2>{{class.name}}</h2>
-        </div>
         <div class="col-sm-12 classFeatures scrollable-table">
-          <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classFeatures">
+          <table class="table-sm table-striped table-hover classFeatures table-header-rotated" ng-if="class.classFeatures">
             <thead>
               <tr>
                 <th class="text-center"><div><span>Level</span></div></th>
-                <th class="text-center"><div><span>Class Features</span></div></th>
+                <th class="text-center"><div><span>{{class.name}}: Class Features</span></div></th>
               </tr>
             </thead>
             <tbody  class="">
@@ -275,15 +271,15 @@
                       <button class="btn btn-sm btn-outline-secondary btn-dropdown-toggle" ng-click="printss(feature)" data-toggle="tT" title="{{feature.entries[0]}}">{{feature.name}}</button>
                       <div class="dropdown-content" ng-class="{'open':isOpen}">
                         <a class="dropdown-item" ng-repeat="sub in class.subclasses track by $index"  ng-click="printss(sub)" data-toggle="tT" title="">{{sub.name}}</a>
-                      </div>
-                    </div>
+                      </div> <!-- End of Dropdown Content -->
+                    </div> <!-- End of Dropdown-->
                   </span>
                 </td>
               </tr>
             </tbody>
           </table>
 
-          <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[0].rows">
+          <table class="table-sm  table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[0].rows">
             <thead>
               <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[0].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th></tr>
             </thead>
@@ -294,7 +290,7 @@
             </tbody>
           </table>
 
-          <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[1].rows">
+          <table class="table-sm  table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[1].rows">
             <thead>
               <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[1].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th></tr>
             </thead>
@@ -305,7 +301,7 @@
             </tbody>
           </table>
 
-          <table class="table-xs table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[2].rows">
+          <table class="table-sm  table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[2].rows">
             <thead>
               <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[2].colLabels" ng-click=""><div><span>{{key+1}}</span></div></th></tr>
             </thead>
@@ -315,18 +311,57 @@
               </tr>
             </tbody>
           </table>
-        </div>
-
+        </div> <!-- End of Col 12-->
       </div><!-- End of Row -->
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
   <!--==== END Class/Multi-Class Feature Selection ====-->
-
+  <hr>
   <!--==== START Skills Selection ====-->
   <div ng-if="true">
     <div class="container">
       <div class="row  mt-4 mb-3">
+        <div class="col-sm-4" ng-if="data.char.class[0].name" style="padding-left: 0">
+          <strong>{{data.char.class[0].name}} <span ng-if="isNumber(data.char.class[0].startingProficiencies.skills[0].choose.count)">Choose: {{data.char.class[0].startingProficiencies.skills[0].choose.count}}</span></strong>
+          <ul class="hover">
+            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.class[0].startingProficiencies.skills[0].choose.from" ng-click="skillToggle(data.char.skills[skill], data.char.class[0].startingProficiencies.skills[0].choose)" data-toggle="tT" title="">
+              <input type="text" class="form-control peww" value="{{skill}} ({{data.char.skills[skill].mod}})" ng-disabled="data.char.skills[skill].lock" ng-readOnly="!data.char.skills[skill].lock">
+              <span class="input-group-addon largerCheckboxPadding">
+                <input type="checkbox" ng-model="data.char.skills[skill].prov" ng-disabled="data.char.skills[skill].lock || !data.char.class[0].startingProficiencies.skills[0].choose.count">
+              </span>
+            </li>
+          </ul>
+        </div> <!-- End of Col 4 -->
 
+        <div class="col-sm-4" ng-if="data.char.background.name">
+          <strong>{{data.char.background.name}} <span ng-if="isNumber(data.char.background.skillProficiencies[0].choose.count)">Choose: {{data.char.background.skillProficiencies[0].choose.count}}</span></strong>
+          <ul class="hover">
+            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.background.skillProficiencies[0]" ng-click="" data-toggle="tT" title="" ng-if="key !='choose'">
+              <input type="text" class="form-control peww" value="{{key}} ({{data.char.skills[key].mod}})" ng-disabled="data.char.skills[key].lock" ng-readOnly="!data.char.skills[key].lock">
+              <span class="input-group-addon largerCheckboxPadding">
+                <input type="checkbox" ng-model="data.char.skills[key].prov" ng-click="" ng-init="data.char.skills[key].prov=true; data.char.skills[key].lock=true" disabled>
+              </span>
+            </li>
+            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.background.skillProficiencies[0].choose.from" ng-click="skillToggle(data.char.skills[skill], data.char.background.skillProficiencies[0].choose)" data-toggle="tT" title="">
+              <input type="text" class="form-control peww" value="{{skill}}  ({{data.char.skills[skill].mod}})" ng-disabled="data.char.skills[skill].lock" ng-readOnly="!data.char.skills[skill].lock">
+              <span class="input-group-addon largerCheckboxPadding">
+                <input type="checkbox" ng-model="data.char.skills[skill].prov" ng-disabled="data.char.skills[skill].lock || !data.char.background.skillProficiencies[0].choose.count">
+              </span>
+            </li>
+          </ul>
+        </div> <!-- End of Col 4 -->
+
+        <div class="col-sm-4" ng-if="data.char.class[0].name || data.char.background.name" style="padding-left: 0">
+          <strong>All Skills</strong>
+          <ul class="hover">
+            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.skills" data-toggle="tT" title="">
+              <input type="text" class="form-control peww" value="{{key}} ({{data.char.skills[key].mod}})" disabled>
+              <span class="input-group-addon largerCheckboxPadding">
+                <input type="checkbox" ng-model="data.char.skills[key].prov" disabled>
+              </span>
+            </li>
+          </ul>
+        </div> <!-- End of Col 4 -->
       </div> <!-- End of Row -->
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
