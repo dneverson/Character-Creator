@@ -177,6 +177,12 @@ h1{
   display: table-cell;
   padding: 0;
 }
+.classDescription{
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  margin-top: 1rem;
+  padding: 1rem;
+}
 .table-header-rotated th.row-header{
   width: auto;
 }

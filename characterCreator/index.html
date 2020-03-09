@@ -142,6 +142,24 @@
             <input type="number" class="form-control" aria-label="" ng-model="class.level" ng-change="updateLevels()" min="1" required max="{{class.level+data.char.levelsRem}}">
             <button class="btn btn-danger btn-sm btnRemove" ng-click="removeIndexClass($index); updateLevels()" type="button"><span class="fas fa-minus"></span></button>
           </div> <!-- End of Input Group -->
+
+
+          <div ng-if="class.name" class="classDescription">
+            Class: {{class.name}}     Hit Dice: {{class.hd.number}}d{{class.hd.faces}}   proficiency: {{class.proficiency}} Book: <small>(<i>{{class.source}}: {{class.page}}</i>)</small>
+            Spellcasting Ability:{{class.spellcastingAbility}}
+            <div ng-if="$index==0">
+              Armor: {{class.startingProficiencies.armor}} Weapons: {{class.startingProficiencies.weapons}} Tools: {{class.startingProficiencies.tools}}
+              Skills: choose ({{class.startingProficiencies.skills[0].choose.count}}) from {{class.startingProficiencies.skills[0].choose.from}}
+              Starting Equipment: {{parseString(class.startingEquipment.default)}}
+            </div>
+            <div ng-if="$index">
+              Ability Score Minimum: {{class.multiclassing.requirements}}
+              ProficienciesGained Armor: {{class.multiclassing.proficienciesGained.armor}} Weapons: {{class.multiclassing.proficienciesGained.weapons}} Tools: {{class.multiclassing.proficienciesGained.tools}}
+              Skills: choose ({{class.multiclassing.proficienciesGained.skills[0].choose.count}}) from {{class.multiclassing.proficienciesGained..skills[0].choose.from}}
+
+            </div>
+          </div>
+
         </div> <!-- End of NG-Repeat -->
         <button class="btn btn-primary btn-sm" ng-click="addClass(); updateLevels(); updateClasses();" ng-if="data.char.class[0].name" type="button"><span class="fas fa-plus"></span> Add Multi-Class</button>
         <button class="btn btn-primary btn-sm" ng-click="addClass(); updateLevels(); updateClasses();" ng-if="!data.char.class[0]" type="button"><span class="fas fa-plus"></span> Add Class</button>
@@ -378,9 +396,9 @@
   <div ng-if="true">
     <div class="container">
       <div class="row  mt-4 mb-3">
-
-        <button type="button" class="btn btn-success" ng-click="calcHitDice()">Hitdice</button>
-
+        <div ng-if="data.char.class[0].name" >
+          <button type="button" class="btn btn-success" ng-click="calcHitDice()">Hitdice</button>
+        </div>
       </div> <!-- End of Row -->
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
