@@ -225,14 +225,16 @@ app.controller("ccCtrl", function($scope, $http, dice){
     return obj
   };
 
-  $scope.skillToggle = function(skill, choice){
+  $scope.skillToggle = function(skill, choice, from){
     if(!skill.lock){
       if(choice.count && !skill.prov){
         skill.prov = true;
+        skill.from = from;
         choice.count--;
       }
       else if(skill.prov){
         skill.prov = false;
+        skill.from = "";
         choice.count++;
       }
     }
@@ -246,10 +248,10 @@ app.controller("ccCtrl", function($scope, $http, dice){
    }catch(e){}
   };
 
-  $scope.resetSkills = function(){
+  $scope.resetSkills = function(from){
     var obj = $scope.data.char.skills;
     for (var skill in obj){
-      obj[skill].prov = obj[skill].lock = 0
+      if (obj[skill].from == from) obj[skill].prov = obj[skill].lock = 0
     }
   };
 

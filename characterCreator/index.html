@@ -124,7 +124,7 @@
               <div class="dropdown-menu">
                 <table class="table-sm table-striped table-hover">
                   <tbody>
-                    <tr ng-repeat="choice in classOptions" ng-click="loadClass(choice.path, class.level, classid); class.name=choice.name; updateClasses();" class="dropdown-item">
+                    <tr ng-repeat="choice in classOptions" ng-click="loadClass(choice.path, class.level, classid); class.name=choice.name; updateClasses(); resetSkills('class')" class="dropdown-item">
                       <td><strong>{{choice.name}}</strong></td>
                       <td>[{{choice.proficiency[0]}},{{choice.proficiency[1]}}]</td>
                       <td>{{choice.hd.number}}d{{choice.hd.faces}}</td>
@@ -239,7 +239,7 @@
             <div class="dropdown-menu">
               <table class="table-sm table-striped table-hover">
                 <tbody  class="">
-                  <tr ng-repeat="background in backgrounds | orderBy: 'name'" ng-click="data.char.background=background; getBackgroundSkillCount(data.char.background);" class="dropdown-item">
+                  <tr ng-repeat="background in backgrounds | orderBy: 'name'" ng-click="data.char.background=background; getBackgroundSkillCount(data.char.background); resetSkills('background');" class="dropdown-item">
                     <td><strong>{{background.name}}</strong></td>
                     <td>{{parseString(background.entries[0].items[0].entry)}}</td>
                     <td><small>(<i>{{background.source}}: {{background.page}}</i>)</small></td>
@@ -331,7 +331,7 @@
         <div class="col-sm-4 pl-0" ng-if="data.char.class[0].name">
           <strong>{{data.char.class[0].name}} <span ng-if="isNumber(data.char.class[0].startingProficiencies.skills[0].choose.count)">Choose: {{data.char.class[0].startingProficiencies.skills[0].choose.count}}</span></strong>
           <ul class="hover">
-            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.class[0].startingProficiencies.skills[0].choose.from" ng-click="skillToggle(data.char.skills[skill], data.char.class[0].startingProficiencies.skills[0].choose)" data-toggle="tT" title="">
+            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.class[0].startingProficiencies.skills[0].choose.from" ng-click="skillToggle(data.char.skills[skill], data.char.class[0].startingProficiencies.skills[0].choose, 'class')" data-toggle="tT" title="">
               <input type="text" class="form-control peww" value="{{skill}} ({{data.char.skills[skill].mod}})" ng-disabled="data.char.skills[skill].lock" ng-readOnly="!data.char.skills[skill].lock">
               <span class="input-group-addon">
                 <input type="checkbox" ng-model="data.char.skills[skill].prov" ng-disabled="data.char.skills[skill].lock || !data.char.class[0].startingProficiencies.skills[0].choose.count">
@@ -346,10 +346,10 @@
             <li class="input-group pewww" ng-repeat="(key, skill) in data.char.background.skillProficiencies[0]" ng-click="" data-toggle="tT" title="" ng-if="key !='choose'">
               <input type="text" class="form-control peww" value="{{key}} ({{data.char.skills[key].mod}})" ng-disabled="data.char.skills[key].lock" ng-readOnly="!data.char.skills[key].lock">
               <span class="input-group-addon">
-                <input type="checkbox" ng-model="data.char.skills[key].prov" ng-click="" ng-init="data.char.skills[key].prov=true; data.char.skills[key].lock=true" disabled>
+                <input type="checkbox" ng-model="data.char.skills[key].prov" ng-click="" ng-init="data.char.skills[key].prov=true; data.char.skills[key].lock=true; data.char.skills[key].from='background'" disabled>
               </span>
             </li>
-            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.background.skillProficiencies[0].choose.from" ng-click="skillToggle(data.char.skills[skill], data.char.background.skillProficiencies[0].choose)" data-toggle="tT" title="">
+            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.background.skillProficiencies[0].choose.from" ng-click="skillToggle(data.char.skills[skill], data.char.background.skillProficiencies[0].choose, 'background')" data-toggle="tT" title="">
               <input type="text" class="form-control peww" value="{{skill}}  ({{data.char.skills[skill].mod}})" ng-disabled="data.char.skills[skill].lock" ng-readOnly="!data.char.skills[skill].lock">
               <span class="input-group-addon">
                 <input type="checkbox" ng-model="data.char.skills[skill].prov" ng-disabled="data.char.skills[skill].lock || !data.char.background.skillProficiencies[0].choose.count">
