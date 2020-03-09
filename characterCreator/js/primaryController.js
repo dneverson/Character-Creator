@@ -197,7 +197,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
   /*=======================================================================*
   * Calculates Mod value of stat provided
   *========================================================================*/
-  $scope.updateMod = function(stat){
+  $scope.getMod = function(stat){
     return (Math.floor((stat)/2)-5);
   };
 
@@ -251,35 +251,42 @@ app.controller("ccCtrl", function($scope, $http, dice){
   $scope.resetSkills = function(from){
     var obj = $scope.data.char.skills;
     for (var skill in obj){
-      if (obj[skill].from == from) obj[skill].prov = obj[skill].lock = 0
+      if (obj[skill].from == from){
+        obj[skill].prov = obj[skill].lock = 0;
+        obj[skill].from = "";
+      }
     }
   };
 
-  $scope.makeArr = function(obj){
-    var result = [];
-    angular.forEach(obj, function (val, key) {
-        result.push({key: val, val: key});
-    });
-    return result;
-  }
 
   $scope.calcHitDice = function(){
     var obj = $scope.data.char;
     var tough = 0;
     var hill = 0;
-    var cMod = $scope.updateMod(obj.stats.con.sVal+obj.stats.con.rVal+obj.stats.con.oVal);
+    var cMod = $scope.getMod(obj.stats.con.sVal+obj.stats.con.rVal+obj.stats.con.oVal);
     var arr = [];
+    var maxLevel = angular.copy(obj.levelsCur);
+    var curLevel = 1;
 
-    for (var i=0; i<obj.feats.length; i++){
-      if( obj.feats[i] == "Tough") tough = obj.levelsCur*2;
-    }
-
+    for (var i=0; i<obj.feats.length; i++) if( obj.feats[i] == "Tough") tough = obj.levelsCur*2;
     if(obj.race.name == "Dwarf (Hill)") hill = obj.levelsCur
 
     for (var i=0; i<obj.class.length; i++){
+      for (var j=0; j<obj.class[i].level;j++){
 
+        var name =   obj.class[i].name;
+        var number = obj.class[i].hd.number;
+        var faces  = obj.class[i].hd.faces
+        var diceType = number+"d"+faces;
+        var roll = dice.rollDicess(number,faces,number,0)[1];
+        var average = Math.round((1+faces)/2);
+
+        if(i==0 && j==0) arr.push({name:name, classLevel:j+1, curLevel:curLevel, cMod:cMod,  diceType: diceType, avgValue:average, diceValue:(number*faces)});
+        else arr.push({name:name, classLevel:j+1, curLevel:curLevel, cMod:cMod,  diceType: diceType, avgValue:average, diceValue:roll});
+        curLevel++;
+      }
     }
-
+    console.log(arr)
   };
 
   $scope.parseString = function(text) {

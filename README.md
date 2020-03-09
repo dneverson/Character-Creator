@@ -29,11 +29,11 @@ ALPHA V1.0
 2.   [X] Roll Dice for Stats
 3.   [X] Class / Muli-Class Selection and Levels
 4.   [X] Race Selection
-5.   [X] Stat Attributes
+5.   [X] Stat Attributes ------------------------------------- (Semi-Complete)
 6.   [X] Background Selection
-7.   [ ] Class / Multi-Class lvl up selections and features
+7.   [X] Class / Multi-Class lvl up selections and features -- (Semi-Complete)
 8.   [X] Skills
-9.   [ ] Hit Dice
+9.   [X] Hit Dice -------------------------------------------- (Semi-Complete)
 10.  [ ] Spells
 11.  [ ] Druid Wild-Shape
 12.  [ ] Equipment / Items

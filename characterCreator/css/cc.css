@@ -174,8 +174,7 @@ h1{
   font-weight: 500;
 }
 .classFeatures{
-  display: inline-table;
-
+  display: table-cell;
   padding: 0;
 }
 .table-header-rotated th.row-header{

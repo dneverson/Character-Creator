@@ -90,7 +90,7 @@
               <tbody>
                 <tr >
                   <td class="border-0" ng-repeat="stat in data.char.rolledStats | orderBy:'-' track by $index" > <!-- style="padding: 0 0 0 1em;" -->
-                    <span class="rolled" ng-class="{'color-green':stat>=16,'color-blue':stat>=10,'color-red':stat<=9}">{{stat}}</span><span class="rolledMod">{{updateMod(stat)}}</span>
+                    <span class="rolled" ng-class="{'color-green':stat>=16,'color-blue':stat>=10,'color-red':stat<=9}">{{stat}}</span><span class="rolledMod">{{getMod(stat)}}</span>
                   </td>
                 </tr>
               </tbody>
@@ -210,7 +210,7 @@
                   </div> <!-- End of Dropdown Menu -->
                 </div> <!-- End of Input Group -->
               </td>
-              <td><span class="rolledModTable">{{updateMod(playerStat.sVal)}}</span></td>
+              <td><span class="rolledModTable">{{getMod(playerStat.sVal)}}</span></td>
               <td class="text-center"><strong>+{{playerStat.rVal}}</strong></td>
               <td class="text-center" width="10%">
                 <div class="input-group">
@@ -219,7 +219,7 @@
               </td>
               <td></td>
               <td class="text-center" ng-class="{'color-green':playerStat.sVal+playerStat.rVal+playerStat.oVal>=16,'color-blue':playerStat.sVal+playerStat.rVal+playerStat.oVal>=10,'color-red':playerStat.sVal+playerStat.rVal+playerStat.oVal<=9}"><strong>{{playerStat.sVal+playerStat.rVal+playerStat.oVal}}</strong></td>
-              <td class="text-left"><span class="rolledModTable">{{updateMod(playerStat.sVal+playerStat.rVal+playerStat.oVal)}}</span></td>
+              <td class="text-left"><span class="rolledModTable">{{getMod(playerStat.sVal+playerStat.rVal+playerStat.oVal)}}</span></td>
             </tr>
           </tbody>
         </table>
@@ -378,6 +378,8 @@
   <div ng-if="true">
     <div class="container">
       <div class="row  mt-4 mb-3">
+
+        <button type="button" class="btn btn-success" ng-click="calcHitDice()">Hitdice</button>
 
       </div> <!-- End of Row -->
     </div> <!-- End of Container -->
