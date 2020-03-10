@@ -27,7 +27,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
       carryCapacity: {mod: "str", multVar:15, multEnc:5, sMod:0, val: 0, speed:-10},
       spells: {0:{}, 1:{}, 2:{}, 3:{}, 4:{}, 5:{}, 6:{}, 7:{}, 8:{}, 9:{}},
       health: {mod: "con", sMod:0, max:0, cur:0, tmp:0},
-      hitDice: {dice: "d10", total:0},
+      hitDice: [],
       deathSaves: {success:0, fail:0},
       spellAbility: {ability:"WIS", dc:0, bonus:0},
       monies: {cp:0, sp:0, ep:0, gp:0, pp:0, val:0}, //total value
@@ -166,8 +166,6 @@ app.controller("ccCtrl", function($scope, $http, dice){
       for (var i=0; i<$scope.data.char.class.length; i++){
         if($scope.data.char.class[i].name.toUpperCase() == clss.toUpperCase()) delete $scope.classOptions[clss]
   }}
-  // TEMP WHILE DOING CLASS FEATURES
-  console.log($scope.data.char.class)
   };
 
   /*=======================================================================*
@@ -218,7 +216,7 @@ app.controller("ccCtrl", function($scope, $http, dice){
   $scope.isNumber = angular.isNumber;
 
   $scope.printss = function(feature){
-    console.log(feature);
+    //console.log(feature);
   };
   $scope.toggle = function(obj){
     obj = obj?0:1;
@@ -259,6 +257,15 @@ app.controller("ccCtrl", function($scope, $http, dice){
   };
 
 
+  $scope.getSumHitDice = function(obj){
+    var avg = roll = 0;
+    for (var i=0; i<obj.length; i++) {
+      avg += obj[i].cMod + obj[i].avgValue;
+      roll += obj[i].cMod + obj[i].diceValue;
+    }
+    return [avg,roll];
+  };
+
   $scope.calcHitDice = function(){
     var obj = $scope.data.char;
     var tough = 0;
@@ -286,8 +293,10 @@ app.controller("ccCtrl", function($scope, $http, dice){
         curLevel++;
       }
     }
-    console.log(arr)
+    $scope.data.char.hitDice = arr
   };
+
+
 
   $scope.parseString = function(text) {
     try {

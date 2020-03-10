@@ -40,6 +40,7 @@ ALPHA V1.0
 13.  [ ] Background Story
 
 ### Character Creator Needs Worked on:
+1.   [ ] Bootstrap / Popper dropdowns need switched out to custom. Dynamic content fails to digest properly
 1.   [ ] Multi-Class requirements Checking
 2.   [X] Race Choose x amount needs implemented
 3.   [ ] Point Buy needs implemented

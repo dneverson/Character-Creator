@@ -153,10 +153,10 @@
               Starting Equipment: {{parseString(class.startingEquipment.default)}}
             </div>
             <div ng-if="$index">
+              hello
               Ability Score Minimum: {{class.multiclassing.requirements}}
               ProficienciesGained Armor: {{class.multiclassing.proficienciesGained.armor}} Weapons: {{class.multiclassing.proficienciesGained.weapons}} Tools: {{class.multiclassing.proficienciesGained.tools}}
-              Skills: choose ({{class.multiclassing.proficienciesGained.skills[0].choose.count}}) from {{class.multiclassing.proficienciesGained..skills[0].choose.from}}
-
+              <!-- Skills: choose ({{class.multiclassing.proficienciesGained.skills[0].choose.count}}) from {{class.multiclassing.proficienciesGained..skills[0].choose.from}} -->
             </div>
           </div>
 
@@ -195,6 +195,14 @@
           </div> <!-- End of Input Group Prepend -->
           <input type="text" class="form-control" aria-label="Text input with dropdown button" data-toggle="dropdown" ng-model="data.char.race.name" readonly>
         </div> <!-- End of Input Group -->
+
+        <div ng-if="data.char.race.name" class="classDescription">
+          Race: {{data.char.race.name}} Size: {{data.char.race.size}} Speed: {{data.char.race.speed}} Book: <small>(<i>{{data.char.race.source}}: {{data.char.race.page}}</i>)</small>
+          Darkvision: {{data.char.race.darkvision}} Ability: {{data.char.race.ability[0]}} Languages: {{data.char.race.languageProficiencies[0]}}
+          Age: {{data.char.race.entries[0].entries[0]}} etc...
+
+        </div>
+
       </div> <!-- End of Row -->
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
@@ -268,6 +276,14 @@
           </div> <!-- End of Input Group Prepend -->
           <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.background.name" data-toggle="dropdown" readonly>
         </div> <!-- End of Input Group -->
+
+        <div ng-if="data.char.background.name" class="classDescription">
+          Background: {{data.char.background.name}} Book: <small>(<i>{{data.char.background.source}}: {{data.char.background.page}}</i>)</small>
+          skills: {{data.char.background.skillProficiencies[0]}} Languages: {{data.char.background.languageProficiencies[0]}}
+
+
+        </div>
+
       </div> <!-- End of Row -->
     </div> <!-- End of Container -->
   </div> <!-- End of NG-IF -->
@@ -396,8 +412,51 @@
   <div ng-if="true">
     <div class="container">
       <div class="row  mt-4 mb-3">
-        <div ng-if="data.char.class[0].name" >
+        <div ng-if="data.char.class[0].name">
           <button type="button" class="btn btn-success" ng-click="calcHitDice()">Hitdice</button>
+
+
+          <table class="table-sm  table-striped table-hover" ng-if="data.char.hitDice[0]">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th>Class Level</th>
+                <th>Current Level</th>
+                <th>Mod</th>
+                <th>Dice</th>
+                <th>Average</th>
+                <th>Rolled</th>
+                <th>Average Total</th>
+                <th>Rolled Total</th>
+              </tr>
+            </thead>
+            <tbody  class="">
+              <tr ng-repeat="dice in data.char.hitDice" ng-click="">
+                <td>{{dice.name}}</td>
+                <td>{{dice.classLevel}}</td>
+                <td>{{dice.curLevel}}</td>
+                <td>{{dice.cMod}}</td>
+                <td>{{dice.diceType}}</td>
+                <td>{{dice.avgValue}}</td>
+                <td>{{dice.diceValue}}</td>
+                <td><strong>{{dice.cMod+dice.avgValue}}</strong></td>
+                <td><strong>{{dice.cMod+dice.diceValue}}</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Totals</strong></td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td><strong>{{getSumHitDice(data.char.hitDice)[0]}}</strong></td>
+                <td><strong>{{getSumHitDice(data.char.hitDice)[1]}}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+
         </div>
       </div> <!-- End of Row -->
     </div> <!-- End of Container -->
