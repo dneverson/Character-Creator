@@ -41,13 +41,13 @@ ALPHA V1.0
 
 ### Character Creator Needs Worked on:
 1.   [ ] Bootstrap / Popper dropdowns need switched out to custom. Dynamic content fails to digest properly
-1.   [ ] Multi-Class requirements Checking
-2.   [X] Race Choose x amount needs implemented
-3.   [ ] Point Buy needs implemented
-4.   [ ] Matrix Roll needs implemented on the ability table
-5.   [X] Backgrounds that are cloned need to display cloned skills in menu
-6.   [X] Backgrounds need to display "Stealth" NOT "{@skill Stealth}"
-7.   [ ] Selected books need to filter all menu items
+2.   [ ] Multi-Class requirements Checking
+3.   [X] Race Choose x amount needs implemented
+4.   [ ] Point Buy needs implemented
+5.   [ ] Matrix Roll needs implemented on the ability table
+6.   [X] Backgrounds that are cloned need to display cloned skills in menu
+7.   [X] Backgrounds need to display "Stealth" NOT "{@skill Stealth}"
+8.   [ ] Selected books need to filter all menu items
 
 ### Character Creator Features:
 1.   [ ] Main thing he said is feat vs Ability score increase.
