@@ -1,0 +1,67 @@
+name: Supabase heartbeat
+
+# Keeps the Supabase Free plan project from being paused.
+#
+# Supabase pauses a Free plan project after about a week of low database activity. A paused
+# project does not wake itself: it stays down until someone clicks "Resume project" in the
+# dashboard. Supabase's guidance is that a few database requests a day are typically enough to
+# stay active, so this job makes one real database call every four hours.
+#
+# If this job fails, the database did not answer. Check the Supabase dashboard first: the project
+# may have been paused and need resuming.
+#
+# Setup (repository Settings > Secrets and variables > Actions > Variables):
+#   SUPABASE_URL              the project URL, for example https://<ref>.supabase.co
+#   SUPABASE_PUBLISHABLE_KEY  the publishable key (public by design, never the secret key)
+#
+# The database side is the `public.heartbeat()` function in supabase/migrations.
+
+on:
+  schedule:
+    # Every four hours, off the top of the hour, when GitHub's scheduler is least congested.
+    - cron: '17 */4 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  # Needed only by the "Keep this schedule enabled" step.
+  actions: write
+
+concurrency:
+  group: supabase-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call the database
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::error::SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be set as repository variables."
+            exit 1
+          fi
+          if ! answer=$(curl --silent --show-error --fail-with-body \
+            --retry 3 --retry-all-errors --retry-delay 10 --max-time 30 \
+            --request POST "$SUPABASE_URL/rest/v1/rpc/heartbeat" \
+            --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            --header "Content-Type: application/json" \
+            --data '{}'); then
+            echo "::error::Supabase did not answer the heartbeat. If the project is paused, resume it in the Supabase dashboard. Response: $answer"
+            exit 1
+          fi
+          echo "Database answered. Its clock reads $answer"
+
+      # GitHub disables scheduled workflows in a public repository after 60 days without
+      # repository activity. Re-enabling the workflow through the API on every run is the widely
+      # used guard against that, so a quiet stretch in the repository does not silently stop the
+      # heartbeat. It runs even when the call above failed, so the schedule survives an outage.
+      - name: Keep this schedule enabled
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method PUT "repos/${{ github.repository }}/actions/workflows/supabase-heartbeat.yml/enable"
