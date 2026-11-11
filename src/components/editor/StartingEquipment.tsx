@@ -117,7 +117,6 @@ function PickSlot({
         labels={{
           compare: 'Compare items',
           search: 'Search items...',
-          detailPlaceholder: 'Select an item to see it in full.',
           table: pick.label,
         }}
       />

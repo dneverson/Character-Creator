@@ -68,7 +68,6 @@ export function BaseItemChooser({ template, rows, edition, onChoose, onHide }: P
             labels={{
               compare: 'Compare items',
               search: 'Search items and text...',
-              detailPlaceholder: 'Select an item to see it in full.',
               table: 'Base items',
             }}
           />

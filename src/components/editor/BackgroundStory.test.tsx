@@ -133,6 +133,7 @@ describe('BackgroundStory', () => {
     await waitFor(() => expect(story(c.id).alignment).toBe('Chaotic Good'))
 
     await user.type(screen.getByLabelText('Ideals'), 'Freedom')
+    await user.tab()
     await waitFor(() => expect(story(c.id).ideals).toBe('Freedom'))
     expect(screen.queryByText(/no suggested characteristics/)).not.toBeInTheDocument()
   })
@@ -168,6 +169,7 @@ describe('BackgroundStory', () => {
     expect(ideals).toHaveAttribute('rows', '2')
     await user.click(ideals)
     await user.paste('one\ntwo\nthree\n' + 'x'.repeat(130))
+    await user.tab()
     await waitFor(() => expect(story(c.id).ideals).toContain('three'))
     // Three short lines and a 130 character line wrapping onto three more.
     expect(screen.getByLabelText('Ideals')).toHaveAttribute('rows', '6')
@@ -207,6 +209,7 @@ describe('BackgroundStory', () => {
 
     await screen.findByText('Ideal')
     await user.type(screen.getByLabelText('Ideals'), 'Mine.')
+    await user.tab()
     // The player's text stands in for the table.
     expect(within(chooser('Ideal')).getByText('Your own text')).toBeInTheDocument()
 

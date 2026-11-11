@@ -125,7 +125,6 @@ export function BackgroundSelection() {
           labels={{
             compare: 'Compare backgrounds',
             search: 'Search backgrounds, features and tables…',
-            detailPlaceholder: 'Select a background to see it in full.',
             table: 'Background reference',
           }}
         >

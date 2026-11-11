@@ -16,6 +16,8 @@ const ICONS = {
   themeSystem: 'bi-display',
   warning: 'bi-exclamation-triangle-fill',
   remove: 'bi-x-lg',
+  moveUp: 'bi-arrow-up',
+  moveDown: 'bi-arrow-down',
   back: 'bi-arrow-left',
   roll: 'bi-dice-6-fill',
   historyPrev: 'bi-arrow-counterclockwise',

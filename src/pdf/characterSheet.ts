@@ -145,7 +145,11 @@ function summarize(character: Character, deps: SheetDeps) {
 /** One line for each attack: "Longsword +5, 1d8 + 3 slashing (1d10 + 3 with two hands)". */
 export function attackLines(derived: DerivedSheet): string[] {
   const damage = (dice: string, bonus: number) =>
-    bonus === 0 ? dice : `${dice} ${bonus < 0 ? '-' : '+'} ${Math.abs(bonus)}`
+    dice === ''
+      ? String(bonus)
+      : bonus === 0
+        ? dice
+        : `${dice} ${bonus < 0 ? '-' : '+'} ${Math.abs(bonus)}`
   return derived.attacks.map((a) => {
     const two = a.twoHanded
       ? ` (${damage(a.twoHanded.dice, a.twoHanded.bonus.value)} with two hands)`

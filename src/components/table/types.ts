@@ -53,6 +53,8 @@ export interface Column<T> {
    * dataset opens readable and nothing is left out.
    */
   defaultHidden?: boolean
+  /** A button column rather than data: left out of the CSV export. */
+  action?: boolean
   /** Extra className for this column's `<td>` cells. */
   className?: string
   /** Extra className for this column's `<th>` header. */
@@ -92,27 +94,11 @@ export interface RowMeta {
 export type SelectionMode = 'single' | 'multi' | 'none'
 
 /**
- * Discrete, opt-in detail-pane features. Each consumer enables only what it
- * needs; the defaults reproduce the original always-visible pane so existing
- * tables keep working unchanged.
+ * Detail-pane settings. The pane itself behaves the same everywhere: it is absent
+ * (the table has the full width) until a row is clicked; clicking that row again,
+ * the close button or Escape closes it.
  */
 export interface DetailPaneOptions {
-  /**
-   * When true, the pane is absent until a row is focused, and disappears again
-   * once the focus is cleared (so the table reclaims the full width). Defaults
-   * to false: the pane is always present.
-   */
-  hiddenUntilFocus?: boolean
-  /**
-   * When true, clicking the already-focused row again clears the focus (closing
-   * the pane). Defaults to false: clicking a row only ever focuses it.
-   */
-  toggleOnReclick?: boolean
-  /**
-   * When true, the pane shows a close (X) control and closes on the Escape key.
-   * Defaults to false: no explicit close affordance.
-   */
-  closable?: boolean
   /**
    * The table's share of the width, in percent, until the divider is dragged.
    * Defaults to a little over half; a table with many columns asks for more.
@@ -150,12 +136,10 @@ export interface DataTableProps<T> {
   searchText?: (row: T) => string
   /** Renders the detail pane for the focused row (the master-detail "info" side). */
   renderDetail?: (row: T) => ReactNode
-  /** Shown in the detail pane when no row is focused. */
-  detailPlaceholder?: ReactNode
+  /** Content kept above the table's own toolbar, so it travels with the table into full screen. */
+  header?: ReactNode
   /**
-   * Detail-pane behaviour, opt-in per consumer. Only meaningful when
-   * `renderDetail` is set. Every field defaults to preserve the base behaviour:
-   * a pane that is always present and shows the placeholder until a row is focused.
+   * Detail-pane settings. Only meaningful when `renderDetail` is set.
    */
   detail?: DetailPaneOptions
   /**

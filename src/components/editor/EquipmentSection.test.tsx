@@ -155,6 +155,7 @@ describe('EquipmentSection', () => {
     const gp = screen.getByLabelText('Gold pieces')
     await user.clear(gp)
     await user.type(gp, '25')
+    await user.tab()
     await waitFor(() => expect(active(c.id).equipment.currency.gp).toBe(25))
   })
 
@@ -315,6 +316,7 @@ describe('EquipmentSection', () => {
     expect(await screen.findByText('Over capacity')).toBeInTheDocument()
     expect(screen.getByText(/^Carried/)).toHaveTextContent('Carried 200 of 150 lb')
     await user.type(screen.getByLabelText('Note on Anvil'), 'heavy')
+    await user.tab()
     await waitFor(() => expect(active(c.id).equipment.items[0].note).toBe('heavy'))
   })
 

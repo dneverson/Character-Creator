@@ -121,7 +121,6 @@ export function SpellLines({
       labels={{
         compare: 'Compare spells',
         search: 'Search spells…',
-        detailPlaceholder: 'Select a spell to see it in full.',
         table: label,
       }}
     />

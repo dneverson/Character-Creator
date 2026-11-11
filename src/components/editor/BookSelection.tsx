@@ -442,8 +442,6 @@ export function BookSelection() {
           searchText={(b) => `${b.name} ${b.source}`}
           searchPlaceholder="Filter books…"
           renderDetail={(b) => <BookDetail key={b.source} book={b} />}
-          detailPlaceholder="Select a book to see its cover and full contents."
-          detail={{ hiddenUntilFocus: true, toggleOnReclick: true, closable: true }}
           emptyLabel="No books match your search."
           ariaLabel="Available books"
         />

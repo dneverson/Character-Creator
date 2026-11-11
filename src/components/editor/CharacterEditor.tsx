@@ -1,7 +1,6 @@
 import { useState, type ComponentType } from 'react'
 import Button from 'react-bootstrap/Button'
 import Container from 'react-bootstrap/Container'
-import Form from 'react-bootstrap/Form'
 import Spinner from 'react-bootstrap/Spinner'
 import Stack from 'react-bootstrap/Stack'
 import { ErrorBoundary } from '../ErrorBoundary'
@@ -23,6 +22,7 @@ import { RaceSelection } from './RaceSelection'
 import { ProficienciesSection } from './ProficienciesSection'
 import { SkillsSection } from './SkillsSection'
 import { SpellsSection } from './SpellsSection'
+import { DraftInput } from './DraftInput'
 import { WildShapeSection } from './WildShapeSection'
 
 /**
@@ -93,9 +93,9 @@ export function CharacterEditor() {
           <Icon name="back" className="me-1" />
           Characters
         </Button>
-        <Form.Control
+        <DraftInput
           value={character.name}
-          onChange={(e) => updateActive({ name: e.target.value })}
+          onCommit={(name) => updateActive({ name })}
           aria-label="Character name"
           className="fw-semibold"
           style={{ maxWidth: 360 }}

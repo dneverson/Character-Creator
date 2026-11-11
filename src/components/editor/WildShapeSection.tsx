@@ -150,7 +150,6 @@ function BeastForms({ selectedBooks, wildShapes, limits }: BeastFormsProps) {
         labels={{
           compare: 'Compare beasts',
           search: 'Search beasts, traits and attacks…',
-          detailPlaceholder: 'Select a beast to see its stat block.',
           table: 'Beasts for Wild Shape',
         }}
       />

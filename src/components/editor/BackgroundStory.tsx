@@ -19,6 +19,7 @@ import { rollOnTable } from '../../data/dieTables'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { PickOrRoll } from '../table/PickOrRoll'
 import { SubSection } from './SubSection'
+import { DraftInput } from './DraftInput'
 
 const ALIGNMENTS = [
   'Lawful Good',
@@ -166,11 +167,11 @@ export function BackgroundStory() {
                   onChoose={(rows, roll) => choose(table, rows, roll)}
                 />
               ))}
-            <Form.Control
+            <DraftInput
               as="textarea"
               rows={rowsFor(story[field.key], field.rows)}
               value={story[field.key]}
-              onChange={(e) => patch(field.key, e.target.value)}
+              onCommit={(text) => patch(field.key, text)}
               aria-label={field.label}
             />
           </div>

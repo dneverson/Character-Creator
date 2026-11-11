@@ -322,7 +322,6 @@ function SlotCard({
         labels={{
           compare: 'Compare feats',
           search: 'Search feats, prerequisites and text…',
-          detailPlaceholder: 'Select a feat to see it in full.',
           table: `Feats for ${slot.label}`,
         }}
       >

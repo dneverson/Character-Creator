@@ -109,6 +109,7 @@ describe('CombatSection', () => {
     const input = await screen.findByLabelText('Other AC bonus')
     await user.clear(input)
     await user.type(input, '1')
+    await user.tab()
     expect(useCharacterStore.getState().characters[c.id].manualBonuses?.ac).toBe(1)
     const table = screen.getByRole('table', { name: 'Armor class breakdown' })
     expect(within(table).getByText('13')).toBeInTheDocument()
@@ -124,6 +125,7 @@ describe('CombatSection', () => {
     expect(await within(attacks).findByText('Longsword')).toBeInTheDocument()
     expect(within(attacks).getByText('Unarmed strike')).toBeInTheDocument()
     expect(within(attacks).getByText('1d8 + 3 slashing')).toBeInTheDocument()
+    expect(within(attacks).getByText('4 bludgeoning')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Show how Longsword adds up' }))
     expect(
       screen.getByRole('table', { name: 'Longsword attack bonus' }),
@@ -133,6 +135,21 @@ describe('CombatSection', () => {
     ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Hide how Longsword adds up' }))
     expect(screen.queryByRole('table', { name: 'Longsword attack bonus' })).toBeNull()
+  })
+
+  it('shows an unarmed strike as one total and lists each line behind it', async () => {
+    const user = userEvent.setup()
+    seed()
+    renderSection()
+    await screen.findByRole('table', { name: 'Attacks' })
+    await user.click(
+      screen.getByRole('button', { name: 'Show how Unarmed strike adds up' }),
+    )
+    const table = screen.getByRole('table', { name: 'Unarmed strike damage' })
+    expect(within(table).getByText('Unarmed strike')).toBeInTheDocument()
+    expect(within(table).getByText('Strength')).toBeInTheDocument()
+    const rows = within(table).getAllByRole('row')
+    expect(rows[rows.length - 1]).toHaveTextContent('Damage4')
   })
 
   it('shows spell numbers for a caster and none for a fighter', async () => {
@@ -183,6 +200,7 @@ describe('CombatSection', () => {
     const input = await screen.findByLabelText('Other initiative bonus')
     await user.clear(input)
     await user.type(input, '2')
+    await user.tab()
     expect(useCharacterStore.getState().characters[c.id].manualBonuses?.initiative).toBe(
       2,
     )

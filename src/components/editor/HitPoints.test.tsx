@@ -123,6 +123,7 @@ describe('HitPoints', () => {
     const perLevel = screen.getByLabelText('Other HP bonus per level')
     await user.clear(perLevel)
     await user.type(perLevel, '2')
+    await user.tab()
     await waitFor(() =>
       expect(useCharacterStore.getState().characters[c.id].hp.perLevelBonus).toBe(2),
     )
@@ -130,6 +131,7 @@ describe('HitPoints', () => {
     const flat = screen.getByLabelText('Flat HP bonus')
     await user.clear(flat)
     await user.type(flat, '5')
+    await user.tab()
     await waitFor(() =>
       expect(useCharacterStore.getState().characters[c.id].hp.flatBonus).toBe(5),
     )
@@ -241,6 +243,7 @@ describe('HitPoints', () => {
     const flat = screen.getByLabelText('Flat HP bonus')
     await user.clear(flat)
     await user.type(flat, '-4')
+    await user.tab()
     await waitFor(() =>
       expect(useCharacterStore.getState().characters[c.id].hp.flatBonus).toBe(-4),
     )

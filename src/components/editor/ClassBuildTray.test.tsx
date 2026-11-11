@@ -111,6 +111,14 @@ describe('ClassBuildTray', () => {
     expect(await screen.findByText(/No classes yet/i)).toBeInTheDocument()
   })
 
+  it('shows the edition of the chosen class', async () => {
+    const c = seedActive()
+    c.classes = [{ name: 'Fighter', source: 'PHB', level: 1 }]
+    useCharacterStore.setState({ characters: { [c.id]: c } })
+    renderTray()
+    expect(await screen.findByText('2014')).toBeInTheDocument()
+  })
+
   it('sets a level, floors a zero to 1, and shows the total', async () => {
     const c = seedActive()
     c.classes = [{ name: 'Fighter', source: 'PHB', level: 1 }]
@@ -119,6 +127,7 @@ describe('ClassBuildTray', () => {
 
     const level = await screen.findByLabelText('Level for Fighter')
     fireEvent.change(level, { target: { value: '5' } })
+    fireEvent.blur(level)
     await waitFor(() => expect(active(c.id).classes[0].level).toBe(5))
     expect(screen.getByText('Level 5')).toBeInTheDocument()
 
@@ -126,6 +135,7 @@ describe('ClassBuildTray', () => {
     fireEvent.change(screen.getByLabelText('Level for Fighter'), {
       target: { value: '0' },
     })
+    fireEvent.blur(screen.getByLabelText('Level for Fighter'))
     await waitFor(() => expect(active(c.id).classes[0].level).toBe(1))
   })
 
@@ -168,6 +178,7 @@ describe('ClassBuildTray', () => {
     fireEvent.change(screen.getByLabelText('Level for Fighter'), {
       target: { value: '3' },
     })
+    fireEvent.blur(screen.getByLabelText('Level for Fighter'))
     await waitFor(() =>
       expect(screen.queryByText(/Subclass unlocks at level 3/i)).not.toBeInTheDocument(),
     )
@@ -178,6 +189,7 @@ describe('ClassBuildTray', () => {
     fireEvent.change(screen.getByLabelText('Level for Fighter'), {
       target: { value: '2' },
     })
+    fireEvent.blur(screen.getByLabelText('Level for Fighter'))
     await waitFor(() =>
       expect(screen.getByText(/Subclass unlocks at level 3/i)).toBeInTheDocument(),
     )

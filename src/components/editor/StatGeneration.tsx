@@ -44,6 +44,7 @@ import {
   type RollStats,
 } from '../../character/stats'
 import { scoreCellClass, scoreColorClass } from '../../ui/scoreColor'
+import { DraftInput } from './DraftInput'
 import { SubSection } from './SubSection'
 import { GauntletRoll } from './GauntletRoll'
 import { PoolRoll } from './PoolRoll'
@@ -70,7 +71,7 @@ function randomFace(): DieFace {
 /**
  * A small clearable number stepper for the roll config. It keeps a local text
  * buffer so the box can be emptied and a fresh digit typed (rather than forcing
- * highlight-then-type), while the committed value stays clamped to [min, max].
+ * highlight-then-type), and commits on blur or Enter, clamped to [min, max].
  * Native number spinners provide the up/down arrows.
  */
 function RollNumberInput({
@@ -88,31 +89,18 @@ function RollNumberInput({
   ariaLabel: string
   onCommit: (next: number) => void
 }) {
-  const [draft, setDraft] = useState<string | null>(null)
   return (
-    <Form.Control
+    <DraftInput
       id={id}
       type="number"
       min={min}
       max={max}
       step={1}
-      value={draft ?? String(value)}
-      onChange={(e) => {
-        const raw = e.target.value
-        if (raw === '') {
-          setDraft('')
-          return
-        }
+      value={String(value)}
+      onCommit={(raw) => {
         const digits = raw.replace(/\D/g, '')
-        if (digits === '') {
-          setDraft('')
-          return
-        }
-        const next = clamp(Number(digits), min, max)
-        setDraft(String(next))
-        onCommit(next)
+        if (digits !== '') onCommit(clamp(Number(digits), min, max))
       }}
-      onBlur={() => setDraft(null)}
       aria-label={ariaLabel}
       style={{ width: 68, textAlign: 'center' }}
     />

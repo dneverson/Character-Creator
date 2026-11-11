@@ -232,7 +232,7 @@ describe('combat numbers on the sheet', () => {
   it('lists each attack with its bonus and damage', () => {
     const lines = attackLines(deriveSheet(armed(), deps()))
     expect(lines).toContain('Longsword +5, 1d8 + 3 slashing (1d10 + 3 with two hands)')
-    expect(lines).toContain('Unarmed strike +5, 1 + 3 bludgeoning')
+    expect(lines).toContain('Unarmed strike +5, 4 bludgeoning')
   })
 
   it('lists the proficiencies by kind', () => {

@@ -95,6 +95,7 @@ describe('CharacterEditor', () => {
 
     const name = screen.getByLabelText('Character name')
     await user.type(name, '!')
+    await user.tab()
     await waitFor(() => expect(state().characters[c.id].name).toBe('Tordek!'))
 
     await user.click(screen.getByRole('button', { name: 'Export JSON' }))
@@ -102,6 +103,18 @@ describe('CharacterEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'Characters' }))
     await waitFor(() => expect(state().view).toBe('list'))
+  })
+
+  it('does not write the store while the name is typed, only when it is committed', async () => {
+    const user = userEvent.setup()
+    const c = seedActive()
+    renderEditor()
+
+    const name = screen.getByLabelText('Character name')
+    await user.type(name, 'ab')
+    expect(state().characters[c.id].name).toBe('Tordek')
+    await user.type(name, 'c{Enter}')
+    expect(state().characters[c.id].name).toBe('Tordekabc')
   })
 
   it('exports a PDF and surfaces export errors', async () => {
@@ -126,7 +139,12 @@ describe('CharacterEditor', () => {
     const headers = () =>
       screen
         .getAllByRole('heading', { level: 2 })
-        .map((h) => h.closest('[aria-expanded]')?.getAttribute('aria-expanded'))
+        .map((h) =>
+          h
+            .closest('.card')
+            ?.querySelector('[aria-expanded]')
+            ?.getAttribute('aria-expanded'),
+        )
     expect(headers().every((v) => v === 'true')).toBe(true)
 
     await user.click(screen.getByRole('button', { name: 'Collapse all' }))

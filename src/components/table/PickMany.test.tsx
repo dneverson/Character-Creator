@@ -52,7 +52,6 @@ function Harness({ initial = [], onAdd, onRemove, ...props }: HarnessProps) {
       labels={{
         compare: 'Compare pets',
         search: 'Search pets…',
-        detailPlaceholder: 'Select a pet to see its details.',
         table: 'Pets',
       }}
       noun="pets"
@@ -350,7 +349,6 @@ describe('PickMany with a quantity', () => {
         labels={{
           compare: 'Compare pets',
           search: 'Search pets…',
-          detailPlaceholder: 'Select a pet to see its details.',
           table: 'Pets',
         }}
         noun="pets"
@@ -423,7 +421,6 @@ describe('PickMany with a quantity', () => {
         labels={{
           compare: 'Compare pets',
           search: 'Search pets…',
-          detailPlaceholder: 'Select a pet to see its details.',
           table: 'Pets',
         }}
         noun="pets"

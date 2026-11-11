@@ -210,66 +210,62 @@ describe('DataTable', () => {
     ])
   })
 
-  it('focusing a row shows its detail; a placeholder shows before that', async () => {
+  it('keeps the detail pane absent until a row is focused', async () => {
     const user = userEvent.setup()
     renderTable()
-    expect(screen.getByText('Select a row to see its details.')).toBeInTheDocument()
-    await user.click(screen.getByText('Fireball'))
-    expect(screen.getByText('Detail for Fireball')).toBeInTheDocument()
-  })
-
-  it('detail.hiddenUntilFocus keeps the pane absent until a row is focused', async () => {
-    const user = userEvent.setup()
-    renderTable({ detail: { hiddenUntilFocus: true } })
     // No pane, and therefore no placeholder, before anything is focused.
     expect(screen.queryByText('Select a row to see its details.')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('separator', { name: 'Resize panes' }),
+    ).not.toBeInTheDocument()
     await user.click(screen.getByText('Fireball'))
     expect(screen.getByText('Detail for Fireball')).toBeInTheDocument()
   })
 
-  it('detail.toggleOnReclick closes the pane when the focused row is clicked again', async () => {
+  it('closes the pane when the focused row is clicked again', async () => {
     const user = userEvent.setup()
-    renderTable({ detail: { hiddenUntilFocus: true, toggleOnReclick: true } })
+    renderTable()
     await user.click(screen.getByText('Fireball'))
     expect(screen.getByText('Detail for Fireball')).toBeInTheDocument()
     await user.click(screen.getByText('Fireball'))
     expect(screen.queryByText('Detail for Fireball')).not.toBeInTheDocument()
   })
 
-  it('detail.toggleOnReclick switches to a different row without closing', async () => {
+  it('switches to a different row without closing', async () => {
     const user = userEvent.setup()
-    renderTable({ detail: { hiddenUntilFocus: true, toggleOnReclick: true } })
+    renderTable()
     await user.click(screen.getByText('Fireball'))
     await user.click(screen.getByText('Bless'))
     expect(screen.queryByText('Detail for Fireball')).not.toBeInTheDocument()
     expect(screen.getByText('Detail for Bless')).toBeInTheDocument()
   })
 
-  it('detail.closable closes the pane via the close button', async () => {
+  it('closes the pane via the close button', async () => {
     const user = userEvent.setup()
-    renderTable({ detail: { hiddenUntilFocus: true, closable: true } })
+    renderTable()
     await user.click(screen.getByText('Fireball'))
     expect(screen.getByText('Detail for Fireball')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Close details' }))
     expect(screen.queryByText('Detail for Fireball')).not.toBeInTheDocument()
   })
 
-  it('detail.closable closes the pane via the Escape key', async () => {
+  it('closes the pane via the Escape key and returns focus to the row', async () => {
     const user = userEvent.setup()
-    renderTable({ detail: { hiddenUntilFocus: true, closable: true } })
+    renderTable()
     await user.click(screen.getByText('Fireball'))
     expect(screen.getByText('Detail for Fireball')).toBeInTheDocument()
     await user.keyboard('{Escape}')
     expect(screen.queryByText('Detail for Fireball')).not.toBeInTheDocument()
   })
 
-  it('shows no close button by default (detail.closable off)', async () => {
+  it('returns focus to the row when Escape is pressed inside the pane', async () => {
     const user = userEvent.setup()
-    renderTable()
+    renderTable({ renderDetail: (s) => <button>Act on {s.name}</button> })
     await user.click(screen.getByText('Fireball'))
-    expect(
-      screen.queryByRole('button', { name: 'Close details' }),
-    ).not.toBeInTheDocument()
+    screen.getByRole('button', { name: 'Act on Fireball' }).focus()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('button', { name: 'Act on Fireball' })).toBeNull()
+    expect(screen.getByText('Fireball').closest('tr')).toHaveFocus()
   })
 
   it('single-select replaces the selection', async () => {
@@ -588,8 +584,10 @@ describe('DataTable', () => {
     expect(grid).toHaveClass('data-table-grid')
   })
 
-  it('gives the table its asked-for share of the width beside the detail pane', () => {
+  it('gives the table its asked-for share of the width beside the detail pane', async () => {
+    const user = userEvent.setup()
     const { unmount } = renderTable()
+    await user.click(screen.getByText('Fireball'))
     expect(screen.getByRole('separator', { name: 'Resize panes' })).toHaveAttribute(
       'aria-valuenow',
       '55',
@@ -597,6 +595,7 @@ describe('DataTable', () => {
     unmount()
 
     renderTable({ detail: { tableShare: 70 } })
+    await user.click(screen.getByText('Fireball'))
     expect(screen.getByRole('separator', { name: 'Resize panes' })).toHaveAttribute(
       'aria-valuenow',
       '70',

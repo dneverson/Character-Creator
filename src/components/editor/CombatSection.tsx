@@ -20,8 +20,12 @@ import { PickCard } from './PickCard'
 import { SignedInput } from './SignedInput'
 import { useDerivedSheet } from './useDerivedSheet'
 
-/** "1d8 + 3 slashing": the die, the bonus with its sign, the kind of damage. */
+/**
+ * "1d8 + 3 slashing": the die, the bonus with its sign, the kind of damage. With no
+ * die the bonus is the whole damage ("4 bludgeoning").
+ */
 function damageText(dice: string, bonus: number, types: string): string {
+  if (dice === '') return `${bonus}${types ? ` ${types}` : ''}`
   const amount = bonus === 0 ? '' : ` ${bonus < 0 ? '-' : '+'} ${Math.abs(bonus)}`
   return `${dice}${amount}${types ? ` ${types}` : ''}`
 }
@@ -106,13 +110,22 @@ function AttackDetails({ attack }: { attack: AttackRow }) {
         totalLabel="Attack bonus"
         format={formatMod}
       />
-      <DerivedTable
-        quantity={attack.damage.bonus}
-        ariaLabel={`${attack.name} damage bonus`}
-        amountHeader="Damage bonus"
-        totalLabel={`Damage bonus (${attack.damage.dice})`}
-        format={formatMod}
-      />
+      {attack.damage.dice === '' ? (
+        <DerivedTable
+          quantity={attack.damage.bonus}
+          ariaLabel={`${attack.name} damage`}
+          amountHeader="Damage"
+          totalLabel="Damage"
+        />
+      ) : (
+        <DerivedTable
+          quantity={attack.damage.bonus}
+          ariaLabel={`${attack.name} damage bonus`}
+          amountHeader="Damage bonus"
+          totalLabel={`Damage bonus (${attack.damage.dice})`}
+          format={formatMod}
+        />
+      )}
       {attack.twoHanded && (
         <DerivedTable
           quantity={attack.twoHanded.bonus}

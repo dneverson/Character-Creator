@@ -49,6 +49,7 @@ import { CustomItemModal, type CustomItemDraft } from './CustomItemModal'
 import { NotInBooksAlert } from './NotInBooksAlert'
 import { StartingEquipment } from './StartingEquipment'
 import { useFeatSummary } from './useFeatSummary'
+import { DraftInput } from './DraftInput'
 import {
   describeItems,
   itemColumns,
@@ -296,11 +297,11 @@ export function EquipmentSection() {
         filterable: false,
         priority: 1,
         render: (item) => (
-          <Form.Control
+          <DraftInput
             size="sm"
             aria-label={`Note on ${item.name}`}
             value={stackOf.get(item.key)?.note ?? ''}
-            onChange={(e) => editStack(item.key, { note: e.target.value || undefined })}
+            onCommit={(note) => editStack(item.key, { note: note || undefined })}
           />
         ),
       },
@@ -389,13 +390,13 @@ export function EquipmentSection() {
                     {coinName(coin)}
                   </Form.Label>
                 </OverlayTrigger>
-                <Form.Control
+                <DraftInput
                   id={`coin-${coin}`}
                   type="number"
                   size="sm"
                   min={0}
-                  value={equipment.currency[coin]}
-                  onChange={(e) => setCoin(coin, Number(e.target.value))}
+                  value={String(equipment.currency[coin])}
+                  onCommit={(text) => setCoin(coin, Number(text))}
                 />
               </div>
             ))}
@@ -455,7 +456,6 @@ export function EquipmentSection() {
             labels={{
               compare: 'Compare items',
               search: 'Search items and text...',
-              detailPlaceholder: 'Select an item to see it in full.',
               table: 'Items',
             }}
           />

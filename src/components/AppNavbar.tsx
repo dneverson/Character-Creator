@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import Container from 'react-bootstrap/Container'
 import Navbar from 'react-bootstrap/Navbar'
 import { ContentButton } from './content/ContentButton'
@@ -7,8 +8,25 @@ import { appConfig } from '../config/app'
 
 /** Top navigation bar with the app title, the book content status and the theme switcher. */
 export function AppNavbar() {
+  const ref = useRef<HTMLElement>(null)
+  // Sticky section headers hang below the navbar, whose height changes as it wraps.
+  useLayoutEffect(() => {
+    const publish = () => {
+      const height = ref.current?.getBoundingClientRect().height ?? 0
+      document.documentElement.style.setProperty('--app-navbar-height', `${height}px`)
+    }
+    publish()
+    window.addEventListener('resize', publish)
+    return () => window.removeEventListener('resize', publish)
+  }, [])
   return (
-    <Navbar expand="md" className="border-bottom" sticky="top" bg="body-tertiary">
+    <Navbar
+      ref={ref}
+      expand="md"
+      className="border-bottom"
+      sticky="top"
+      bg="body-tertiary"
+    >
       <Container>
         <Navbar.Brand className="fw-bold d-flex align-items-center">
           <BrandEmblem />

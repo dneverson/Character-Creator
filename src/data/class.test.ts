@@ -87,6 +87,15 @@ const file: ClassFile = {
 const loaded: LoadedClass = { entry: file.class![0], file }
 
 describe('resolveClassFeatures', () => {
+  it('gives an unresolved copy stub no features and no subclass level', () => {
+    const stub: LoadedClass = {
+      entry: { ...loaded.entry, classFeatures: undefined },
+      file: {},
+    }
+    expect(resolveClassFeatures(stub).size).toBe(0)
+    expect(subclassUnlockLevel(stub)).toBe(1)
+  })
+
   it('resolves refs to feature entries by level', () => {
     const byLevel = resolveClassFeatures(loaded)
     const lvl1 = byLevel.get(1)!

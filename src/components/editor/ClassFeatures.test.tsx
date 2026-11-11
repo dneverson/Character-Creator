@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ClassFeatures } from './ClassFeatures'
 import { ThemeProvider } from '../../theme/ThemeProvider'
@@ -33,7 +33,7 @@ const fighter: LoadedClass = {
     hd: { number: 1, faces: 10 },
     classFeatures: [],
     classTableGroups: [
-      { colLabels: ['Features'], rows: [['-'], ['Action Surge'], ['-']] },
+      { colLabels: ['Maneuvers'], rows: [['-'], ['Action Surge'], ['-']] },
     ],
   },
   file: {},
@@ -117,12 +117,15 @@ describe('ClassFeatures', () => {
     renderSection()
 
     expect(await screen.findByText('Fighter 3')).toBeInTheDocument()
+    expect(screen.getByText('2014')).toBeInTheDocument()
     // The resolved features are shown.
     expect(screen.getByText('Fighting Style')).toBeInTheDocument()
     // "Action Surge" appears both as a feature and in the class table row.
     expect(screen.getAllByText('Action Surge').length).toBeGreaterThan(0)
-    // The class table renders its column header.
+    // The class table renders its own column header beside Level, Proficiency Bonus and Features.
+    expect(screen.getByRole('columnheader', { name: 'Maneuvers' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Features' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'PB' })).toBeInTheDocument()
   })
 
   it('formats bonus, speed, dice, numeric, and unknown table cells', async () => {
@@ -161,14 +164,60 @@ describe('ClassFeatures', () => {
     })
     renderSection()
 
-    expect(await screen.findByText('+2')).toBeInTheDocument()
+    // The table's own bonus cell (the Proficiency Bonus column adds +2 on its rows too).
+    expect((await screen.findAllByText('+2')).length).toBeGreaterThan(1)
     expect(screen.getByText('+10 ft.')).toBeInTheDocument()
     expect(screen.getByText('2d6')).toBeInTheDocument()
     // A bare numeric cell is stringified.
-    expect(screen.getByRole('cell', { name: '3' })).toBeInTheDocument()
+    expect(screen.getAllByRole('cell', { name: '3' }).length).toBeGreaterThan(0)
     // The spell-progression group renders; the empty-row group does not.
     expect(screen.getByRole('columnheader', { name: 'Slots' })).toBeInTheDocument()
-    expect(screen.queryByRole('columnheader', { name: 'Blank' })).not.toBeInTheDocument()
+    // A group with no rows still has its (empty) column, and the odd cells are empty.
+    expect(screen.getByRole('columnheader', { name: 'Blank' })).toBeInTheDocument()
+  })
+
+  it('prints the level table of a casting subclass under the class table', async () => {
+    const knight: LoadedClass = {
+      ...fighter,
+      file: {
+        subclass: [
+          {
+            name: 'Eldritch Knight',
+            shortName: 'Eldritch Knight',
+            source: 'PHB',
+            className: 'Fighter',
+            classSource: 'PHB',
+            edition: 'classic',
+            subclassFeatures: [],
+            subclassTableGroups: [{ colLabels: ['Spells Known'], rows: [[0], [0], [3]] }],
+          },
+        ],
+      },
+    }
+    mockClasses.mockResolvedValue([knight])
+    seedActive((c) => {
+      c.classes = [
+        {
+          name: 'Fighter',
+          source: 'PHB',
+          level: 3,
+          subclass: {
+            name: 'Eldritch Knight',
+            shortName: 'Eldritch Knight',
+            source: 'PHB',
+          },
+        },
+      ]
+    })
+    renderSection()
+
+    const table = await screen.findByRole('table', {
+      name: 'Eldritch Knight level table',
+    })
+    expect(
+      within(table).getByRole('columnheader', { name: 'Spells Known' }),
+    ).toBeVisible()
+    expect(screen.getByRole('table', { name: 'Fighter level table' })).toBeInTheDocument()
   })
 
   it('shows resolved subclass features and hides the placeholder slot', async () => {

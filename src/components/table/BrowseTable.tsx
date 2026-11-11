@@ -85,7 +85,6 @@ export interface BrowseTableProps<T> {
     /** Placeholder of the search box. */
     search: string
     /** Shown in the detail pane before a row is clicked. */
-    detailPlaceholder: string
     /** Accessible name of the table. */
     table: string
   }
@@ -169,6 +168,7 @@ export function BrowseTable<T>({
     ? [
         {
           key: action.key ?? 'action',
+          action: true,
           header: action.header,
           render: (row) => {
             const act = action.of(row)
@@ -247,37 +247,38 @@ export function BrowseTable<T>({
 
   return (
     <>
-      <Stack direction="horizontal" gap={2} className="mb-2">
-        <Button
-          size="sm"
-          variant="primary"
-          disabled={selected.length < 2}
-          onClick={() => setComparing(true)}
-        >
-          Compare{selected.length > 0 ? ` (${selected.length})` : ''}
-        </Button>
-        {selected.length > 0 && (
-          <Button size="sm" variant="secondary" onClick={() => setSelectedIds([])}>
-            Clear selection
-          </Button>
-        )}
-        {toolbar?.(selected)}
-        {hasNonStandard && !compact && (
-          <Form.Check
-            type="switch"
-            id={`${tableId}-allow-non-standard`}
-            className="ms-auto"
-            label={ALLOW_LABEL}
-            checked={allow}
-            onChange={(e) => setAllow(e.target.checked)}
-          />
-        )}
-      </Stack>
-
       <DataTable<T>
         tableId={tableId}
         rows={rows}
         columns={allColumns}
+        header={
+          <Stack direction="horizontal" gap={2} className="mb-2">
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={selected.length < 2}
+              onClick={() => setComparing(true)}
+            >
+              Compare{selected.length > 0 ? ` (${selected.length})` : ''}
+            </Button>
+            {selected.length > 0 && (
+              <Button size="sm" variant="secondary" onClick={() => setSelectedIds([])}>
+                Clear selection
+              </Button>
+            )}
+            {toolbar?.(selected)}
+            {hasNonStandard && !compact && (
+              <Form.Check
+                type="switch"
+                id={`${tableId}-allow-non-standard`}
+                className="ms-auto"
+                label={ALLOW_LABEL}
+                checked={allow}
+                onChange={(e) => setAllow(e.target.checked)}
+              />
+            )}
+          </Stack>
+        }
         rowMeta={(row) => ({ id: idOf(row), ...metaOf(row) })}
         // Ticking a row to compare is never blocked; the switch gates the action.
         allowNonStandard
@@ -314,9 +315,7 @@ export function BrowseTable<T>({
             </div>
           )
         }}
-        // A short table to read keeps the whole width until a row asks for its detail.
-        detail={{ tableShare, hiddenUntilFocus: compact, closable: compact }}
-        detailPlaceholder={labels.detailPlaceholder}
+        detail={{ tableShare }}
         searchPlaceholder={labels.search}
         ariaLabel={labels.table}
       />

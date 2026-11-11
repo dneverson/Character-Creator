@@ -36,7 +36,6 @@ function renderTable(props: Partial<BrowseTableProps<Pet>> = {}) {
       labels={{
         compare: 'Compare pets',
         search: 'Search pets…',
-        detailPlaceholder: 'Select a pet to see its details.',
         table: 'Pets',
       }}
       {...props}
@@ -50,11 +49,11 @@ const detailPane = () => document.querySelector('.data-table-detail') as HTMLEle
 beforeEach(() => localStorage.clear())
 
 describe('BrowseTable', () => {
-  it('lists the rows under the given labels, with a placeholder for the detail', () => {
+  it('lists the rows under the given labels, with no detail pane until a row is clicked', () => {
     renderTable()
     expect(screen.getByRole('table', { name: 'Pets' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Search pets…')).toBeInTheDocument()
-    expect(screen.getByText('Select a pet to see its details.')).toBeInTheDocument()
+    expect(screen.queryByText('Select a pet to see its details.')).not.toBeInTheDocument()
     expect(screen.getByText('Wolf')).toBeInTheDocument()
   })
 
@@ -112,7 +111,9 @@ describe('BrowseTable', () => {
 
     await user.click(within(rowOf('Cat')).getByRole('button', { name: 'Adopt' }))
     expect(adopt).toHaveBeenCalledWith('cat')
-    expect(screen.getByText('Select a pet to see its details.')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Close details' }),
+    ).not.toBeInTheDocument()
     // A row with nothing to do has no button.
     expect(within(rowOf('Wolf')).queryByRole('button')).not.toBeInTheDocument()
   })
@@ -291,6 +292,21 @@ describe('BrowseTable', () => {
     })
   })
 
+  it('takes Compare and Clear selection into full screen with the table', async () => {
+    const user = userEvent.setup()
+    renderTable()
+    await user.click(screen.getAllByRole('checkbox', { name: 'Select row' })[0])
+    await user.click(screen.getByRole('button', { name: 'Full screen' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(
+      within(dialog).getByRole('button', { name: 'Compare (1)' }),
+    ).toBeInTheDocument()
+    expect(
+      within(dialog).getByRole('button', { name: 'Clear selection' }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Compare (1)' })).toHaveLength(1)
+  })
+
   it('puts further controls beside Compare, given the ticked rows', async () => {
     const user = userEvent.setup()
     renderTable({
@@ -305,13 +321,16 @@ describe('BrowseTable', () => {
     expect(screen.getByText('Ticked: Cat, Dog')).toBeInTheDocument()
   })
 
-  it('gives the table its asked-for share of the width beside the detail pane', () => {
+  it('gives the table its asked-for share of the width beside the detail pane', async () => {
+    const user = userEvent.setup()
     const { unmount } = renderTable()
+    await user.click(screen.getByText('Dog'))
     const split = () => screen.getByRole('separator', { name: 'Resize panes' })
     expect(split()).toHaveAttribute('aria-valuenow', '55')
     unmount()
 
     renderTable({ tableShare: 70 })
+    await user.click(screen.getByText('Dog'))
     expect(split()).toHaveAttribute('aria-valuenow', '70')
   })
 

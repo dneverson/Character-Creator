@@ -36,7 +36,7 @@ export function ContentPrompt({
         {contentCopy.notice.map((paragraph) => (
           <p key={paragraph}>{paragraph}</p>
         ))}
-        <p>{contentCopy.ownership}</p>
+        <p>{contentCopy.sourceNote}</p>
         <p className="text-body-secondary small mb-0">
           You can change this at any time under Book content, at the top of the page.
         </p>

@@ -61,7 +61,6 @@ function Harness({ initial, onPick, onClear, ...props }: HarnessProps) {
       labels={{
         compare: 'Compare pets',
         search: 'Search pets…',
-        detailPlaceholder: 'Select a pet to see its details.',
         table: 'Pets',
       }}
       noun="pet"

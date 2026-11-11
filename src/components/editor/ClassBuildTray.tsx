@@ -16,7 +16,9 @@ import Stack from 'react-bootstrap/Stack'
 import { hitDieLabel, subclassesFor, type LoadedClass } from '../../data/class'
 import { Icon } from '../Icon'
 import { NonStandardBadge } from '../NonStandardBadge'
+import { editionLabel } from './classRows'
 import { classKey, subclassUnlockLevel, type ClassBuild } from './useClassBuild'
+import { DraftInput } from './DraftInput'
 
 interface Props {
   build: ClassBuild
@@ -110,17 +112,22 @@ function BuildEntry({
       <div className="row g-2 align-items-end">
         <div className="col-sm-5">
           <Form.Label className="small mb-1 fw-semibold">{label}</Form.Label>
+          {loadedClass && (
+            <Badge bg="secondary" className="ms-2">
+              {editionLabel(loadedClass)}
+            </Badge>
+          )}
           <div className="small text-body-secondary">
             {entry ? `${entry.source} · ${entry.subclassTitle ?? 'Subclass'}` : name}
           </div>
         </div>
         <div className="col-sm-2">
           <Form.Label className="small mb-1">Level</Form.Label>
-          <Form.Control
+          <DraftInput
             type="number"
             min={1}
-            value={level}
-            onChange={(e) => onLevel(Number(e.target.value))}
+            value={String(level)}
+            onCommit={(text) => onLevel(Number(text))}
             aria-label={`Level for ${name}`}
           />
         </div>

@@ -32,7 +32,7 @@ describe('ContentPrompt', () => {
     render(<ContentPrompt mode="prompt" />)
     const dialog = screen.getByRole('dialog', { name: 'Download the full book content?' })
     expect(dialog).toHaveTextContent(/hosts only the free rules/)
-    expect(dialog).toHaveTextContent(/you confirm that you own the books/)
+    expect(dialog).toHaveTextContent(/does not host it/)
   })
 
   it('downloads the full content when the visitor accepts', async () => {

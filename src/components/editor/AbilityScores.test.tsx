@@ -92,6 +92,7 @@ describe('AbilityScores', () => {
     const other = screen.getByLabelText('Dexterity other bonus')
     await user.clear(other)
     await user.type(other, '2')
+    await user.tab()
     await waitFor(() => expect(active(c.id).abilities.dex.other).toBe(2))
   })
 

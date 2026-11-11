@@ -93,12 +93,13 @@ describe('attacks', () => {
     expect(sword.toHit.lines.some((l) => l.status === 'flag')).toBe(true)
   })
 
-  it('has an unarmed strike of 1 plus Strength', () => {
+  it('has an unarmed strike of 1 plus Strength, the 1 being a line of its own', () => {
     const attacks = rows(build('Fighter', 1, { str: 14 }, []))
     expect(attacks).toHaveLength(1)
     expect(attacks[0].name).toBe('Unarmed strike')
-    expect(attacks[0].damage.dice).toBe('1')
-    expect(attacks[0].damage.bonus.value).toBe(2)
+    expect(attacks[0].damage.dice).toBe('')
+    expect(attacks[0].damage.bonus.value).toBe(3)
+    expect(attacks[0].damage.bonus.lines.map((l) => l.amount)).toEqual([1, 2])
     expect(attacks[0].toHit.value).toBe(4)
   })
 

@@ -21,6 +21,7 @@ import { remainingPool, totalScore, usesPool } from '../../character/stats'
 import { scoreColorClass } from '../../ui/scoreColor'
 import { PointBuyScale } from './PointBuyScale'
 import { SubSection } from './SubSection'
+import { DraftInput } from './DraftInput'
 import { useFeatSummary } from './useFeatSummary'
 
 export function AbilityScores() {
@@ -169,12 +170,12 @@ function Assignment({
                       {feat ? <Badge bg="secondary">+{feat}</Badge> : '-'}
                     </td>
                     <td className="text-center" style={{ maxWidth: 90 }}>
-                      <Form.Control
+                      <DraftInput
                         size="sm"
                         type="number"
-                        value={entry.other}
-                        onChange={(e) =>
-                          patchAbility(key, { other: Number(e.target.value) || 0 })
+                        value={String(entry.other)}
+                        onCommit={(text) =>
+                          patchAbility(key, { other: Number(text) || 0 })
                         }
                         style={{ width: 72, margin: '0 auto' }}
                         aria-label={`${ABILITY_NAMES[key]} other bonus`}

@@ -2,76 +2,40 @@ import { useMemo } from 'react'
 import Accordion from 'react-bootstrap/Accordion'
 import Badge from 'react-bootstrap/Badge'
 import Card from 'react-bootstrap/Card'
-import Table from 'react-bootstrap/Table'
 import {
   featuresForClass,
   loadClasses,
-  type ClassTableGroup,
+  resolveClassFeatures,
+  resolveSubclassFeatures,
+  subclassesFor,
   type LoadedClass,
 } from '../../data/class'
 import type { ClassRef } from '../../character/model'
 import { useActiveCharacter } from '../../character/store'
 import { useAsyncData } from '../../hooks/useAsyncData'
-import { Entries, type Entry } from '../../text/Entries'
-import { stripTags } from '../../text/tags'
+import { Entries } from '../../text/Entries'
+import { ClassLevelTable } from './ClassLevelTable'
+import { editionLabel } from './classRows'
+import { TRAIL_ATTRIBUTE } from './sectionTrail'
 import { SubSection } from './SubSection'
 
 const classKey = (name: string, source: string) => `${name}|${source}`
 
-function tableCell(cell: Entry): string {
-  if (typeof cell === 'string' || typeof cell === 'number') return stripTags(String(cell))
-  const obj = cell as {
-    type?: string
-    value?: number
-    toRoll?: { number: number; faces: number }[]
-  }
-  if (obj.type === 'bonus') return `+${obj.value}`
-  if (obj.type === 'bonusSpeed') return `+${obj.value} ft.`
-  if (obj.type === 'dice' && obj.toRoll?.[0]) {
-    return `${obj.toRoll[0].number}d${obj.toRoll[0].faces}`
-  }
-  return ''
-}
-
-function ClassTable({ group, maxLevel }: { group: ClassTableGroup; maxLevel: number }) {
-  // Spell-slot tables carry their rows under `rowsSpellProgression`.
-  const source = group.rows ?? group.rowsSpellProgression ?? []
-  const rows = source.slice(0, maxLevel)
-  if (rows.length === 0) return null
-  return (
-    <div className="table-responsive mt-3">
-      <Table size="sm" bordered hover className="mb-0">
-        <thead>
-          <tr>
-            <th>Level</th>
-            {group.colLabels?.map((c, i) => (
-              <th key={i}>{stripTags(c)}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i}>
-              <td>{i + 1}</td>
-              {row.map((cell, ci) => (
-                <td key={ci}>{tableCell(cell)}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-    </div>
-  )
-}
-
 function ClassFeaturesCard({ loaded, cls }: { loaded: LoadedClass; cls: ClassRef }) {
   const features = featuresForClass(loaded, cls)
+  const subclass = cls.subclass
+    ? subclassesFor(loaded).find(
+        (s) =>
+          s.shortName === cls.subclass?.shortName && s.source === cls.subclass.source,
+      )
+    : undefined
   return (
-    <Card className="mb-3">
+    <Card className="mb-3" {...{ [TRAIL_ATTRIBUTE]: `${cls.name} ${cls.level}` }}>
       <Card.Header className="d-flex align-items-center gap-2">
         <strong>
           {cls.name} {cls.level}
         </strong>
+        <Badge bg="secondary">{editionLabel(loaded)}</Badge>
         {cls.subclass && <Badge bg="info">{cls.subclass.name}</Badge>}
       </Card.Header>
       <Card.Body>
@@ -104,9 +68,23 @@ function ClassFeaturesCard({ loaded, cls }: { loaded: LoadedClass; cls: ClassRef
           </Accordion>
         )}
 
-        {loaded.entry.classTableGroups?.map((group, i) => (
-          <ClassTable key={i} group={group} maxLevel={cls.level} />
-        ))}
+        <ClassLevelTable
+          groups={loaded.entry.classTableGroups}
+          features={resolveClassFeatures(loaded)}
+          level={cls.level}
+          label={`${cls.name} level table`}
+        />
+        {subclass?.subclassTableGroups && (
+          <>
+            <div className="mt-3 fw-semibold">{subclass.name}</div>
+            <ClassLevelTable
+              groups={subclass.subclassTableGroups}
+              features={resolveSubclassFeatures(loaded.file, subclass)}
+              level={cls.level}
+              label={`${subclass.name} level table`}
+            />
+          </>
+        )}
       </Card.Body>
     </Card>
   )

@@ -62,6 +62,13 @@ describe('lookup - fixed vocabulary', () => {
     })
   })
 
+  it('expands CSV', () => {
+    expect(lookup('CSV', 'term')).toEqual({
+      full: 'Comma-Separated Values',
+      category: 'Term',
+    })
+  })
+
   it('matches codes case-sensitively', () => {
     expect(lookup('str', 'ability')).toBeUndefined()
     expect(lookup('GP', 'currency')).toBeUndefined()

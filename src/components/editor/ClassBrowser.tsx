@@ -236,7 +236,6 @@ export function ClassBrowser() {
           labels={{
             compare: 'Compare classes',
             search: 'Search classes and subclasses…',
-            detailPlaceholder: 'Select a class or subclass to see its details.',
             table: 'Class reference',
           }}
         />

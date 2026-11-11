@@ -97,7 +97,8 @@ export interface ClassEntry extends SpellcastingFields {
   proficiency?: string[]
   startingProficiencies?: StartingProficiencies
   startingEquipment?: ClassStartingEquipment
-  classFeatures: ClassFeatureRef[]
+  /** Absent on a `_copy` stub that has not been resolved against its original. */
+  classFeatures?: ClassFeatureRef[]
   optionalfeatureProgression?: OptionalFeatureProgression[]
   classTableGroups?: ClassTableGroup[]
   multiclassing?: Multiclassing
@@ -127,6 +128,8 @@ export interface SubclassEntry extends SpellcastingFields {
   classSource: string
   edition?: 'classic' | 'one'
   subclassFeatures: string[]
+  /** The level table of a subclass that casts (Eldritch Knight, Arcane Trickster). */
+  subclassTableGroups?: ClassTableGroup[]
   optionalfeatureProgression?: OptionalFeatureProgression[]
 }
 
@@ -215,7 +218,7 @@ export function resolveClassFeatures(
     byLevel.set(level, list)
   }
 
-  for (const item of entry.classFeatures) {
+  for (const item of entry.classFeatures ?? []) {
     const isSubclassSlot = typeof item === 'object' && item.gainSubclassFeature === true
     const ref = typeof item === 'string' ? item : item.classFeature
     const parsed = parseFeatureRef(ref, entry.source)
@@ -291,7 +294,7 @@ export function resolveSubclassFeatures(
  */
 export function subclassUnlockLevel(loaded: LoadedClass): number {
   let min = Number.POSITIVE_INFINITY
-  for (const item of loaded.entry.classFeatures) {
+  for (const item of loaded.entry.classFeatures ?? []) {
     if (typeof item === 'object' && item.gainSubclassFeature === true) {
       const parsed = parseFeatureRef(item.classFeature, loaded.entry.source)
       if (parsed.level < min) min = parsed.level

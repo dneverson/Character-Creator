@@ -77,7 +77,8 @@ export function DetailPane<T>({
     if (!pane) return
     // A lightbox (or any portalled modal) traps its own focus outside the pane
     // and handles Escape itself; don't let a stray event close the pane under it.
-    if (document.querySelector('.modal.show')) return
+    const modal = document.querySelector('.modal.show')
+    if (modal && !modal.contains(pane)) return
 
     if (e.key === 'Escape') {
       // Pane level: close and hand focus back to the grid row.

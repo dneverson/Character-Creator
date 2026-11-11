@@ -44,6 +44,38 @@ body {
   background-color: rgb(133 2 2) !important;
 }
 
+/* An editor section's header stays pinned under the navbar while any of the section
+   is on screen; the next section's header pushes it away. It sits above table
+   headers (z-index 2) and below dropdowns (1000), modals and popovers. */
+.editor-section__header {
+  position: sticky;
+  top: var(--app-navbar-height, 3.5rem);
+  z-index: 10;
+  background-color: var(--bs-tertiary-bg);
+  cursor: pointer;
+}
+.editor-section__title,
+.editor-section__subtitle {
+  cursor: text;
+  user-select: text;
+  width: fit-content;
+  max-width: 100%;
+}
+.editor-section__trail {
+  font-weight: 400;
+  font-size: 0.875rem;
+}
+.editor-section__toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem;
+  border: 0;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
 /* Parts of a combined editor section (<SubSection>): a rule divides each part
    from whatever content precedes it in the card. */
 .editor-subsection:not(:first-child) {
@@ -209,6 +241,11 @@ body {
 .data-table-grid {
   max-height: 60vh;
   overflow: auto;
+}
+/* The same table in a full-screen window has the whole height to scroll in. */
+.data-table-fullscreen .data-table-grid,
+.data-table-fullscreen .data-table-split__detail {
+  max-height: calc(100vh - 9rem);
 }
 .data-table-grid thead th {
   position: sticky;
@@ -392,6 +429,23 @@ body {
      scrolling the page behind the popup. The panel's non-scrolling chrome is
      handled by a wheel listener in JS (React marks onWheel passive). */
   overscroll-behavior: contain;
+}
+/* The column chooser shows every column and scrolls only past 70% of the window;
+   Select all, Select none and Reset stay put around the scrolling list. */
+.data-table-headmenu--columns {
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+.data-table-headmenu--columns > .p-2 {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.data-table-headmenu--columns .data-table-headmenu__list {
+  max-height: none;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 /* A filter value is a label wrapping its own checkbox, so the whole row is one
    click target (no id/for matching to drift out of sync). Flex keeps the box
@@ -718,4 +772,30 @@ body {
   max-height: 94vh;
   overflow: hidden;
   resize: both;
+}
+
+/* A class's level table, laid out as the books print it: small text, tight cells,
+   the Level column held in place while the rest scrolls sideways inside its card,
+   and the levels the character has not reached yet dimmed. */
+.class-level-table table {
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+.class-level-table th,
+.class-level-table td {
+  padding: 0.125rem 0.4rem;
+  vertical-align: middle;
+}
+.class-level-table thead th {
+  text-align: center;
+}
+.class-level-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: var(--bs-body-bg);
+}
+.class-level-table__ahead {
+  color: var(--bs-secondary-color);
+  opacity: 0.7;
 }

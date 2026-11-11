@@ -167,6 +167,7 @@ const FAMILIES: Record<Exclude<AbbrKind, 'source'>, Family> = {
     label: 'Term',
     terms: {
       RPG: 'Role Playing Game',
+      CSV: 'Comma-Separated Values',
       DM: 'Dungeon Master',
       lb: 'pounds',
       ft: 'feet',

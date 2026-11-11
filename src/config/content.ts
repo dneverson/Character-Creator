@@ -126,7 +126,7 @@ export const contentCopy = {
     'This site hosts only the free rules: the System Reference Document, which Wizards of the Coast publishes under the Creative Commons Attribution 4.0 license.',
     'Content from other books is not hosted here. Your browser downloads it from a public third-party source and keeps it on this device.',
   ],
-  /** What downloading the full content means. */
-  ownership:
-    'By downloading the full content you confirm that you own the books whose content you use.',
+  /** Where the full content comes from. */
+  sourceNote:
+    'Full content is downloaded by your browser from a third-party source. This site does not host it.',
 } as const

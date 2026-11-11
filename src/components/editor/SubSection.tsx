@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { TRAIL_ATTRIBUTE } from './sectionTrail'
 
 interface Props {
   title: string
@@ -16,7 +17,7 @@ interface Props {
  */
 export function SubSection({ title, subtitle, actions, children }: Props) {
   return (
-    <section className="editor-subsection">
+    <section className="editor-subsection" {...{ [TRAIL_ATTRIBUTE]: title }}>
       <div className="d-flex align-items-center gap-2 mb-2">
         <div className="flex-grow-1">
           <h3 className="h6 mb-0">{title}</h3>

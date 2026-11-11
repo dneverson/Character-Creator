@@ -6,6 +6,7 @@
 
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
+import { Abbr } from '../Abbr'
 import { ColumnChooser } from './ColumnChooser'
 import type { Column } from './types'
 
@@ -25,6 +26,10 @@ interface Props<T> {
   onToggleColumn: (key: string, visible: boolean) => void
   onReorderColumns: (order: string[]) => void
   onResetColumns: () => void
+  /** Downloads the rows as shown (filtered, sorted) as a CSV file. */
+  onExport: () => void
+  /** Opens the table in a full-screen window. Absent when it already is. */
+  onFullScreen?: () => void
 }
 
 export function TableToolbar<T>({
@@ -39,9 +44,10 @@ export function TableToolbar<T>({
   onToggleColumn,
   onReorderColumns,
   onResetColumns,
+  onExport,
+  onFullScreen,
 }: Props<T>) {
   const showClear = hasFilters || (!compact && search !== '')
-  if (compact && !showClear) return null
   return (
     <div className="d-flex flex-wrap gap-2 mb-2 align-items-end">
       {searchable && !compact && (
@@ -59,16 +65,24 @@ export function TableToolbar<T>({
           Clear filters
         </Button>
       )}
-      {!compact && (
-        <div className="ms-auto">
+      <div className="ms-auto d-flex gap-2">
+        <Button type="button" variant="secondary" size="sm" onClick={onExport}>
+          Export <Abbr code="CSV" kind="term" />
+        </Button>
+        {onFullScreen && (
+          <Button type="button" variant="secondary" size="sm" onClick={onFullScreen}>
+            Full screen
+          </Button>
+        )}
+        {!compact && (
           <ColumnChooser
             columnOrder={columnOrder}
             onToggle={onToggleColumn}
             onReorder={onReorderColumns}
             onReset={onResetColumns}
           />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

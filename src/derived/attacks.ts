@@ -20,6 +20,10 @@ export interface AttackRow {
   /** How many are in the equipped stack. */
   count: number
   toHit: Quantity
+  /**
+   * `dice` is empty when the damage has no die (an unarmed strike without Martial
+   * Arts): the flat base is then the first line of `bonus`, whose value is the damage.
+   */
   damage: { dice: string; types: string; bonus: Quantity }
   /** The two-handed die of a versatile weapon, with its own damage lines. */
   twoHanded?: { dice: string; bonus: Quantity }
@@ -276,9 +280,19 @@ function unarmedRow(ctx: Context): AttackRow {
       ...flags,
     ]),
     damage: {
-      dice: faces > 0 ? `1d${faces}` : '1',
+      dice: faces > 0 ? `1d${faces}` : '',
       types: 'bludgeoning',
-      bonus: quantity([ability('damage')]),
+      bonus: quantity([
+        ...(faces > 0
+          ? []
+          : [
+              lineOf(`${id}|damage|base`, 'Unarmed strike', BASE_SOURCE, 1, {
+                op: 'base',
+                how: 'An unarmed strike deals 1 bludgeoning damage',
+              }),
+            ]),
+        ability('damage'),
+      ]),
     },
     properties: [],
     notes: source && faces > 0 ? [`${source.label}: the damage die is d${faces}.`] : [],

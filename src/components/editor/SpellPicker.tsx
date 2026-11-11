@@ -117,7 +117,6 @@ export function SpellPicker({
       labels={{
         compare: 'Compare spells',
         search: 'Search spells, classes and text…',
-        detailPlaceholder: 'Select a spell to see it in full.',
         table: label,
       }}
     />

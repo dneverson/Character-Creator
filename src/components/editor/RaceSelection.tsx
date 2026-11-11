@@ -106,7 +106,6 @@ export function RaceSelection() {
           labels={{
             compare: 'Compare races',
             search: 'Search races and traits…',
-            detailPlaceholder: 'Select a race to see its traits in full.',
             table: 'Race reference',
           }}
         >

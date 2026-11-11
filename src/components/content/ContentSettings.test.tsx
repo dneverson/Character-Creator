@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { contentConfig, freeRulesLicense } from '../../config/content'
@@ -77,7 +77,7 @@ describe('ContentSettings on the free rules', () => {
   it('tells the visitor what the site hosts and what downloading means', () => {
     open()
     expect(screen.getByText(/hosts only the free rules/)).toBeInTheDocument()
-    expect(screen.getByText(/you confirm that you own the books/)).toBeInTheDocument()
+    expect(screen.getByText(/This site does not host it/)).toBeInTheDocument()
   })
 
   it('carries the license of the free rules', async () => {
@@ -128,7 +128,9 @@ describe('ContentSettings with the full content in use', () => {
 
     await user.click(screen.getByRole('button', { name: 'Check for updates' }))
     expect(fakeLibrary.checkForUpdate).toHaveBeenCalledWith(true)
-    expect(await screen.findByRole('status')).toHaveTextContent(/^Checked\./)
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      /^Up to date\. Last checked/,
+    )
 
     fakeLibrary.checkForUpdate.mockResolvedValueOnce(false)
     await user.click(screen.getByRole('button', { name: 'Check for updates' }))
@@ -140,13 +142,58 @@ describe('ContentSettings with the full content in use', () => {
     fakeLibrary.checkForUpdate.mockResolvedValueOnce(true)
     await user.click(screen.getByRole('button', { name: 'Check for updates' }))
     await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent(/^Checked\./),
+      expect(screen.getByRole('status')).toHaveTextContent(/^Up to date\. Last checked/),
     )
     fakeLibrary.checkForUpdate.mockRejectedValueOnce(new Error('storage failed'))
     await user.click(screen.getByRole('button', { name: 'Check for updates' }))
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent(/could not be checked/),
     )
+  })
+
+  it('says Checking... while it asks, then how the update went', async () => {
+    const user = userEvent.setup()
+    let answer: (answered: boolean) => void = () => undefined
+    fakeLibrary.checkForUpdate.mockImplementationOnce(
+      () => new Promise<boolean>((resolve) => (answer = resolve)),
+    )
+    open()
+
+    await user.click(screen.getByRole('button', { name: 'Check for updates' }))
+    expect(screen.getByRole('status')).toHaveTextContent('Checking...')
+
+    // The source has a newer commit: its files are downloaded, then it is updated.
+    useContentStatus.setState({
+      commit: 'abcdef0000000000000000000000000000000000',
+      activity: 'downloading',
+      done: 40,
+      total: 160,
+    })
+    answer(true)
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Downloading the update: 40 of 160 files',
+      ),
+    )
+    act(() => useContentStatus.setState({ activity: 'idle', done: 0, total: 0 }))
+    expect(screen.getByRole('status')).toHaveTextContent('Updated')
+  })
+
+  it('reports an update that could not be downloaded', async () => {
+    const user = userEvent.setup()
+    fakeLibrary.checkForUpdate.mockImplementationOnce(() => {
+      useContentStatus.setState({
+        commit: 'abcdef0000000000000000000000000000000000',
+        activity: 'downloading',
+        done: 0,
+        total: 5,
+      })
+      return Promise.resolve(true)
+    })
+    open()
+    await user.click(screen.getByRole('button', { name: 'Check for updates' }))
+    act(() => useContentStatus.setState({ unreachable: true, activity: 'idle' }))
+    expect(screen.getByRole('status')).toHaveTextContent(/could not be downloaded/)
   })
 
   it('switches back to the free rules', async () => {
@@ -213,6 +260,9 @@ describe('ContentSettings importing a copy from this device', () => {
     open()
     expect(screen.getByRole('button', { name: 'Import from this device' })).toBeEnabled()
     expect(screen.getByText(/Nothing is uploaded/)).toBeInTheDocument()
+    expect(screen.getByText(/Only \.json files are stored/)).toHaveTextContent(
+      /"adventure\/" is skipped.*Cover images are optional/,
+    )
 
     await user.upload(screen.getByLabelText('Folder to import'), picked)
     expect(fakeLibrary.importFiles).toHaveBeenCalledWith(picked)
@@ -287,6 +337,46 @@ describe('ContentSettings importing a copy from this device', () => {
   })
 })
 
+describe('ContentSettings source fields', () => {
+  it('explains each field, shows its default and where it points', () => {
+    open()
+    expect(screen.getByText(/GitHub repository the book data/)).toBeInTheDocument()
+    expect(
+      screen.getAllByText(contentConfig.source.dataRepository, { selector: 'code' }),
+    ).toHaveLength(1)
+    expect(
+      screen.getByRole('link', {
+        name: 'https://github.com/5etools-mirror-3/5etools-src',
+      }),
+    ).toHaveAttribute('href', 'https://github.com/5etools-mirror-3/5etools-src')
+    expect(
+      screen.getByRole('link', {
+        name: 'https://github.com/5etools-mirror-3/5etools-src/tree/main',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows what is wrong with a value and resets one field to its default', async () => {
+    const user = userEvent.setup()
+    open()
+    const data = screen.getByLabelText('Data repository')
+    const reset = screen.getByRole('button', {
+      name: 'Reset to default: Data repository',
+    })
+    expect(reset).toBeDisabled()
+
+    await user.clear(data)
+    await user.type(data, 'nonsense')
+    expect(screen.getAllByText(/Write it as owner\/name/)).toHaveLength(1)
+    expect(screen.queryByRole('link', { name: /5etools-src$/ })).toBeNull()
+
+    await user.click(reset)
+    expect(data).toHaveValue(contentConfig.source.dataRepository)
+    expect(screen.queryByText(/Write it as owner\/name/)).toBeNull()
+    expect(fakeLibrary.useSource).not.toHaveBeenCalled()
+  })
+})
+
 describe('ContentSettings content source', () => {
   it('starts from the source in use, which is the default', () => {
     open()
@@ -296,7 +386,9 @@ describe('ContentSettings content source', () => {
     expect(screen.getByLabelText('Image repository')).toHaveValue(
       contentConfig.source.imageRepository,
     )
-    expect(screen.getByLabelText('Branch or tag')).toHaveValue(contentConfig.source.ref)
+    expect(screen.getByLabelText('Branch, tag or commit')).toHaveValue(
+      contentConfig.source.ref,
+    )
     expect(screen.getByRole('button', { name: 'Use this source' })).toBeDisabled()
     expect(
       screen.getByRole('button', { name: 'Back to the default source' }),
@@ -341,7 +433,7 @@ describe('ContentSettings content source', () => {
     await user.clear(screen.getByLabelText('Image repository'))
     await user.type(screen.getByLabelText('Image repository'), 'someone/images')
     expect(use).toBeEnabled()
-    await user.clear(screen.getByLabelText('Branch or tag'))
+    await user.clear(screen.getByLabelText('Branch, tag or commit'))
     expect(use).toBeDisabled()
   })
 
@@ -351,10 +443,12 @@ describe('ContentSettings content source', () => {
       source: { ...contentConfig.source, ref: 'next' },
     })
     open()
-    expect(screen.getByLabelText('Branch or tag')).toHaveValue('next')
+    expect(screen.getByLabelText('Branch, tag or commit')).toHaveValue('next')
 
     await user.click(screen.getByRole('button', { name: 'Back to the default source' }))
     expect(fakeLibrary.useSource).toHaveBeenCalledWith(contentConfig.source)
-    expect(screen.getByLabelText('Branch or tag')).toHaveValue(contentConfig.source.ref)
+    expect(screen.getByLabelText('Branch, tag or commit')).toHaveValue(
+      contentConfig.source.ref,
+    )
   })
 })

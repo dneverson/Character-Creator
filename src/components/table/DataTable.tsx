@@ -3,7 +3,8 @@
 // inside a resizable split. Dataset-agnostic - everything specific to a dataset
 // arrives through `columns`, `rowMeta`, `searchText`, and `renderDetail`.
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import Modal from 'react-bootstrap/Modal'
 import { ResizableSplit } from './ResizableSplit'
 import { DetailPane } from './DetailPane'
 import { TableGrid, type GridHandle } from './TableGrid'
@@ -24,7 +25,7 @@ export function DataTable<T>({
   rowClick = 'focus',
   searchText,
   renderDetail,
-  detailPlaceholder,
+  header,
   detail: detailOptions,
   allowNonStandard = true,
   standardFirst,
@@ -46,6 +47,10 @@ export function DataTable<T>({
   })
 
   const layout = useColumnLayout(tableId, columns)
+
+  // Full screen moves this one table into a window; its state lives here, so
+  // search, filters, sort, columns, picks and the open detail all carry over.
+  const [fullScreen, setFullScreen] = useState(false)
 
   // Cross-pane keyboard bridge. The grid publishes a handle so the detail pane
   // can return focus to the cursor row; `enterSignal` is bumped only when the
@@ -73,8 +78,21 @@ export function DataTable<T>({
     firstInReadingOrder(focusables(pane))?.focus()
   }, [enterSignal])
 
+  // The rows as the table shows them now: filtered and sorted, the visible columns in order.
+  async function exportCsv() {
+    const { rowsToCsv, downloadCsv, csvFileName } = await import('./csv')
+    downloadCsv(
+      rowsToCsv(
+        state.visibleRows,
+        layout.visibleColumns.filter((c) => !c.action),
+      ),
+      csvFileName(ariaLabel ?? tableId),
+    )
+  }
+
   const master = (
     <div>
+      {header}
       <TableToolbar
         compact={compact}
         searchable={searchText !== undefined}
@@ -90,6 +108,8 @@ export function DataTable<T>({
         onToggleColumn={layout.setColumnVisible}
         onReorderColumns={layout.setOrder}
         onResetColumns={layout.reset}
+        onExport={exportCsv}
+        onFullScreen={fullScreen ? undefined : () => setFullScreen(true)}
       />
       <TableGrid
         rows={state.visibleRows}
@@ -105,7 +125,7 @@ export function DataTable<T>({
         selectAllVisible={state.selectAllVisible}
         clearSelection={state.clearSelection}
         focusedId={state.focusedId}
-        onFocus={detailOptions?.toggleOnReclick ? state.toggleFocus : state.focus}
+        onFocus={state.toggleFocus}
         sort={state.sort}
         onSort={state.onSort}
         sortBy={state.sortBy}
@@ -115,11 +135,7 @@ export function DataTable<T>({
         onWidthsChange={layout.setWidths}
         onReorderColumn={layout.reorderColumn}
         onEnterDetail={renderDetail !== undefined ? handleEnterDetail : undefined}
-        onExitToClose={
-          renderDetail !== undefined && detailOptions?.closable
-            ? state.clearFocus
-            : undefined
-        }
+        onExitToClose={renderDetail !== undefined ? state.clearFocus : undefined}
         apiRef={gridApiRef}
         emptyLabel={emptyLabel}
         ariaLabel={ariaLabel}
@@ -129,30 +145,53 @@ export function DataTable<T>({
 
   // No `renderDetail` means there is nothing to show in a detail pane, so the
   // grid takes the full width and the resizable split is skipped entirely.
-  if (renderDetail === undefined) return master
+  const inWindow = (view: ReactNode) =>
+    fullScreen ? (
+      <Modal
+        show
+        fullscreen
+        onHide={() => setFullScreen(false)}
+        // The column menus open outside the window and must keep the focus they are given.
+        enforceFocus={false}
+        // Escape closes an open detail pane first, and the window only when none is open.
+        onEscapeKeyDown={(e) => {
+          if (state.focusedRow === null) return
+          e.preventDefault()
+          state.clearFocus()
+        }}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>{ariaLabel ?? 'Table'}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="data-table-fullscreen">{view}</Modal.Body>
+      </Modal>
+    ) : (
+      view
+    )
 
-  // A `hiddenUntilFocus` pane is absent until a row is focused. The split still
+  if (renderDetail === undefined) return inWindow(master)
+
+  // The pane is absent until a row is focused. The split still
   // mounts (so the grid stays full width via an absent detail rather than a
   // second tree shape); keeping the master in one DOM slot across the focus
   // toggle preserves its scroll position instead of remounting it to the top.
-  const detailHidden = detailOptions?.hiddenUntilFocus && state.focusedRow === null
+  const detailHidden = state.focusedRow === null
 
   const detail = detailHidden ? undefined : (
     <DetailPane
       focusedRow={state.focusedRow}
       render={renderDetail}
-      placeholder={detailPlaceholder}
-      onClose={detailOptions?.closable ? state.clearFocus : undefined}
+      onClose={state.clearFocus}
       onReturnToGrid={() => gridApiRef.current?.focusCursor()}
       containerRef={paneRef}
     />
   )
 
-  return (
+  return inWindow(
     <ResizableSplit
       master={master}
       detail={detail}
       initialMasterPct={detailOptions?.tableShare}
-    />
+    />,
   )
 }
