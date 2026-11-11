@@ -195,9 +195,11 @@ describe('buildSkillSources', () => {
 describe('skillRows', () => {
   it('marks fixed, chosen, and manual proficiencies with modifiers', () => {
     const character = createCharacter('Tester')
-    character.skillProficiencies = {
-      athletics: classSourceTag('Barbarian', 'PHB'),
-      arcana: 'manual',
+    character.grantPicks = {
+      skill: {
+        athletics: classSourceTag('Barbarian', 'PHB'),
+        arcana: 'manual',
+      },
     }
     const rows = skillRows(character, sources)
     const insight = rows.find((r) => r.key === 'insight')!
@@ -259,7 +261,7 @@ describe('skillCards', () => {
     const rows = skillRows(character, sources)
     const [card] = skillCards(character, sources, rows)
     expect(card).toMatchObject({ count: 2, used: 0, left: 2, over: false, picks: [] })
-    expect(card.chips.map((c) => c.skill)).toEqual([
+    expect(card.chips.map((c) => c.value)).toEqual([
       'animal handling',
       'athletics',
       'intimidation',
@@ -270,13 +272,15 @@ describe('skillCards', () => {
 
   it('marks picked, full and taken chips and counts what is left', () => {
     const c = createCharacter('Tester')
-    c.skillProficiencies = {
-      athletics: 'class:Barbarian|PHB',
-      perception: 'class:Barbarian|PHB',
+    c.grantPicks = {
+      skill: {
+        athletics: 'class:Barbarian|PHB',
+        perception: 'class:Barbarian|PHB',
+      },
     }
     const [card] = skillCards(c, sources, skillRows(c, sources))
     expect(card).toMatchObject({ used: 2, left: 0 })
-    const states = Object.fromEntries(card.chips.map((x) => [x.skill, x.state]))
+    const states = Object.fromEntries(card.chips.map((x) => [x.value, x.state]))
     expect(states).toEqual({
       'animal handling': 'full',
       athletics: 'picked',
@@ -287,7 +291,7 @@ describe('skillCards', () => {
 
   it('disables a skill granted elsewhere and names who covers it', () => {
     const c = createCharacter('Tester')
-    c.skillProficiencies = { athletics: 'bg' }
+    c.grantPicks = { skill: { athletics: 'bg' } }
     const withBg: SkillSource[] = [
       {
         tag: 'bg',
@@ -307,24 +311,26 @@ describe('skillCards', () => {
     ]
     const cards = skillCards(c, withBg, skillRows(c, withBg))
     const barb = cards.find((x) => x.kind === 'class')!
-    const ath = barb.chips.find((x) => x.skill === 'athletics')!
+    const ath = barb.chips.find((x) => x.value === 'athletics')!
     expect(ath).toMatchObject({ state: 'taken', takenBy: 'Background' })
-    const per = barb.chips.find((x) => x.skill === 'perception')!
+    const per = barb.chips.find((x) => x.value === 'perception')!
     expect(per).toMatchObject({ state: 'taken', takenBy: 'Race' })
   })
 
   it('shows the modifier with proficiency and flags an overspent card', () => {
     const c = createCharacter('Tester')
     c.abilities.str.base = 14
-    c.skillProficiencies = {
-      athletics: 'class:Barbarian|PHB',
-      perception: 'class:Barbarian|PHB',
-      intimidation: 'class:Barbarian|PHB',
+    c.grantPicks = {
+      skill: {
+        athletics: 'class:Barbarian|PHB',
+        perception: 'class:Barbarian|PHB',
+        intimidation: 'class:Barbarian|PHB',
+      },
     }
     const [card] = skillCards(c, sources, skillRows(c, sources))
     expect(card).toMatchObject({ over: true, left: 0 })
     // +2 Strength and +2 proficiency at level 1 (athletics is proficient already).
-    expect(card.chips.find((x) => x.skill === 'athletics')?.modifier).toBe(4)
+    expect(card.chips.find((x) => x.value === 'athletics')?.hint).toBe('+4')
   })
 
   it('unions two choose blocks of one source and skips sources with no choice', () => {
@@ -342,7 +348,7 @@ describe('skillCards', () => {
     const cards = skillCards(character, [two, fixedOnly], skillRows(character, [two]))
     expect(cards).toHaveLength(1)
     expect(cards[0].count).toBe(2)
-    expect(cards[0].chips.map((x) => x.skill)).toEqual(['arcana', 'history'])
+    expect(cards[0].chips.map((x) => x.value)).toEqual(['arcana', 'history'])
   })
 })
 
@@ -357,5 +363,33 @@ describe('otherPicks', () => {
       { skill: 'stealth', tag: 'manual', orphan: false },
       { skill: 'arcana', tag: 'legacy', orphan: true },
     ])
+  })
+})
+
+describe('a budget shared with another kind of pick', () => {
+  const skilled: SkillSource = {
+    tag: 'feat:slot',
+    label: 'Feat · Skilled',
+    kind: 'feat',
+    fixed: [],
+    choices: [{ count: 3, from: ['arcana', 'history', 'insight'] }],
+    shares: ['tool'],
+  }
+
+  it('counts the tools picked against the skills left', () => {
+    const c = createCharacter('Tester')
+    c.grantPicks = {
+      skill: { arcana: 'feat:slot' },
+      tool: { lute: 'feat:slot', 'dice set': 'feat:slot' },
+    }
+    const [card] = skillCards(c, [skilled], skillRows(c, [skilled]))
+    expect(card).toMatchObject({ count: 3, used: 3, left: 0, kinds: ['skill', 'tool'] })
+    expect(card.note).toBe('Shared with your tool picks, in Proficiencies.')
+    // The skill itself is still picked; the others are full.
+    expect(Object.fromEntries(card.chips.map((x) => [x.value, x.state]))).toEqual({
+      arcana: 'picked',
+      history: 'full',
+      insight: 'full',
+    })
   })
 })

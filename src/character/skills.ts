@@ -2,7 +2,7 @@
 // and race, track which chosen skills consume which source's budget, and
 // compute each skill's modifier. Kept out of components for reuse/testing.
 
-import { abilityMod, type AbilityKey } from '../dice/dice'
+import { abilityMod, formatMod, type AbilityKey } from '../dice/dice'
 import {
   SKILLS,
   parseSkillGrants,
@@ -15,15 +15,24 @@ import type { PlayableBackground } from '../data/background'
 import type { PlayableRace } from '../data/race'
 import type { Character, SkillProficiencies } from './model'
 import { characterAbilityTotals, totalLevel } from './derive'
+import {
+  MANUAL_TAG,
+  picksCharged,
+  skillPicks,
+  type PickCard,
+  type PickChip,
+  type PickKind,
+  type SkillSourceKind,
+} from './picks'
 
-export const MANUAL_TAG = 'manual'
+export { MANUAL_TAG }
 
 /** Source tag for a class's skill grant. */
 export function classSourceTag(name: string, source: string): string {
   return `class:${name}|${source}`
 }
 
-export type SkillSourceKind = 'class' | 'multiclass' | 'background' | 'race' | 'feat'
+export type { SkillSourceKind }
 
 /** One provider of skill proficiencies (background, a class, or race). */
 export interface SkillSource {
@@ -34,6 +43,8 @@ export interface SkillSource {
   fixed: string[]
   /** "Choose N from a list" grants. */
   choices: SkillChoice[]
+  /** Other kinds of pick the same budget pays for (Skilled: a skill or a tool). */
+  shares?: PickKind[]
 }
 
 /** A background's or race's skill grant as a source, when it grants any skill. */
@@ -195,6 +206,8 @@ export interface SkillRow {
   /** Off-standard pick (not offered by any source). */
   nonStandard: boolean
   modifier: number
+  /** Expertise: what gives it, when the proficiency bonus counts twice. */
+  expertise?: string
 }
 
 /** Compute the full 18-skill table for display. `featBonus`: feat ability increases. */
@@ -202,9 +215,11 @@ export function skillRows(
   character: Character,
   sources: SkillSource[],
   featBonus: Partial<Record<AbilityKey, number>> = {},
+  /** The skills the character has expertise in, each with what gives it. */
+  expertise: ReadonlyMap<string, string> = new Map(),
 ): SkillRow[] {
   const fixed = fixedGrants(sources)
-  const chosen = character.skillProficiencies
+  const chosen = skillPicks(character)
   const totals = characterAbilityTotals(character, featBonus)
   const pb = proficiencyBonus(totalLevel(character))
 
@@ -214,6 +229,7 @@ export function skillRows(
     const proficient = fixedTag != null || chosenTag != null
     const source = fixedTag ?? chosenTag
     const base = abilityMod(totals[skill.ability])
+    const doubled = proficient ? expertise.get(skill.key) : undefined
     return {
       key: skill.key,
       label: skill.label,
@@ -222,7 +238,8 @@ export function skillRows(
       source,
       locked: fixedTag != null,
       nonStandard: chosenTag === MANUAL_TAG,
-      modifier: base + (proficient ? pb : 0),
+      modifier: base + (proficient ? pb : 0) + (doubled === undefined ? 0 : pb),
+      expertise: doubled,
     }
   })
 }
@@ -257,32 +274,6 @@ export function grantedLine(sources: SkillSource[]): GrantedSkill[] {
   return out
 }
 
-export type ChipState = 'available' | 'picked' | 'taken' | 'full'
-
-export interface SkillChip {
-  skill: string
-  label: string
-  state: ChipState
-  /** Who already covers the skill, when `taken`. */
-  takenBy?: string
-  /** The modifier the skill has with proficiency. */
-  modifier: number
-}
-
-export interface SkillCard {
-  tag: string
-  label: string
-  /** Short name: "Background", "Race", or the class or feat. */
-  name: string
-  kind: SkillSourceKind
-  count: number
-  used: number
-  left: number
-  over: boolean
-  picks: string[]
-  chips: SkillChip[]
-}
-
 /** Display name for a stored source tag. */
 export function tagName(tag: string, sources: SkillSource[]): string {
   if (tag === MANUAL_TAG) return 'Non-standard'
@@ -295,8 +286,8 @@ export function skillCards(
   character: Character,
   sources: SkillSource[],
   rows: SkillRow[],
-): SkillCard[] {
-  const chosen = character.skillProficiencies
+): PickCard[] {
+  const chosen = skillPicks(character)
   const fixed = fixedGrants(sources)
   const rowOf = new Map(rows.map((r) => [r.key, r]))
   const pb = proficiencyBonus(totalLevel(character))
@@ -305,11 +296,19 @@ export function skillCards(
     .map((src) => {
       const count = budgetOf(src)
       const picks = Object.keys(chosen).filter((k) => chosen[k] === src.tag)
+      // A budget shared with another kind of pick (Skilled) is spent by both.
+      const kinds: PickKind[] = ['skill', ...(src.shares ?? [])]
+      const used = picksCharged(character.grantPicks, src.tag, kinds)
       const allowed = chooseSetOf(src)
-      const chips = SKILLS.filter((sk) => allowed.has(sk.key)).map((sk): SkillChip => {
+      const chips = SKILLS.filter((sk) => allowed.has(sk.key)).map((sk): PickChip => {
         const row = rowOf.get(sk.key)
         const modifier = row ? row.modifier + (row.proficient ? 0 : pb) : 0
-        const base = { skill: sk.key, label: sk.label, modifier }
+        const base = {
+          kind: 'skill' as const,
+          value: sk.key,
+          label: sk.label,
+          hint: formatMod(modifier),
+        }
         const fixedTag = fixed.get(sk.key)
         if (chosen[sk.key] === src.tag) return { ...base, state: 'picked' }
         if (fixedTag !== undefined) {
@@ -318,19 +317,25 @@ export function skillCards(
         if (sk.key in chosen) {
           return { ...base, state: 'taken', takenBy: tagName(chosen[sk.key], sources) }
         }
-        return { ...base, state: picks.length >= count ? 'full' : 'available' }
+        return { ...base, state: used >= count ? 'full' : 'available' }
       })
       return {
         tag: src.tag,
         label: src.label,
         name: sourceName(src),
         kind: src.kind,
+        noun: 'skills',
+        kinds,
         count,
-        used: picks.length,
-        left: Math.max(0, count - picks.length),
-        over: picks.length > count,
+        used,
+        left: Math.max(0, count - used),
+        over: used > count,
         picks,
         chips,
+        note:
+          kinds.length > 1
+            ? `Shared with your ${kinds.slice(1).join(' and ')} picks, in Proficiencies.`
+            : undefined,
       }
     })
 }

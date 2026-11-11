@@ -80,7 +80,9 @@ describe('CharacterEditor', () => {
       'Ability Scores',
       'Feats & Ability Score Improvements',
       'Skills',
+      'Proficiencies',
       'Hit Points',
+      'Combat',
       'Spells',
       'Equipment',
     ])

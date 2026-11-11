@@ -98,6 +98,67 @@ const ofYourChoice = (count: number, nouns?: [string, string]) =>
     ? `${count} ${count === 1 ? nouns[0] : nouns[1]} of your choice`
     : `${count} of your choice`
 
+/** One thing a grant gives: a language, a tool, a weapon, an armor kind, a skill, a save. */
+export interface GrantValue {
+  kind: GrantKind
+  /** The data's own key, lower case and without a source: "elvish", "light", "str". */
+  key: string
+  /** A weapon given by a data filter instead of a name (`type=martial weapon|property=light`). */
+  filter?: string
+}
+
+/** What a grant lets the player choose: how many, of what, and the wording. */
+export interface PickSpec {
+  /** Stable among the picks of one alternative: "language:0". */
+  id: string
+  count: number
+  /** Every kind a chosen value can be (a "skill or tool" choice spans two). */
+  kinds: GrantKind[]
+  /** The values the grant names to choose from; empty when it names none. */
+  from: GrantValue[]
+  /** The free categories it allows (`anyStandard`, `anyArtisansTool`, `other`...). */
+  any: string[]
+  /** A weapon choice limited by a data filter. */
+  filter?: string
+  /** The choice in words: "2 standard languages of your choice". */
+  text: string
+}
+
+/** One alternative of a grant: what it gives outright and what it lets the player choose. */
+export interface GrantAlt {
+  fixed: GrantValue[]
+  picks: PickSpec[]
+}
+
+export interface GrantRead {
+  /** The player takes ONE of these. */
+  alternatives: GrantAlt[]
+  /** Blocks the book marks optional (a rule the DM may allow); each is on or off. */
+  optional: GrantAlt[]
+  /** Keys the reader does not know: the data audit fails on any. */
+  unknown: string[]
+}
+
+/** What kind of thing each `any` key lets the player choose. */
+const ANY_KIND: Record<string, GrantKind> = {
+  anyStandard: 'language',
+  anyExotic: 'language',
+  anyLanguage: 'language',
+  anyArtisansTool: 'tool',
+  anyGamingSet: 'tool',
+  anyMusicalInstrument: 'tool',
+  anyTool: 'tool',
+  anySkill: 'skill',
+  anyWeapon: 'weapon',
+  anyArmor: 'armor',
+  anyProficientSkill: 'expertise',
+}
+
+const unique = <T>(list: T[]): T[] => [...new Set(list)]
+
+/** A key as a value: no source, lower case. */
+const dataKey = (raw: string) => raw.split('|')[0].trim().toLowerCase()
+
 interface Choose {
   from?: unknown
   count?: number
@@ -125,9 +186,57 @@ function filterWeapons(filter: string): string[] {
   return ['simple', 'martial'].filter((k) => kinds.has(k))
 }
 
-function chooseText(raw: unknown, kind: GrantKind): string[] {
+/** The property names of a data filter, as the codes the items carry. */
+export const PROPERTY_CODES: Record<string, string> = {
+  light: 'L',
+  finesse: 'F',
+  heavy: 'H',
+  thrown: 'T',
+  versatile: 'V',
+  reach: 'R',
+  'two-handed': '2H',
+  loading: 'LD',
+  ammunition: 'A',
+  special: 'S',
+}
+
+/** A weapon filter of the data ("type=martial weapon|property=light;finesse"). */
+export function readWeaponFilter(
+  filter: string,
+): { category: 'simple' | 'martial'; anyProperty?: string[] } | undefined {
+  const type = /type=([^|}]+)/.exec(filter)?.[1]
+  const property = /property=([^|}]+)/.exec(filter)?.[1]
+  const category = type?.startsWith('martial')
+    ? 'martial'
+    : type?.startsWith('simple')
+      ? 'simple'
+      : undefined
+  if (!category) return undefined
+  const codes = property?.split(';').map((p) => PROPERTY_CODES[p.trim()])
+  if (codes?.some((c) => c === undefined)) return undefined
+  return { category, anyProperty: codes as string[] | undefined }
+}
+
+/** A weapon filter in words: "Martial weapons with the Light or Finesse property". */
+function weaponFilterText(filter: string): string {
+  const read = readWeaponFilter(filter)
+  if (!read) return 'Weapons'
+  const noun = read.category === 'martial' ? 'Martial weapons' : 'Simple weapons'
+  const names = (read.anyProperty ?? []).map((code) =>
+    titleCase(
+      Object.keys(PROPERTY_CODES).find((k) => PROPERTY_CODES[k] === code) ?? code,
+    ),
+  )
+  return names.length > 0 ? `${noun} with the ${names.join(' or ')} property` : noun
+}
+
+/** A value for display: its name, or the words of its filter. */
+export const valueText = (v: GrantValue): string =>
+  v.filter === undefined ? nameOf(v.key, v.kind) : weaponFilterText(v.filter)
+
+function chooseSpecs(raw: unknown, kind: GrantKind): Omit<PickSpec, 'id'>[] {
   // A grant of mixed kinds lists its choices; the others hold just one.
-  if (Array.isArray(raw)) return raw.flatMap((one) => chooseText(one, kind))
+  if (Array.isArray(raw)) return raw.flatMap((one) => chooseSpecs(one, kind))
   if (!raw || typeof raw !== 'object') return []
   const { from, count = 1, fromFilter } = raw as Choose
   if (Array.isArray(from)) {
@@ -136,50 +245,172 @@ function chooseText(raw: unknown, kind: GrantKind): string[] {
       .map((o) => meaning(o, kind))
     if (options.length === 0) return []
     // Any of the six abilities is a free pick of a saving throw.
-    if (kind === 'save' && ABILITIES.every((a) => options.includes(a)))
-      return [ofYourChoice(count, ['saving throw', 'saving throws'])]
+    if (kind === 'save' && ABILITIES.every((a) => options.includes(a))) {
+      return [
+        {
+          count,
+          kinds: ['save'],
+          from: options.map((key) => ({ kind: 'save', key })),
+          any: [],
+          text: ofYourChoice(count, ['saving throw', 'saving throws']),
+        },
+      ]
+    }
+    const any = options.filter((o) => o in ANY_NOUNS)
+    const named = options.filter((o) => !(o in ANY_NOUNS))
     // "any skill or any tool" reads better as one free choice between kinds.
-    if (options.every((o) => o in ANY_NOUNS)) {
-      const nouns = options.map((o) => ANY_NOUNS[o][count === 1 ? 0 : 1])
-      return [`${count} ${nouns.join(' or ')} of your choice`]
+    if (named.length === 0) {
+      const nouns = any.map((o) => ANY_NOUNS[o][count === 1 ? 0 : 1])
+      return [
+        {
+          count,
+          kinds: unique(any.map((o) => ANY_KIND[o])),
+          from: [],
+          any,
+          text: `${count} ${nouns.join(' or ')} of your choice`,
+        },
+      ]
     }
     const names = options.map((o) =>
       o in ANY_NOUNS ? titleCase(ANY_NOUNS[o][0]) : nameOf(o, kind),
     )
-    return [`${count} of ${names.join(', ')}`]
+    return [
+      {
+        count,
+        kinds: unique([kind, ...any.map((o) => ANY_KIND[o])]),
+        from: named.map((o) => ({ kind, key: dataKey(o) })),
+        any,
+        text: `${count} of ${names.join(', ')}`,
+      },
+    ]
   }
   if (typeof fromFilter === 'string') {
     // The data filters its own item list here; only the weapon kinds can be told apart.
     const kinds = filterWeapons(fromFilter)
     const noun =
       kinds.length > 0 ? `${kinds.join(' or ')} weapon` : ANY_NOUNS.anyWeapon[0]
-    return [ofYourChoice(count, [noun, `${noun}s`])]
+    return [
+      {
+        count,
+        kinds: ['weapon'],
+        from: [],
+        any: [],
+        filter: fromFilter,
+        text: ofYourChoice(count, [noun, `${noun}s`]),
+      },
+    ]
   }
   return []
 }
 
-function readBlock(raw: unknown, kind: GrantKind): GrantSet {
-  const set: GrantSet = { fixed: [], choices: [] }
-  if (!raw || typeof raw !== 'object') return set
-  for (const [name, value] of Object.entries(raw)) {
-    const key = meaning(name, kind)
-    // A kind of tool named plainly is one of that kind.
-    const count = key !== name && value === true ? 1 : value
-    if (key === 'choose') set.choices.push(...chooseText(value, kind))
-    else if (key === 'anyProficientSkill') {
-      // Expertise: a skill the character is already proficient in.
-      if (typeof count === 'number')
-        set.choices.push(`${count} skill${count === 1 ? '' : 's'} you are proficient in`)
-    } else if (key === 'any' || key in ANY_NOUNS) {
-      // `any` is a free choice of the grant's own kind; the others name theirs.
-      if (typeof count === 'number') {
-        const any = key === 'any' ? KIND_ANY[kind] : key
-        set.choices.push(ofYourChoice(count, any ? ANY_NOUNS[any] : undefined))
+const ARMOR_KEYS: readonly string[] = ['light', 'medium', 'heavy', 'shield']
+const WEAPON_WORDS: readonly string[] = ['simple', 'martial', 'firearms', 'improvised']
+
+/** Whether a plain key is a value the kind knows (kinds with an open list know any). */
+function knownKey(key: string, kind: GrantKind): boolean {
+  if (kind === 'armor') return ARMOR_KEYS.includes(key)
+  if (kind === 'weapon') return WEAPON_WORDS.includes(key)
+  if (kind === 'save') return (ABILITIES as readonly string[]).includes(key)
+  if (kind === 'skill' || kind === 'expertise') return SKILLS.some((s) => s.key === key)
+  return true
+}
+
+interface Accumulator {
+  alt: GrantAlt
+  unknown: string[]
+}
+
+/** Read one key of a block into the alternative being built. */
+function readKey(name: string, value: unknown, kind: GrantKind, into: Accumulator) {
+  const { alt, unknown } = into
+  const key = meaning(name, kind)
+  // A kind of tool named plainly is one of that kind.
+  const count = key !== name && value === true ? 1 : value
+  const addPick = (spec: Omit<PickSpec, 'id'>) =>
+    alt.picks.push({ ...spec, id: `${spec.kinds[0]}:${alt.picks.length}` })
+  if (key === 'choose') chooseSpecs(value, kind).forEach(addPick)
+  else if (key === 'any' || key in ANY_NOUNS || key === 'anyProficientSkill') {
+    if (typeof count !== 'number') return
+    // `any` is a free choice of the grant's own kind; the others name theirs.
+    const any = key === 'any' ? KIND_ANY[kind] : key
+    addPick({
+      count,
+      kinds: [any === undefined ? kind : ANY_KIND[any]],
+      from: [],
+      any: [any ?? 'any'],
+      text:
+        any === 'anyProficientSkill'
+          ? `${count} skill${count === 1 ? '' : 's'} you are proficient in`
+          : ofYourChoice(count, any === undefined ? undefined : ANY_NOUNS[any]),
+    })
+  } else if (key === 'all' && value && typeof value === 'object') {
+    const filter = (value as Choose).fromFilter
+    if (typeof filter === 'string') alt.fixed.push({ kind, key: '', filter })
+    else unknown.push(`all:${JSON.stringify(value)}`)
+  } else if (key === 'proficiency' && typeof value === 'string') {
+    readKey(value, true, kind, into)
+  } else if (value === false) return
+  else if (value !== true) unknown.push(name)
+  // A language outside the standard list, agreed with the DM.
+  else if (key === 'other') {
+    addPick({ count: 1, kinds: ['language'], from: [], any: ['other'], text: '1 other' })
+  } else if (!key.includes('|') && !knownKey(dataKey(key), kind)) unknown.push(name)
+  else alt.fixed.push({ kind, key: dataKey(key) })
+}
+
+/** A word of an old class list: "light", "{@item rapier|phb|rapiers}", a filter tag. */
+function readWord(word: string, kind: GrantKind, into: Accumulator) {
+  const item = /\{@item ([^|}]+)/.exec(word)?.[1]
+  if (item && kind !== 'save') into.alt.fixed.push({ kind, key: item.toLowerCase() })
+  else if (word.includes('{@filter')) {
+    into.alt.fixed.push({ kind, key: '', filter: word })
+  } else readKey(word, true, kind, into)
+}
+
+/**
+ * Read a grant's blocks once, as structured values: what is given outright and what
+ * the player chooses, per alternative. Several object blocks are alternatives (the
+ * player takes one); the words of an older class list are one alternative together; a
+ * block marked optional is a separate switch. Every other view of a grant (the words
+ * in a table cell, the proficiencies on the sheet, the picks) is read from this.
+ */
+export function readGrant(
+  blocks: readonly unknown[] | undefined,
+  kind: GrantKind,
+): GrantRead {
+  const out: GrantRead = { alternatives: [], optional: [], unknown: [] }
+  let words: Accumulator | undefined
+  for (const block of blocks ?? []) {
+    if (typeof block === 'string') {
+      if (!words) {
+        words = { alt: { fixed: [], picks: [] }, unknown: out.unknown }
+        out.alternatives.push(words.alt)
       }
-    } else if (value !== true) continue
-    // A language outside the standard list, agreed with the DM.
-    else if (key === 'other') set.choices.push('1 other')
-    else set.fixed.push(nameOf(key, kind))
+      readWord(block, kind, words)
+      continue
+    }
+    if (!block || typeof block !== 'object' || Array.isArray(block)) continue
+    words = undefined
+    const into: Accumulator = { alt: { fixed: [], picks: [] }, unknown: out.unknown }
+    let optional = false
+    for (const [name, value] of Object.entries(block)) {
+      if (name === 'optional') optional = value === true
+      // The book's own words for what the block gives.
+      else if (name === 'full') continue
+      else readKey(name, value, kind, into)
+    }
+    if (into.alt.fixed.length === 0 && into.alt.picks.length === 0) continue
+    ;(optional ? out.optional : out.alternatives).push(into.alt)
+  }
+  out.alternatives = out.alternatives.filter((a) => a.fixed.length + a.picks.length > 0)
+  return out
+}
+
+/** The words of one alternative. */
+function altSet(alt: GrantAlt, kind: GrantKind): GrantSet {
+  const set: GrantSet = {
+    fixed: alt.fixed.map(valueText),
+    choices: alt.picks.map((p) => p.text),
   }
   // Naming all the skills is the same as granting every one of them.
   if (
@@ -192,9 +423,16 @@ function readBlock(raw: unknown, kind: GrantKind): GrantSet {
 
 const isEmpty = (set: GrantSet) => set.fixed.length === 0 && set.choices.length === 0
 
-/** The alternatives of a grant; none when it grants nothing. */
+/** The alternatives of a grant in words; none when it grants nothing. */
 export function grantSets(blocks: unknown[] | undefined, kind: GrantKind): GrantSet[] {
-  return (blocks ?? []).map((block) => readBlock(block, kind)).filter((s) => !isEmpty(s))
+  // The words of the older class lists are read by `readGrant` for the sheet; a table cell
+  // describes the blocks of a race, background or feat.
+  return readGrant(
+    blocks?.filter((b) => typeof b !== 'string'),
+    kind,
+  )
+    .alternatives.map((alt) => altSet(alt, kind))
+    .filter((s) => !isEmpty(s))
 }
 
 /**
@@ -206,7 +444,9 @@ export function listedGrants(items: unknown[] | undefined): GrantSet[] {
   for (const item of items ?? []) {
     if (typeof item === 'string') set.fixed.push(titleCase(item))
     else if (item && typeof item === 'object')
-      set.choices.push(...chooseText((item as { choose?: unknown }).choose, 'mixed'))
+      set.choices.push(
+        ...chooseSpecs((item as { choose?: unknown }).choose, 'mixed').map((s) => s.text),
+      )
   }
   return isEmpty(set) ? [] : [set]
 }
@@ -392,4 +632,16 @@ export function grantValues(sets: GrantSet[]): string[] {
   const values = new Set(sets.flatMap((set) => set.fixed))
   if (sets.some((set) => set.choices.length > 0)) values.add(CHOICE_VALUE)
   return [...values]
+}
+
+/** The kinds, other than skills, that a mixed grant lets the player choose (Skilled: tools). */
+export function sharedKinds(
+  blocks: readonly unknown[] | undefined,
+): Exclude<GrantKind, 'mixed' | 'skill'>[] {
+  const kinds = readGrant(blocks, 'mixed')
+    .alternatives.flatMap((a) => a.picks.flatMap((p) => p.kinds))
+    .filter(
+      (k): k is Exclude<GrantKind, 'mixed' | 'skill'> => k !== 'mixed' && k !== 'skill',
+    )
+  return [...new Set(kinds)]
 }

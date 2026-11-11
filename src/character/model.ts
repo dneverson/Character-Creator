@@ -13,6 +13,7 @@ import {
 } from '../dice/dice'
 import type { AbilityIncreases } from '../data/abilityOptions'
 import type { ItemKind } from '../data/itemTypes'
+import type { GrantPicks, PickKind, PickMap } from './picks'
 
 /** Default sources selected for a fresh character (2014 core), matching the legacy app. */
 export const DEFAULT_BOOKS = ['PHB', 'MM', 'DMG']
@@ -369,9 +370,10 @@ export interface BackgroundRef {
  * Skill proficiencies the player has taken, keyed by skill. The value is a
  * source tag ("bg", "class:Name|SRC", "race", or "manual") so each grant's
  * budget can be tracked and the source shown. Skills granted outright by a
- * background/race are derived from data and are not stored here.
+ * background/race are derived from data and are not stored here. Stored in
+ * `grantPicks.skill`, with every other kind of pick.
  */
-export type SkillProficiencies = Record<string, string>
+export type SkillProficiencies = PickMap
 
 /** Hit-point options and any rolled hit-die results. */
 export interface HpState {
@@ -628,12 +630,32 @@ export interface Character {
   // --- Feats & Ability Score Improvements ---
   feats: FeatsState
 
-  // --- Skills ---
-  /** Chosen/manual skill proficiencies, keyed by skill -> source tag. */
-  skillProficiencies: SkillProficiencies
+  // --- Skills, tools, languages and the other picks a source lets the player make ---
+  /**
+   * What the player chose from the grants that let them choose: kind -> value -> the
+   * source tag that paid for it. Skills are `grantPicks.skill`.
+   */
+  grantPicks: GrantPicks
+  /**
+   * The alternative of a grant the player took, by `<source tag>|<field>` (a Monk takes
+   * artisan's tools or an instrument), and `<source tag>|<field>|optional<n>` -> 1 for an
+   * optional block switched on.
+   */
+  grantAlt: Record<string, number>
+  /**
+   * The class options picked, by `<class tag>|<option type>` -> the options' keys
+   * ("Defense|PHB" under `class:Fighter|PHB|FS:F`).
+   */
+  classOptions: Record<string, string[]>
 
   // --- Hit points ---
   hp: HpState
+
+  /**
+   * What the player adds to a derived number the rules tables cannot know of (a
+   * ruling of the DM). Absent means none; no stored document needs migrating.
+   */
+  manualBonuses?: Partial<Record<'ac' | 'initiative', number>>
 
   // --- Spells ---
   spells: SpellsByClass
@@ -672,9 +694,11 @@ export interface Character {
  * version 20 stores a feat's placed increases as a map, not a list of abilities;
  * version 21 adds `spellGrants`, the choices for spells a source grants;
  * version 22 adds what the inventory knows of an item (equipped, attuned, a note, where it
- * came from, a custom item) and `equipment.starting`, the starting equipment taken.
+ * came from, a custom item) and `equipment.starting`, the starting equipment taken;
+ * version 23 moves `skillProficiencies` into `grantPicks.skill` and adds `grantAlt` and
+ * `classOptions`.
  */
-export const CHARACTER_SCHEMA_VERSION = 22
+export const CHARACTER_SCHEMA_VERSION = 23
 
 function emptyAbilities(): Abilities {
   return Object.fromEntries(
@@ -698,7 +722,9 @@ export function createCharacter(name = 'New Character'): Character {
     abilities: emptyAbilities(),
     classes: [],
     feats: defaultFeatsState(),
-    skillProficiencies: {},
+    grantPicks: {},
+    grantAlt: {},
+    classOptions: {},
     hp: defaultHpState(),
     spells: {},
     spellGrants: {},
@@ -723,7 +749,48 @@ type StoredBackground = BackgroundRef & { spreadIndex?: number }
  */
 export type StoredCharacter = Partial<Character> & {
   rollHistory?: { records?: RollRecord[]; cursors?: RollCursors }
+  /** Before version 23 the skill picks were kept apart from the other picks. */
+  skillProficiencies?: PickMap
   background?: StoredBackground
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v)
+
+/** The picks of a stored document, the version 22 skill picks among them. */
+function storedPicks(raw: unknown, legacySkills: unknown): GrantPicks {
+  const picks: GrantPicks = {}
+  if (isRecord(raw)) {
+    for (const [kind, map] of Object.entries(raw)) {
+      if (!isRecord(map)) continue
+      picks[kind as PickKind] = Object.fromEntries(
+        Object.entries(map).filter(([, tag]) => typeof tag === 'string'),
+      ) as PickMap
+    }
+  }
+  if (isRecord(legacySkills) && picks.skill === undefined) {
+    picks.skill = Object.fromEntries(
+      Object.entries(legacySkills).filter(([, tag]) => typeof tag === 'string'),
+    ) as PickMap
+  }
+  return picks
+}
+
+function numberMap(raw: unknown): Record<string, number> {
+  if (!isRecord(raw)) return {}
+  return Object.fromEntries(
+    Object.entries(raw).filter(([, n]) => typeof n === 'number'),
+  ) as Record<string, number>
+}
+
+function optionMap(raw: unknown): Record<string, string[]> {
+  if (!isRecord(raw)) return {}
+  return Object.fromEntries(
+    Object.entries(raw).filter(
+      (entry): entry is [string, string[]] =>
+        Array.isArray(entry[1]) && entry[1].every((o) => typeof o === 'string'),
+    ),
+  )
 }
 
 /** A stored background with its ability option under the current name. */
@@ -877,10 +944,11 @@ export function ensureCharacterDefaults(raw: StoredCharacter | undefined): Chara
   merged.classes = Array.isArray(raw?.classes) ? raw!.classes : base.classes
   merged.race = raw?.race
   merged.background = storedBackground(raw?.background)
-  merged.skillProficiencies =
-    raw?.skillProficiencies && typeof raw.skillProficiencies === 'object'
-      ? raw.skillProficiencies
-      : {}
+  // Schema 23: the skill picks moved into `grantPicks.skill`.
+  delete (merged as Character & { skillProficiencies?: PickMap }).skillProficiencies
+  merged.grantPicks = storedPicks(raw?.grantPicks, raw?.skillProficiencies)
+  merged.grantAlt = numberMap(raw?.grantAlt)
+  merged.classOptions = optionMap(raw?.classOptions)
   // Schema ≤16 stored the Tough feat as an HP checkbox; it is now a feat pick.
   const legacyHp: Partial<HpState> & { tough?: unknown } = raw?.hp ?? {}
   const { tough, ...hp } = legacyHp

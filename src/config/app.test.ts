@@ -9,9 +9,9 @@ describe('appConfig', () => {
     expect(appConfig.description).toBeTruthy()
   })
 
-  it('lists at least one author', () => {
-    expect(appConfig.authors.length).toBeGreaterThan(0)
-    expect(appConfig.authors.every((a) => a.trim().length > 0)).toBe(true)
+  it('names the author and the Matrix Dice credit', () => {
+    expect(appConfig.author.trim()).not.toBe('')
+    expect(appConfig.matrixDiceIdea.trim()).not.toBe('')
   })
 
   it('points at an https repository url with a label', () => {

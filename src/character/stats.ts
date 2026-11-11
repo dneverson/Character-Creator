@@ -118,63 +118,6 @@ export function remainingPool(pool: number[], abilities: Abilities): number[] {
   return out.sort((a, b) => b - a)
 }
 
-/** The highest pool score not yet assigned, or null when every one is placed. */
-export function nextScore(pool: number[], abilities: Abilities): number | null {
-  return remainingPool(pool, abilities)[0] ?? null
-}
-
-/** One score of the pool, and whether an ability already holds it. */
-export interface PoolChip {
-  value: number
-  placed: boolean
-}
-
-/** The pool highest first, each score marked placed or not (duplicates are separate chips). */
-export function poolChips(pool: number[], abilities: Abilities): PoolChip[] {
-  const free = new Map<number, number>()
-  for (const v of remainingPool(pool, abilities)) free.set(v, (free.get(v) ?? 0) + 1)
-  return [...pool]
-    .sort((a, b) => b - a)
-    .map((value) => {
-      const left = free.get(value) ?? 0
-      if (left > 0) free.set(value, left - 1)
-      return { value, placed: left === 0 }
-    })
-}
-
-/**
- * Give an ability a score from the pool. A score the ability already holds goes
- * back to the pool first; a value the pool has none of is ignored.
- */
-export function placeScore(
-  abilities: Abilities,
-  pool: number[],
-  key: AbilityKey,
-  value: number,
-): Abilities {
-  const without = returnScore(abilities, key)
-  if (!remainingPool(pool, without).includes(value)) return abilities
-  return { ...without, [key]: { ...without[key], base: value } }
-}
-
-/** Swap the scores of two abilities (a swap with an empty one moves the score). */
-export function swapScores(
-  abilities: Abilities,
-  a: AbilityKey,
-  b: AbilityKey,
-): Abilities {
-  return {
-    ...abilities,
-    [a]: { ...abilities[a], base: abilities[b].base },
-    [b]: { ...abilities[b], base: abilities[a].base },
-  }
-}
-
-/** Take an ability's score back to the pool. */
-export function returnScore(abilities: Abilities, key: AbilityKey): Abilities {
-  return { ...abilities, [key]: { ...abilities[key], base: null } }
-}
-
 /** Total ability score = base + racial + other. */
 export function totalScore(base: number | null, racial: number, other: number): number {
   return (base ?? 0) + racial + other

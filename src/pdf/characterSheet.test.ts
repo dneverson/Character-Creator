@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { buildCharacterSheet, equipmentLines } from './characterSheet'
+import { PDFDocument, PDFTextField } from 'pdf-lib'
+import {
+  attackLines,
+  buildCharacterSheet,
+  equipmentLines,
+  proficiencyLines,
+  spellStatLines,
+} from './characterSheet'
+import { deriveSheet } from '../derived'
+import { FIGHTER, ITEMS, build, loadedClass, stack } from '../test/derivedFixtures'
 import { makeItem } from '../test/itemFixtures'
 import { createCharacter } from '../character/model'
 import type { LoadedClass } from '../data/class'
@@ -24,7 +33,7 @@ describe('buildCharacterSheet', () => {
     c.abilities.str = { base: 16, other: 0 }
     c.story.alignment = 'Lawful Good'
     c.story.backstory = 'A dwarf far from home.'
-    c.skillProficiencies = { athletics: 'class:Fighter|PHB', stealth: 'manual' }
+    c.grantPicks = { skill: { athletics: 'class:Fighter|PHB', stealth: 'manual' } }
 
     const classByKey = new Map([['Fighter|PHB', loaded('Fighter')]])
     const bytes = await buildCharacterSheet(c, { classByKey })
@@ -194,5 +203,52 @@ describe('equipmentLines', () => {
       items: [rope, ring],
     })
     expect(bytes.byteLength).toBeGreaterThan(1000)
+  })
+})
+
+describe('combat numbers on the sheet', () => {
+  const deps = () => ({
+    classByKey: new Map([[FIGHTER.entry.name + '|PHB', FIGHTER]]),
+    items: ITEMS,
+  })
+  const armed = () =>
+    build('Fighter', 1, { str: 16, dex: 14 }, [
+      stack('Chain Mail'),
+      stack('Longsword'),
+      stack('Shield'),
+    ])
+
+  it('writes the derived armor class in the Armor Class field', async () => {
+    const bytes = await buildCharacterSheet(armed(), deps())
+    const fields = (await PDFDocument.load(bytes))
+      .getForm()
+      .getFields()
+      .filter((f): f is PDFTextField => f instanceof PDFTextField)
+      .map((f) => f.getText())
+    // Chain mail 16 + shield 2.
+    expect(fields).toContain('18')
+  })
+
+  it('lists each attack with its bonus and damage', () => {
+    const lines = attackLines(deriveSheet(armed(), deps()))
+    expect(lines).toContain('Longsword +5, 1d8 + 3 slashing (1d10 + 3 with two hands)')
+    expect(lines).toContain('Unarmed strike +5, 1 + 3 bludgeoning')
+  })
+
+  it('lists the proficiencies by kind', () => {
+    const lines = proficiencyLines(deriveSheet(armed(), deps()))
+    expect(lines).toContain('Armor: Light armor, Medium armor, Heavy armor, Shields')
+    expect(lines.find((l) => l.startsWith('Weapons:'))).toContain('Simple weapons')
+  })
+
+  it('lists the spell save DC and attack bonus of each caster', () => {
+    const wizard = loadedClass('Wizard', [], [])
+    wizard.entry.spellcastingAbility = 'int'
+    wizard.entry.casterProgression = 'full'
+    const c = build('Wizard', 1, { int: 16 }, [])
+    const lines = spellStatLines(
+      deriveSheet(c, { classByKey: new Map([['Wizard|PHB', wizard]]) }),
+    )
+    expect(lines).toEqual(['Wizard: spell save DC 13, spell attack +5'])
   })
 })

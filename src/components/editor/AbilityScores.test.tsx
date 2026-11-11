@@ -71,7 +71,7 @@ describe('AbilityScores', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('assigns a pooled score and edits the other bonus', async () => {
+  it('assigns a pooled score from the dropdown, clears it, and edits the other bonus', async () => {
     const user = userEvent.setup()
     const c = seedActive((ch) => {
       ch.statMethod = 'array'
@@ -79,13 +79,13 @@ describe('AbilityScores', () => {
     })
     renderSection()
 
-    // Pool mode: an empty ability takes the highest score still unplaced.
-    await user.click(screen.getByRole('button', { name: 'Strength base score' }))
-    await waitFor(() => expect(active(c.id).abilities.str.base).toBe(15))
+    // Any score of the pool can be picked, not just the highest.
+    const str = screen.getByLabelText('Strength base score')
+    await user.selectOptions(str, '10')
+    await waitFor(() => expect(active(c.id).abilities.str.base).toBe(10))
 
-    // Clicking the placed score picks it up; clicking it again returns it to the pool.
-    await user.click(screen.getByRole('button', { name: 'Strength base score' }))
-    await user.click(screen.getByRole('button', { name: 'Strength base score' }))
+    // The empty option clears it.
+    await user.selectOptions(str, '')
     await waitFor(() => expect(active(c.id).abilities.str.base).toBeNull())
 
     // A non-numeric "other" entry coerces to 0; a numeric one is stored.
@@ -95,7 +95,7 @@ describe('AbilityScores', () => {
     await waitFor(() => expect(active(c.id).abilities.dex.other).toBe(2))
   })
 
-  it('assigns from most to least important in one click each', async () => {
+  it('assigns all six scores in any order', async () => {
     const user = userEvent.setup()
     const c = seedActive((ch) => {
       ch.statMethod = 'array'
@@ -103,16 +103,16 @@ describe('AbilityScores', () => {
     })
     renderSection()
 
-    for (const name of [
-      'Dexterity',
-      'Constitution',
-      'Wisdom',
-      'Strength',
-      'Charisma',
-      'Intelligence',
-    ]) {
-      await user.click(screen.getByRole('button', { name: `${name} base score` }))
-    }
+    const picks: [string, string][] = [
+      ['Dexterity', '8'],
+      ['Constitution', '15'],
+      ['Wisdom', '10'],
+      ['Strength', '14'],
+      ['Charisma', '12'],
+      ['Intelligence', '13'],
+    ]
+    for (const [name, score] of picks)
+      await user.selectOptions(screen.getByLabelText(`${name} base score`), score)
     const a = active(c.id).abilities
     expect([
       a.dex.base,
@@ -121,51 +121,10 @@ describe('AbilityScores', () => {
       a.str.base,
       a.cha.base,
       a.int.base,
-    ]).toEqual([15, 14, 13, 12, 10, 8])
-    // Everything is placed, so the pool says so instead of listing chips to pick.
-    expect(screen.getByText(/All scores assigned/)).toBeInTheDocument()
+    ]).toEqual([8, 15, 10, 14, 12, 13])
   })
 
-  it('places a chosen score: chip first, then the ability', async () => {
-    const user = userEvent.setup()
-    const c = seedActive((ch) => {
-      ch.statMethod = 'array'
-      ch.statPool = [15, 14, 13, 12, 10, 8]
-    })
-    renderSection()
-
-    const chip = screen.getByRole('button', { name: '10' })
-    await user.click(chip)
-    expect(chip).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('status')).toHaveTextContent('10 selected')
-    await user.click(screen.getByRole('button', { name: 'Charisma base score' }))
-    await waitFor(() => expect(active(c.id).abilities.cha.base).toBe(10))
-    // The placed chip stays in the row, muted and not clickable.
-    expect(screen.getByRole('button', { name: '10' })).toBeDisabled()
-  })
-
-  it('swaps two scores and moves one to an empty ability', async () => {
-    const user = userEvent.setup()
-    const c = seedActive((ch) => {
-      ch.statMethod = 'array'
-      ch.statPool = [15, 14, 13, 12, 10, 8]
-      ch.abilities.str.base = 15
-      ch.abilities.dex.base = 8
-    })
-    renderSection()
-
-    await user.click(screen.getByRole('button', { name: 'Strength base score' }))
-    await user.click(screen.getByRole('button', { name: 'Dexterity base score' }))
-    await waitFor(() => expect(active(c.id).abilities.str.base).toBe(8))
-    expect(active(c.id).abilities.dex.base).toBe(15)
-
-    await user.click(screen.getByRole('button', { name: 'Dexterity base score' }))
-    await user.click(screen.getByRole('button', { name: 'Charisma base score' }))
-    await waitFor(() => expect(active(c.id).abilities.cha.base).toBe(15))
-    expect(active(c.id).abilities.dex.base).toBeNull()
-  })
-
-  it('Escape drops the selection and an armed chip can be clicked off', async () => {
+  it('offers each score once: a score held by another ability is not listed', async () => {
     const user = userEvent.setup()
     seedActive((ch) => {
       ch.statMethod = 'array'
@@ -174,19 +133,20 @@ describe('AbilityScores', () => {
     })
     renderSection()
 
-    const str = screen.getByRole('button', { name: 'Strength base score' })
-    await user.click(str)
-    expect(str).toHaveAttribute('aria-pressed', 'true')
-    await user.keyboard('{Escape}')
-    expect(str).toHaveAttribute('aria-pressed', 'false')
-
-    const chip = screen.getByRole('button', { name: '14' })
-    await user.click(chip)
-    await user.click(chip)
-    expect(chip).toHaveAttribute('aria-pressed', 'false')
+    const options = (name: string) =>
+      within(screen.getByLabelText(`${name} base score`))
+        .getAllByRole('option')
+        .map((o) => o.textContent)
+    // Strength keeps its own 15; Dexterity cannot take it.
+    expect(options('Strength')).toContain('15')
+    expect(options('Dexterity')).not.toContain('15')
+    // Reassigning Strength frees the 15 for the others.
+    await user.selectOptions(screen.getByLabelText('Strength base score'), '14')
+    expect(options('Dexterity')).toContain('15')
+    expect(options('Dexterity')).not.toContain('14')
   })
 
-  it('keeps duplicate scores as separate chips', async () => {
+  it('lists duplicate scores of a rolled pool as many times as they were rolled', async () => {
     const user = userEvent.setup()
     const c = seedActive((ch) => {
       ch.statMethod = 'roll'
@@ -194,11 +154,29 @@ describe('AbilityScores', () => {
     })
     renderSection()
 
-    expect(screen.getAllByRole('button', { name: '14' })).toHaveLength(2)
-    await user.click(screen.getByRole('button', { name: 'Strength base score' }))
-    await user.click(screen.getByRole('button', { name: 'Dexterity base score' }))
+    const dex = screen.getByLabelText('Dexterity base score')
+    const fourteens = () =>
+      within(dex)
+        .getAllByRole('option')
+        .filter((o) => o.textContent === '14')
+    expect(fourteens()).toHaveLength(2)
+    await user.selectOptions(screen.getByLabelText('Strength base score'), '14')
+    await user.selectOptions(dex, '14')
     await waitFor(() => expect(active(c.id).abilities.dex.base).toBe(14))
     expect(active(c.id).abilities.str.base).toBe(14)
+  })
+
+  it('keeps an assigned score after the section is shown again', async () => {
+    const user = userEvent.setup()
+    seedActive((ch) => {
+      ch.statMethod = 'array'
+      ch.statPool = [15, 14, 13, 12, 10, 8]
+    })
+    const { unmount } = renderSection()
+    await user.selectOptions(screen.getByLabelText('Wisdom base score'), '13')
+    unmount()
+    renderSection()
+    expect(screen.getByLabelText('Wisdom base score')).toHaveValue('13')
   })
 
   it('sets point-buy scores from the scale within budget and bounds', async () => {

@@ -1,23 +1,20 @@
-import { useId, useState, type ReactElement } from 'react'
+import { useId } from 'react'
+import { formatMod } from '../../dice/dice'
 import Alert from 'react-bootstrap/Alert'
 import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
 import Spinner from 'react-bootstrap/Spinner'
-import Table from 'react-bootstrap/Table'
-import { formatMod } from '../../dice/dice'
 import { useActiveCharacter, useCharacterStore } from '../../character/store'
-import {
-  hitDiceGroups,
-  hpBreakdown,
-  levelDice,
-  rollHitDice,
-  type HpDiceLine,
-} from '../../character/hp'
+import { hitDiceGroups, hpBreakdown, levelDice, rollHitDice } from '../../character/hp'
 import { type HpState, type RollRecord } from '../../character/model'
 import { newRoll, rollAction, rollRecords, withCursor } from '../../character/rollHistory'
+import { HP_MANUAL_FLAT, HP_MANUAL_PER_LEVEL, hpQuantity } from '../../derived/hp'
+import type { Line } from '../../derived/types'
+import { DerivedTable } from './DerivedTable'
 import { EditorSection } from './EditorSection'
 import { RollHistoryControls } from './RollHistoryControls'
+import { SignedInput } from './SignedInput'
 import { useFeatSummary } from './useFeatSummary'
 
 export function HitPoints() {
@@ -34,12 +31,41 @@ export function HitPoints() {
   const breakdown = hpBreakdown(character, classByKey, summary)
   const hasClasses = dice.length > 0
   const useRolls = character.hp.method === 'rolled' && breakdown.rolledHP !== undefined
+  const hpTable = hpQuantity(character, breakdown, useRolls)
   const hitDieRecords = rollRecords(character.history, 'hitDie')
   const hitDieCursor = character.rollCursors.hitDie ?? null
 
   function patchHp(patch: Partial<HpState>) {
     if (!character) return
     updateActive({ hp: { ...character.hp, ...patch } })
+  }
+
+  /** The two manual lines are fields, not figures: the table renders them as inputs. */
+  function manualRow(line: Line) {
+    if (line.id !== HP_MANUAL_PER_LEVEL && line.id !== HP_MANUAL_FLAT) return undefined
+    const perLevel = line.id === HP_MANUAL_PER_LEVEL
+    const id = perLevel ? perLevelId : flatId
+    return (
+      <tr>
+        <td>
+          <Form.Label htmlFor={id} className="mb-0">
+            {line.label}
+          </Form.Label>{' '}
+          <Badge bg="secondary">Manual</Badge>
+        </td>
+        <td>
+          <SignedInput
+            id={id}
+            value={perLevel ? hp.perLevelBonus : hp.flatBonus}
+            ariaLabel={perLevel ? 'Other HP bonus per level' : 'Flat HP bonus'}
+            onCommit={(next) =>
+              patchHp(perLevel ? { perLevelBonus: next } : { flatBonus: next })
+            }
+          />
+        </td>
+        <td className="text-end">{formatMod(line.amount ?? 0)}</td>
+      </tr>
+    )
   }
 
   function roll() {
@@ -127,157 +153,17 @@ export function HitPoints() {
             </div>
           </div>
 
-          <Table size="sm" className="mb-0 align-middle" aria-label="Hit point breakdown">
-            <thead>
-              <tr>
-                <th>Source</th>
-                <th>How it adds up</th>
-                <th className="text-end">Hit points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {breakdown.dice.flatMap((d) => diceRows(d, useRolls))}
-              <tr>
-                <td>Constitution modifier</td>
-                <td>
-                  {formatMod(breakdown.conMod)} x {breakdown.totalLevel} levels
-                </td>
-                <td className="text-end">{formatMod(breakdown.conTotal)}</td>
-              </tr>
-              {breakdown.lines.map((line) => (
-                <tr key={`${line.id}-${line.source}`} title={line.text}>
-                  <td>
-                    {line.label}{' '}
-                    <span className="text-body-secondary">({line.source})</span>{' '}
-                    <Badge bg="secondary">Automatic</Badge>
-                  </td>
-                  <td>
-                    {line.perLevel !== 0
-                      ? `${formatMod(line.perLevel)} per ${line.per === 'class' ? 'class ' : ''}level x ${line.levels}`
-                      : 'Flat'}
-                  </td>
-                  <td className="text-end">{formatMod(line.total)}</td>
-                </tr>
-              ))}
-              <tr>
-                <td>
-                  <Form.Label htmlFor={perLevelId} className="mb-0">
-                    Other bonus per level
-                  </Form.Label>{' '}
-                  <Badge bg="secondary">Manual</Badge>
-                </td>
-                <td>
-                  <SignedInput
-                    id={perLevelId}
-                    value={hp.perLevelBonus}
-                    ariaLabel="Other HP bonus per level"
-                    onCommit={(perLevelBonus) => patchHp({ perLevelBonus })}
-                  />
-                </td>
-                <td className="text-end">
-                  {formatMod(hp.perLevelBonus * breakdown.totalLevel)}
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <Form.Label htmlFor={flatId} className="mb-0">
-                    Flat bonus
-                  </Form.Label>{' '}
-                  <Badge bg="secondary">Manual</Badge>
-                </td>
-                <td>
-                  <SignedInput
-                    id={flatId}
-                    value={hp.flatBonus}
-                    ariaLabel="Flat HP bonus"
-                    onCommit={(flatBonus) => patchHp({ flatBonus })}
-                  />
-                </td>
-                <td className="text-end">{formatMod(hp.flatBonus)}</td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr className="fw-bold">
-                <td colSpan={2}>
-                  Maximum hit points ({useRolls ? 'rolled' : 'average'})
-                </td>
-                <td className="text-end">
-                  {useRolls ? breakdown.rolledHP : breakdown.averageHP}
-                </td>
-              </tr>
-            </tfoot>
-          </Table>
+          <DerivedTable
+            quantity={hpTable}
+            ariaLabel="Hit point breakdown"
+            amountHeader="Hit points"
+            totalLabel={`Maximum hit points (${useRolls ? 'rolled' : 'average'})`}
+            renderRow={manualRow}
+          />
         </>
       )}
     </EditorSection>
   )
-}
-
-/** A whole-number field that accepts negatives: a lone "-" stays typed until a digit follows. */
-function SignedInput({
-  id,
-  value,
-  ariaLabel,
-  onCommit,
-}: {
-  id: string
-  value: number
-  ariaLabel: string
-  onCommit: (next: number) => void
-}) {
-  const [draft, setDraft] = useState<string | null>(null)
-  return (
-    <Form.Control
-      id={id}
-      type="number"
-      size="sm"
-      className="w-auto"
-      step={1}
-      value={draft ?? String(value)}
-      onChange={(e) => {
-        const raw = e.target.value
-        setDraft(raw)
-        const next = Number(raw)
-        if (raw !== '' && Number.isInteger(next)) onCommit(next)
-        else if (raw === '') onCommit(0)
-      }}
-      onBlur={() => setDraft(null)}
-      aria-label={ariaLabel}
-    />
-  )
-}
-
-const levelRange = (from: number, to: number) =>
-  from === to ? `level ${from}` : `levels ${from}-${to}`
-
-/** The table rows for one class row's hit dice: the maximum first level, then the rest. */
-function diceRows(d: HpDiceLine, rolled: boolean) {
-  const rows: ReactElement[] = []
-  const die = `${d.className} d${d.faces}`
-  if (d.hasFirst) {
-    rows.push(
-      <tr key={`${d.classIndex}-first`}>
-        <td>Hit dice, level 1</td>
-        <td>{die}, maximum</td>
-        <td className="text-end">{d.faces}</td>
-      </tr>,
-    )
-  }
-  if (d.averaged > 0) {
-    const total = d.averageTotal - (d.hasFirst ? d.faces : 0)
-    const rolledTotal =
-      d.rolledTotal === undefined ? 0 : d.rolledTotal - (d.hasFirst ? d.faces : 0)
-    rows.push(
-      <tr key={`${d.classIndex}-rest`}>
-        <td>Hit dice, {levelRange(d.fromLevel + (d.hasFirst ? 1 : 0), d.toLevel)}</td>
-        <td>
-          {die}, {rolled ? 'rolled' : `average ${d.average} x ${d.averaged}`}
-        </td>
-        <td className="text-end">{rolled ? rolledTotal : total}</td>
-      </tr>,
-    )
-  }
-  return rows
 }
 
 function HpCard({

@@ -17,11 +17,9 @@ import {
 import type { AbilityEntry, Character } from '../../character/model'
 import { originBonus } from '../../character/derive'
 import { useActiveCharacter, useCharacterStore } from '../../character/store'
-import { totalScore, usesPool } from '../../character/stats'
+import { remainingPool, totalScore, usesPool } from '../../character/stats'
 import { scoreColorClass } from '../../ui/scoreColor'
 import { PointBuyScale } from './PointBuyScale'
-import { ScorePool, ScoreSlot } from './ScoreAssigner'
-import { useScoreAssigner } from './useScoreAssigner'
 import { SubSection } from './SubSection'
 import { useFeatSummary } from './useFeatSummary'
 
@@ -42,9 +40,7 @@ function Assignment({
   const updateActive = useCharacterStore((s) => s.updateActive)
   const { abilities, statMethod, statPool } = character
   const pool = usesPool(statMethod)
-  const assigner = useScoreAssigner(abilities, statPool, (next) =>
-    updateActive({ abilities: next }),
-  )
+  const remaining = remainingPool(statPool, abilities)
   const pointBuyBases = ABILITIES.map((k) => abilities[k].base ?? POINT_BUY_MIN)
   const pointsSpent = pointBuyTotal(pointBuyBases)
   const pointsLeft = POINT_BUY_BUDGET - pointsSpent
@@ -69,7 +65,7 @@ function Assignment({
   }
 
   return (
-    <div onKeyDown={assigner.onKeyDown}>
+    <>
       <SubSection
         title="Assignment"
         subtitle={
@@ -91,7 +87,6 @@ function Assignment({
           </Button>
         }
       >
-        {pool && <ScorePool assigner={assigner} abilities={abilities} pool={statPool} />}
         <div className="table-responsive">
           <Table hover className="align-middle mb-0">
             <thead>
@@ -137,11 +132,27 @@ function Assignment({
                     </td>
                     <td className="text-center" style={{ minWidth: 130 }}>
                       {pool ? (
-                        <ScoreSlot
-                          assigner={assigner}
-                          abilityKey={key}
-                          value={entry.base}
-                        />
+                        <Form.Select
+                          size="sm"
+                          value={entry.base ?? ''}
+                          onChange={(e) =>
+                            patchAbility(key, {
+                              base: e.target.value === '' ? null : Number(e.target.value),
+                            })
+                          }
+                          style={{ width: '5rem', margin: '0 auto' }}
+                          aria-label={`${ABILITY_NAMES[key]} base score`}
+                        >
+                          <option value="">-</option>
+                          {entry.base != null && (
+                            <option value={entry.base}>{entry.base}</option>
+                          )}
+                          {remaining.map((v, i) => (
+                            <option key={i} value={v}>
+                              {v}
+                            </option>
+                          ))}
+                        </Form.Select>
                       ) : (
                         <PointBuyScale
                           abilityKey={key}
@@ -180,6 +191,6 @@ function Assignment({
           </Table>
         </div>
       </SubSection>
-    </div>
+    </>
   )
 }

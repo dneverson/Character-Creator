@@ -1,0 +1,228 @@
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { CombatSection } from './CombatSection'
+import { ThemeProvider } from '../../theme/ThemeProvider'
+import { useCharacterStore } from '../../character/store'
+import { createCharacter } from '../../character/model'
+import { loadClasses } from '../../data/class'
+import { loadBackgrounds } from '../../data/background'
+import { loadRaces } from '../../data/race'
+import { loadFeats } from '../../data/feats'
+import { loadItems } from '../../data/items'
+import { loadFightingStyleOptions } from '../../data/classOptions'
+import { loadLanguages } from '../../data/languages'
+import { FIGHTER, ITEMS, stack } from '../../test/derivedFixtures'
+import { settle } from '../../test/settle'
+
+vi.mock('../../data/class', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/class')>()),
+  loadClasses: vi.fn(),
+}))
+vi.mock('../../data/background', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/background')>()),
+  loadBackgrounds: vi.fn(),
+}))
+vi.mock('../../data/race', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/race')>()),
+  loadRaces: vi.fn(),
+}))
+vi.mock('../../data/feats', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/feats')>()),
+  loadFeats: vi.fn(),
+}))
+vi.mock('../../data/classOptions', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/classOptions')>()),
+  loadFightingStyleOptions: vi.fn(),
+}))
+vi.mock('../../data/languages', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/languages')>()),
+  loadLanguages: vi.fn(),
+}))
+vi.mock('../../data/items', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/items')>()),
+  loadItems: vi.fn(),
+}))
+
+function seed(mutate: (c: ReturnType<typeof createCharacter>) => void = () => {}) {
+  const c = createCharacter('Tordek')
+  c.classes = [{ name: 'Fighter', source: 'PHB', level: 1 }]
+  c.abilities = {
+    ...c.abilities,
+    str: { base: 16, other: 0 },
+    dex: { base: 14, other: 0 },
+  }
+  mutate(c)
+  useCharacterStore.setState({
+    characters: { [c.id]: c },
+    order: [c.id],
+    activeId: c.id,
+    view: 'editor',
+  })
+  return c
+}
+
+function renderSection() {
+  return render(
+    <ThemeProvider>
+      <CombatSection />
+    </ThemeProvider>,
+  )
+}
+
+beforeEach(() => {
+  localStorage.clear()
+  vi.clearAllMocks()
+  vi.mocked(loadClasses).mockResolvedValue([FIGHTER])
+  vi.mocked(loadBackgrounds).mockResolvedValue([])
+  vi.mocked(loadRaces).mockResolvedValue([])
+  vi.mocked(loadFeats).mockResolvedValue([])
+  vi.mocked(loadFightingStyleOptions).mockResolvedValue([])
+  vi.mocked(loadLanguages).mockResolvedValue([])
+  vi.mocked(loadItems).mockResolvedValue(ITEMS)
+  useCharacterStore.setState({ characters: {}, order: [], activeId: null, view: 'list' })
+})
+
+describe('CombatSection', () => {
+  it('renders nothing without an active character', async () => {
+    const { container } = renderSection()
+    expect(container).toBeEmptyDOMElement()
+    await settle()
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('shows the armor class line by line with its total', async () => {
+    seed((c) => {
+      c.equipment.items = [stack('Chain Mail'), stack('Shield')]
+    })
+    renderSection()
+    const table = await screen.findByRole('table', { name: 'Armor class breakdown' })
+    expect(await within(table).findByText('Armor')).toBeInTheDocument()
+    expect(within(table).getAllByText('Shield').length).toBeGreaterThan(0)
+    expect(within(table).getByText('18')).toBeInTheDocument()
+  })
+
+  it('edits the manual armor class bonus', async () => {
+    const user = userEvent.setup()
+    const c = seed()
+    renderSection()
+    const input = await screen.findByLabelText('Other AC bonus')
+    await user.clear(input)
+    await user.type(input, '1')
+    expect(useCharacterStore.getState().characters[c.id].manualBonuses?.ac).toBe(1)
+    const table = screen.getByRole('table', { name: 'Armor class breakdown' })
+    expect(within(table).getByText('13')).toBeInTheDocument()
+  })
+
+  it('lists an equipped weapon and opens how its numbers add up', async () => {
+    const user = userEvent.setup()
+    seed((c) => {
+      c.equipment.items = [stack('Longsword')]
+    })
+    renderSection()
+    const attacks = await screen.findByRole('table', { name: 'Attacks' })
+    expect(await within(attacks).findByText('Longsword')).toBeInTheDocument()
+    expect(within(attacks).getByText('Unarmed strike')).toBeInTheDocument()
+    expect(within(attacks).getByText('1d8 + 3 slashing')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Show how Longsword adds up' }))
+    expect(
+      screen.getByRole('table', { name: 'Longsword attack bonus' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('table', { name: 'Longsword damage bonus, two hands' }),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Hide how Longsword adds up' }))
+    expect(screen.queryByRole('table', { name: 'Longsword attack bonus' })).toBeNull()
+  })
+
+  it('shows spell numbers for a caster and none for a fighter', async () => {
+    const user = userEvent.setup()
+    const wizard = {
+      entry: {
+        name: 'Wizard',
+        source: 'PHB',
+        hd: { number: 1, faces: 6 },
+        classFeatures: [],
+        spellcastingAbility: 'int',
+        casterProgression: 'full',
+        cantripProgression: [3],
+      },
+      file: {},
+    }
+    vi.mocked(loadClasses).mockResolvedValue([FIGHTER, wizard])
+    seed((c) => {
+      c.classes = [{ name: 'Wizard', source: 'PHB', level: 1 }]
+      c.abilities = { ...c.abilities, int: { base: 16, other: 0 } }
+    })
+    renderSection()
+    const stats = await screen.findByRole('table', {
+      name: 'Spell save DC and attack bonus',
+    })
+    expect(within(stats).getByText('13')).toBeInTheDocument()
+    await user.click(
+      screen.getByRole('button', { name: 'Show how Wizard spell numbers adds up' }),
+    )
+    expect(
+      screen.getByRole('table', { name: 'Wizard spell save DC' }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows no spellcasting table for a character who casts nothing', async () => {
+    seed()
+    renderSection()
+    await screen.findByRole('table', { name: 'Attacks' })
+    expect(
+      screen.queryByRole('table', { name: 'Spell save DC and attack bonus' }),
+    ).toBeNull()
+  })
+
+  it('edits the manual initiative bonus and opens how a passive score adds up', async () => {
+    const user = userEvent.setup()
+    const c = seed()
+    renderSection()
+    const input = await screen.findByLabelText('Other initiative bonus')
+    await user.clear(input)
+    await user.type(input, '2')
+    expect(useCharacterStore.getState().characters[c.id].manualBonuses?.initiative).toBe(
+      2,
+    )
+    const initiative = screen.getByRole('table', { name: 'Initiative breakdown' })
+    expect(within(initiative).getByText('+4')).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Show how passive Perception adds up' }),
+    )
+    expect(screen.getByRole('table', { name: 'Passive Perception' })).toBeInTheDocument()
+  })
+
+  it('picks a fighting style on the class card and applies its rule', async () => {
+    const user = userEvent.setup()
+    const fighter = {
+      ...FIGHTER,
+      entry: {
+        ...FIGHTER.entry,
+        optionalfeatureProgression: [
+          { name: 'Fighting Style', featureType: ['FS:F'], progression: { '1': 1 } },
+        ],
+      },
+    }
+    vi.mocked(loadClasses).mockResolvedValue([fighter])
+    vi.mocked(loadFightingStyleOptions).mockResolvedValue([
+      { key: 'Defense|PHB', name: 'Defense', source: 'PHB', types: ['FS:F'] },
+      { key: 'Archery|PHB', name: 'Archery', source: 'PHB', types: ['FS:F'] },
+    ])
+    const c = seed((ch) => {
+      ch.equipment.items = [stack('Chain Mail')]
+    })
+    renderSection()
+
+    expect(await screen.findByText('Class - Fighter fighting style')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Defense' }))
+    expect(useCharacterStore.getState().characters[c.id].classOptions).toEqual({
+      'class:Fighter|PHB|FS:F': ['Defense|PHB'],
+    })
+    const table = screen.getByRole('table', { name: 'Armor class breakdown' })
+    expect(within(table).getByText('17')).toBeInTheDocument()
+    expect(screen.getByText('1 of 1 done')).toBeInTheDocument()
+  })
+})

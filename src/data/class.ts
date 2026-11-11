@@ -21,6 +21,10 @@ export interface StartingProficiencies {
   armor?: unknown[]
   weapons?: unknown[]
   tools?: unknown[]
+  /** The same lists as blocks (`{ light: true }`), where the data has them. */
+  armorProficiencies?: unknown[]
+  weaponProficiencies?: unknown[]
+  toolProficiencies?: unknown[]
 }
 
 export interface Multiclassing {
@@ -74,6 +78,14 @@ export interface ClassStartingEquipment {
   goldAlternative?: unknown
 }
 
+/** The optional features a class (or subclass) gives, and how many by class level. */
+export interface OptionalFeatureProgression {
+  name: string
+  featureType: string[]
+  /** Class level -> how many are known at that level ("1": 1). */
+  progression: Record<string, number>
+}
+
 export interface ClassEntry extends SpellcastingFields {
   name: string
   source: string
@@ -86,6 +98,7 @@ export interface ClassEntry extends SpellcastingFields {
   startingProficiencies?: StartingProficiencies
   startingEquipment?: ClassStartingEquipment
   classFeatures: ClassFeatureRef[]
+  optionalfeatureProgression?: OptionalFeatureProgression[]
   classTableGroups?: ClassTableGroup[]
   multiclassing?: Multiclassing
   subclassTitle?: string
@@ -114,6 +127,7 @@ export interface SubclassEntry extends SpellcastingFields {
   classSource: string
   edition?: 'classic' | 'one'
   subclassFeatures: string[]
+  optionalfeatureProgression?: OptionalFeatureProgression[]
 }
 
 export interface SubclassFeatureEntry {

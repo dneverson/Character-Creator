@@ -17,8 +17,10 @@ import { BookSelection } from './BookSelection'
 import { ClassBrowser } from './ClassBrowser'
 import { EquipmentSection } from './EquipmentSection'
 import { FeatsSection } from './FeatsSection'
+import { CombatSection } from './CombatSection'
 import { HitPoints } from './HitPoints'
 import { RaceSelection } from './RaceSelection'
+import { ProficienciesSection } from './ProficienciesSection'
 import { SkillsSection } from './SkillsSection'
 import { SpellsSection } from './SpellsSection'
 import { WildShapeSection } from './WildShapeSection'
@@ -48,7 +50,9 @@ const SECTIONS: { title: string; Section: ComponentType }[] = [
   { title: 'Ability Scores', Section: AbilityScoresSection },
   { title: 'Feats & Ability Score Improvements', Section: FeatsSection },
   { title: 'Skills', Section: SkillsSection },
+  { title: 'Proficiencies', Section: ProficienciesSection },
   { title: 'Hit Points', Section: HitPoints },
+  { title: 'Combat', Section: CombatSection },
   { title: 'Spells', Section: SpellsSection },
   { title: 'Wild Shape', Section: WildShapeSection },
   { title: 'Equipment', Section: EquipmentSection },

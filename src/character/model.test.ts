@@ -62,7 +62,7 @@ describe('ensureCharacterDefaults', () => {
     expect(c.name).toBe('New Character')
     expect(c.selectedBooks).toEqual(DEFAULT_BOOKS)
     expect(c.classes).toEqual([])
-    expect(c.skillProficiencies).toEqual({})
+    expect(c.grantPicks).toEqual({})
     expect(c.spells).toEqual({})
     expect(c.wildShapes).toEqual([])
     expect(c.story.alignment).toBe('')
@@ -103,7 +103,7 @@ describe('ensureCharacterDefaults', () => {
     expect(c.selectedBooks).toEqual(DEFAULT_BOOKS)
     expect(c.statPool).toEqual([])
     expect(c.classes).toEqual([])
-    expect(c.skillProficiencies).toEqual({})
+    expect(c.grantPicks).toEqual({})
     expect(c.spells).toEqual({})
     expect(c.wildShapes).toEqual([])
   })
@@ -189,12 +189,63 @@ describe('ensureCharacterDefaults', () => {
       ).toEqual({})
   })
 
+  it('moves the skill picks of a version 22 document into grantPicks, tags intact', () => {
+    // A version 22 document as it was saved: the skills at the top, no grantPicks.
+    const saved = JSON.parse(
+      JSON.stringify({
+        schemaVersion: 22,
+        id: 'old',
+        name: 'Tordek',
+        skillProficiencies: {
+          athletics: 'class:Fighter|PHB',
+          insight: 'bg',
+          perception: 'race',
+          stealth: 'feat:feat-1',
+          arcana: 'manual',
+        },
+      }),
+    )
+    const c = ensureCharacterDefaults(saved)
+    expect(c.schemaVersion).toBe(CHARACTER_SCHEMA_VERSION)
+    expect(c.grantPicks).toEqual({
+      skill: {
+        athletics: 'class:Fighter|PHB',
+        insight: 'bg',
+        perception: 'race',
+        stealth: 'feat:feat-1',
+        arcana: 'manual',
+      },
+    })
+    expect('skillProficiencies' in c).toBe(false)
+    expect(c.grantAlt).toEqual({})
+    expect(c.classOptions).toEqual({})
+    // A second load changes nothing.
+    expect(ensureCharacterDefaults(JSON.parse(JSON.stringify(c)))).toEqual(c)
+  })
+
+  it('keeps the picks of a version 23 document and drops what is not a pick', () => {
+    const c = ensureCharacterDefaults({
+      grantPicks: {
+        language: { elvish: 'race', bad: 4 as unknown as string },
+        tool: 'nope' as unknown as Record<string, string>,
+      },
+      grantAlt: { 'bg|toolProficiencies': 1, wrong: 'x' as unknown as number },
+      classOptions: {
+        'class:Fighter|PHB|FS:F': ['Defense|PHB'],
+        bad: 'x' as unknown as string[],
+      },
+    })
+    expect(c.grantPicks).toEqual({ language: { elvish: 'race' } })
+    expect(c.grantAlt).toEqual({ 'bg|toolProficiencies': 1 })
+    expect(c.classOptions).toEqual({ 'class:Fighter|PHB|FS:F': ['Defense|PHB'] })
+  })
+
   it('preserves supplied skill, spell, and wild-shape collections', () => {
-    const skillProficiencies = { stealth: 'class:Rogue|PHB' }
+    const grantPicks = { skill: { stealth: 'class:Rogue|PHB' } }
     const spells = { 'Wizard|PHB': { cantrips: [], spells: [] } }
     const wildShapes = [{ name: 'Wolf', source: 'MM' }]
-    const c = ensureCharacterDefaults({ skillProficiencies, spells, wildShapes })
-    expect(c.skillProficiencies).toEqual(skillProficiencies)
+    const c = ensureCharacterDefaults({ grantPicks, spells, wildShapes })
+    expect(c.grantPicks).toEqual(grantPicks)
     expect(c.spells).toEqual(spells)
     expect(c.wildShapes).toEqual(wildShapes)
   })

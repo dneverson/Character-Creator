@@ -139,7 +139,7 @@ describe('SkillsSection', () => {
     // With no background/class/race, a skill can only be taken under Other skills.
     await user.click(await screen.findByRole('button', { name: 'Show' }))
     await user.click(screen.getByRole('button', { name: 'Acrobatics' }))
-    await waitFor(() => expect(active(c.id).skillProficiencies.acrobatics).toBe('manual'))
+    await waitFor(() => expect(active(c.id).grantPicks.skill?.acrobatics).toBe('manual'))
     expect(screen.getAllByText('Non-standard').length).toBeGreaterThan(0)
     expect(screen.getAllByRole('note').length).toBeGreaterThan(0)
   })
@@ -159,7 +159,7 @@ describe('SkillsSection', () => {
     expect(screen.getByText('Background - Acolyte')).toBeInTheDocument()
     expect(screen.getByText('1 of 1 left')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Religion/ }))
-    await waitFor(() => expect(active(c.id).skillProficiencies.religion).toBe('bg'))
+    await waitFor(() => expect(active(c.id).grantPicks.skill?.religion).toBe('bg'))
 
     // The card is full: it collapses to one line, and Change reopens it.
     expect(await screen.findByText('Background:')).toBeInTheDocument()
@@ -175,7 +175,7 @@ describe('SkillsSection', () => {
     // Two skills charged to the single-slot background budget -> over.
     seedActive((ch) => {
       ch.background = { name: 'Acolyte', source: 'XPHB', abilityChoices: {} }
-      ch.skillProficiencies = { religion: 'bg', history: 'bg' }
+      ch.grantPicks = { skill: { religion: 'bg', history: 'bg' } }
     })
     renderSection()
 
@@ -225,7 +225,7 @@ describe('SkillsSection', () => {
     // it shows with its stored tag, flagged, and a click clears it.
     const user = userEvent.setup()
     const c = seedActive((ch) => {
-      ch.skillProficiencies = { acrobatics: 'legacy' }
+      ch.grantPicks = { skill: { acrobatics: 'legacy' } }
     })
     renderSection()
 
@@ -233,9 +233,7 @@ describe('SkillsSection', () => {
     await user.click(screen.getByRole('button', { name: 'Show' }))
     expect(screen.getByText('From a source you no longer have')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Acrobatics (legacy)' }))
-    await waitFor(() =>
-      expect(active(c.id).skillProficiencies.acrobatics).toBeUndefined(),
-    )
+    await waitFor(() => expect(active(c.id).grantPicks.skill?.acrobatics).toBeUndefined())
   })
 
   it('charges a chosen skill to its class and labels the source', async () => {
@@ -249,7 +247,7 @@ describe('SkillsSection', () => {
 
     await user.click(await screen.findByRole('button', { name: /^Stealth/ }))
     await waitFor(() =>
-      expect(active(c.id).skillProficiencies.stealth).toBe('class:Rogue|PHB'),
+      expect(active(c.id).grantPicks.skill?.stealth).toBe('class:Rogue|PHB'),
     )
     // The summary table labels the source with the class name.
     expect(screen.getAllByText('Rogue').length).toBeGreaterThan(0)
@@ -270,7 +268,7 @@ describe('SkillsSection', () => {
     seedActive((ch) => {
       ch.classes = [{ name: 'Cleric', source: 'PHB', level: 1 }]
       ch.background = { name: 'Acolyte', source: 'XPHB', abilityChoices: {} }
-      ch.skillProficiencies = { religion: 'bg' }
+      ch.grantPicks = { skill: { religion: 'bg' } }
     })
     renderSection()
 
@@ -280,6 +278,42 @@ describe('SkillsSection', () => {
     expect(chips[0]).toBeDisabled()
     expect(chips[0]).toHaveAttribute('title', expect.stringContaining('Background'))
     expect(screen.getByText('1 of 1 left', { exact: false })).toBeInTheDocument()
+  })
+
+  it('picks expertise from the skills the character has and doubles the bonus', async () => {
+    const user = userEvent.setup()
+    const expert: LoadedClass = {
+      entry: { ...rogue.entry, startingProficiencies: {} },
+      file: {
+        classFeature: [
+          {
+            name: 'Expertise',
+            source: 'PHB',
+            className: 'Rogue',
+            classSource: 'PHB',
+            level: 1,
+            entries: [],
+          },
+        ],
+      },
+    }
+    mockClasses.mockResolvedValue([expert])
+    mockBackgrounds.mockResolvedValue([])
+    const c = seedActive((ch) => {
+      ch.classes = [{ name: 'Rogue', source: 'PHB', level: 1 }]
+      ch.abilities.dex.base = 14
+      ch.grantPicks = { skill: { stealth: 'manual' } }
+    })
+    renderSection()
+
+    // Only a skill the character is proficient in can be picked.
+    expect(await screen.findByText('Class - Rogue expertise')).toBeInTheDocument()
+    expect(screen.getByText('2 of 2 left', { exact: false })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Stealth' }))
+    await waitFor(() =>
+      expect(active(c.id).grantPicks.expertise?.stealth).toBe('class:Rogue|PHB'),
+    )
+    expect(await screen.findByText('Expertise (Rogue)')).toBeInTheDocument()
   })
 
   it('surfaces a loader error', async () => {

@@ -188,6 +188,10 @@ export interface Item {
   weapon?: ItemWeapon
   armor?: ItemArmor
   attunement?: ItemAttunement
+  /** Whoever wields the item is proficient with it. */
+  grantsProficiency?: true
+  /** A firearm, for the proficiency with firearms. */
+  firearm?: true
   bonuses: Bonus[]
   charges?: ItemCharges
   spells: AttachedSpell[]

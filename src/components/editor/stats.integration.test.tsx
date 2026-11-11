@@ -51,9 +51,7 @@ describe('Ability scores flow', () => {
     await user.click(screen.getByRole('button', { name: /New Character/i }))
 
     await user.selectOptions(screen.getByLabelText('Ability score method'), 'array')
-    // Choose the score, then the ability it goes to.
-    await user.click(screen.getByRole('button', { name: '15' }))
-    await user.click(screen.getByRole('button', { name: 'Strength base score' }))
+    await user.selectOptions(screen.getByLabelText('Strength base score'), '15')
 
     await waitFor(() => expect(activeAbilities().str.base).toBe(15))
   })

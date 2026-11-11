@@ -18,6 +18,7 @@ import {
   prerequisiteText,
   type Feat,
 } from '../data/feats'
+import { sharedKinds } from '../data/grants'
 import type { PlayableBackground } from '../data/background'
 import type { PlayableRace } from '../data/race'
 import type { Entry } from '../text/Entries'
@@ -429,12 +430,14 @@ export function resolveFeats(character: Character, ctx: FeatContext): FeatSummar
       hp.perLevel += feat.hp.perLevel
       hp.flat += feat.hp.flat
       if (feat.skills.fixed.length > 0 || feat.skills.choices.length > 0) {
+        const shares = sharedKinds(feat.skillToolLanguageProficiencies)
         skillSources.push({
           tag: `${FEAT_SKILL_TAG_PREFIX}${slot.id}`,
           label: `Feat · ${feat.label}`,
           kind: 'feat',
           fixed: feat.skills.fixed,
           choices: feat.skills.choices,
+          ...(shares.length > 0 ? { shares } : {}),
         })
       }
       prior.push({ feat, slotLabel: slot.label })

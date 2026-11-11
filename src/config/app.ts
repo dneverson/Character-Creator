@@ -19,8 +19,10 @@ export const appConfig = {
   shortName: 'D&D 5e Creator',
   /** Meta description / tagline. */
   description: 'Dungeons & Dragons 5th Edition character creator. Data from 5etools.',
-  /** Original authors, in credit order. */
-  authors: ['Derry Everson', 'Mikel Jensen'],
+  /** Author of the app. */
+  author: 'Derry Everson',
+  /** Credited for the Matrix Dice idea. */
+  matrixDiceIdea: 'Mikel Jensen',
   /** Source repository. */
   repository: {
     url: 'https://github.com/dneverson/Character-Creator',

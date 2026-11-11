@@ -24,6 +24,9 @@ export default defineConfig(({ command }) => ({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // `.local` holds the pulled data, screenshots and the deploy worktree: its copy of the
+    // tests belongs to another branch and is not this checkout's.
+    exclude: ['**/node_modules/**', '**/dist/**', '.local/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

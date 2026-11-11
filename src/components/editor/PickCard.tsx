@@ -1,32 +1,35 @@
-// One source of skill picks (class, background, race, a feat): the whole list it
-// allows as toggle chips and how many picks are left, so nothing needs a book. A
-// card with all its picks collapses to one line; Change reopens it.
+// One source of picks (a class, background, race or feat, of skills, tools, languages
+// and the rest): the whole list it allows as toggle chips and how many picks are left,
+// so nothing needs a book. A card with all its picks collapses to one line; Change
+// reopens it.
 
 import { useState } from 'react'
 import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
-import { formatMod } from '../../dice/dice'
-import { skillLabel } from '../../data/skills'
-import type { SkillCard, SkillChip } from '../../character/skills'
+import type { PickCard as PickCardModel, PickChip } from '../../character/picks'
 import { NonStandardBadge } from '../NonStandardBadge'
 import { ToggleChip } from './ToggleChip'
 
 interface Props {
-  card: SkillCard
-  onPick: (skill: string) => void
+  card: PickCardModel
+  onPick: (chip: PickChip) => void
 }
 
 /** Why a chip cannot be clicked, in plain words (RAW: pick another). */
-function whyDisabled(chip: SkillChip, card: SkillCard): string | undefined {
+function whyDisabled(chip: PickChip, card: PickCardModel): string | undefined {
   if (chip.state === 'taken')
     return `Already proficient from ${chip.takenBy}. Pick another.`
   if (chip.state === 'full') {
-    return `${card.name}'s ${card.count} skills are chosen. Remove one, or use Other skills below.`
+    if (card.kinds[0] === 'option' || card.kinds[0] === 'expertise') {
+      return `${card.name}: all ${card.count} are chosen. Remove one to pick another.`
+    }
+    const other = card.kinds[0] === 'skill' ? 'Other skills' : 'Other (DM approval)'
+    return `${card.name}'s ${card.count} ${card.noun} are chosen. Remove one, or use ${other} below.`
   }
   return undefined
 }
 
-export function SkillSourceCard({ card, onPick }: Props) {
+export function PickCard({ card, onPick }: Props) {
   const [changing, setChanging] = useState(false)
   const full = card.left === 0
   const open = !full || card.over || changing
@@ -37,7 +40,10 @@ export function SkillSourceCard({ card, onPick }: Props) {
     return (
       <div className="border rounded px-3 py-2 d-flex flex-wrap align-items-center gap-2">
         <span className="flex-grow-1">
-          <strong>{card.name}:</strong> {card.picks.map(skillLabel).join(', ')}
+          <strong>{card.name}:</strong>{' '}
+          {card.picks
+            .map((p) => card.chips.find((c) => c.value === p)?.label ?? p)
+            .join(', ')}
         </span>
         <Badge bg="secondary">
           {card.used} of {card.count} done
@@ -49,7 +55,7 @@ export function SkillSourceCard({ card, onPick }: Props) {
     )
   }
 
-  const labelId = `skill-card-${card.tag}`
+  const labelId = `pick-card-${card.tag}-${card.kinds.join('-')}`
   return (
     <div className="border rounded p-3">
       <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -60,7 +66,7 @@ export function SkillSourceCard({ card, onPick }: Props) {
               {card.used} of {card.count}: {card.used - card.count} too many
             </Badge>
             <NonStandardBadge
-              reason={`More skills are chosen from ${card.name} than it grants (${card.used} of ${card.count}).`}
+              reason={`More ${card.noun} are chosen from ${card.name} than it grants (${card.used} of ${card.count}).`}
             />
           </>
         ) : (
@@ -81,16 +87,18 @@ export function SkillSourceCard({ card, onPick }: Props) {
           </Button>
         )}
       </div>
+      {card.note && <div className="small text-body-secondary mb-2">{card.note}</div>}
       <div className="d-flex flex-wrap gap-1" role="group" aria-labelledby={labelId}>
         {card.chips.map((chip) => (
           <ToggleChip
-            key={chip.skill}
+            key={chip.value}
             pressed={chip.state === 'picked'}
             disabled={chip.state === 'taken' || chip.state === 'full'}
             title={whyDisabled(chip, card)}
-            onClick={() => onPick(chip.skill)}
+            onClick={() => onPick(chip)}
           >
-            {chip.label} <span className="opacity-75">{formatMod(chip.modifier)}</span>
+            {chip.label}
+            {chip.hint && <span className="opacity-75"> {chip.hint}</span>}
           </ToggleChip>
         ))}
       </div>

@@ -21,10 +21,11 @@ D&amp;D 5e Character Creator - Data Provided by 5e.tools
 
 ALPHA V1.0
 
-## Authors
+## Author
 
 - **Derry Everson**
-- **Mikel Jensen**
+
+Matrix Dice idea: **Mikel Jensen**
 
 ### Character Creator Order:
 

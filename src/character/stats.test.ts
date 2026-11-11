@@ -3,11 +3,6 @@ import {
   clearedAbilities,
   gauntletScores,
   generatePool,
-  nextScore,
-  placeScore,
-  poolChips,
-  returnScore,
-  swapScores,
   pointBuyBaseline,
   poolGroupTotals,
   poolScores,
@@ -123,59 +118,5 @@ describe('poolScores', () => {
     // Four dice in group 0, two in group 1; the rest spread 3 each.
     const groups = [0, 0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5]
     expect(poolScores(dice, groups)).toEqual([])
-  })
-})
-
-describe('assigning pool scores', () => {
-  const pool = [15, 14, 13, 12, 10, 8]
-
-  it('nextScore is the highest score not yet placed, null when all are', () => {
-    expect(nextScore(pool, abilitiesWith([]))).toBe(15)
-    expect(nextScore(pool, abilitiesWith([15, 14]))).toBe(13)
-    expect(nextScore(pool, abilitiesWith([15, 14, 13, 12, 10, 8]))).toBeNull()
-  })
-
-  it('poolChips lists the pool highest first and marks the placed ones', () => {
-    expect(poolChips([8, 15, 10], abilitiesWith([15]))).toEqual([
-      { value: 15, placed: true },
-      { value: 10, placed: false },
-      { value: 8, placed: false },
-    ])
-  })
-
-  it('poolChips keeps duplicates as separate chips', () => {
-    const chips = poolChips([14, 14, 10], abilitiesWith([14]))
-    expect(chips.map((c) => c.placed)).toEqual([false, true, false])
-  })
-
-  it('placeScore sets a free score and returns the one the ability held', () => {
-    const placed = placeScore(abilitiesWith([15]), pool, 'str', 14)
-    expect(placed.str.base).toBe(14)
-    expect(remainingPool(pool, placed)).toContain(15)
-  })
-
-  it('placeScore ignores a score that is not left in the pool', () => {
-    const before = abilitiesWith([15])
-    expect(placeScore(before, pool, 'dex', 15)).toBe(before)
-    expect(placeScore(before, pool, 'dex', 9)).toBe(before)
-  })
-
-  it('placeScore takes the second of two equal scores', () => {
-    const two = [14, 14, 10]
-    const once = placeScore(abilitiesWith([]), two, 'str', 14)
-    expect(placeScore(once, two, 'dex', 14).dex.base).toBe(14)
-  })
-
-  it('swapScores swaps two scores and moves one to an empty ability', () => {
-    const swapped = swapScores(abilitiesWith([15, 8]), 'str', 'dex')
-    expect([swapped.str.base, swapped.dex.base]).toEqual([8, 15])
-    const moved = swapScores(abilitiesWith([15]), 'str', 'cha')
-    expect([moved.str.base, moved.cha.base]).toEqual([null, 15])
-  })
-
-  it('returnScore empties the ability and keeps its other bonus', () => {
-    const a = abilitiesWith([15])
-    a.str.other = 2
-    expect(returnScore(a, 'str').str).toEqual({ base: null, other: 2 })
   })
 })

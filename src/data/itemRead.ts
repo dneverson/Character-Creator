@@ -218,6 +218,8 @@ export function readItem(raw: RawItem, lookups: ItemLookups): Item {
     weapon,
     armor,
     attunement: attunementOf(raw.reqAttune, raw.reqAttuneTags),
+    grantsProficiency: raw.grantsProficiency === true ? true : undefined,
+    firearm: raw.firearm === true ? true : undefined,
     bonuses: bonusesOf(raw),
     charges: chargesOf(raw),
     spells: attachedSpellsOf(raw.attachedSpells),

@@ -11,26 +11,18 @@ import { carriedWeight, carryingCapacity } from '../rules/equipment'
 import type { Item } from '../data/items'
 import { characterAbilityTotals, totalLevel } from '../character/derive'
 import { proficiencyBonus } from '../data/skills'
-import { buildSkillSources, skillRows } from '../character/skills'
 import { hpBreakdown } from '../character/hp'
 import { characterCasters } from '../character/spellcasting'
 import { resolveFeats } from '../character/feats'
 import { spellSlots } from '../rules/spellcasting'
 import { checkMulticlass, checkLevelCap, type Deviation } from '../rules/compliance'
-import type { LoadedClass, MulticlassRequirements } from '../data/class'
-import type { PlayableBackground } from '../data/background'
-import type { PlayableRace } from '../data/race'
-import type { Feat } from '../data/feats'
+import type { MulticlassRequirements } from '../data/class'
+import { deriveSheet, type DerivedSheet } from '../derived'
+import type { DeriveDeps } from '../derived/sources'
+import type { Listing } from '../derived/types'
 
-export interface SheetDeps {
-  classByKey: Map<string, LoadedClass>
-  background?: PlayableBackground
-  race?: PlayableRace
-  /** Loaded feats; feat choices only take effect when these are supplied. */
-  feats?: Feat[]
-  /** The item catalog, to weigh the inventory by; without it no weight is written. */
-  items?: Item[]
-}
+/** What the sheet is built from: the same loaded data every derived number reads. */
+export type SheetDeps = DeriveDeps
 
 const MARGIN = 40
 const LABEL = rgb(0.35, 0.35, 0.4)
@@ -106,14 +98,12 @@ function summarize(character: Character, deps: SheetDeps) {
   const totals = characterAbilityTotals(character, feats.abilityBonus)
   const level = totalLevel(character)
   const prof = proficiencyBonus(level)
-  const sources = [
-    ...buildSkillSources(character, deps.classByKey, deps.background, deps.race),
-    ...feats.skillSources,
-  ]
-  const rows = skillRows(character, sources, feats.abilityBonus)
   const hp = hpBreakdown(character, deps.classByKey, feats)
   const casters = characterCasters(character, deps.classByKey, feats.abilityBonus)
   const slots = spellSlots(casters)
+
+  const derived = deriveSheet(character, deps)
+  const rows = derived.skills
 
   const classLine = character.classes
     .map((c) => `${c.name}${c.subclass ? ` (${c.subclass.name})` : ''} ${c.level}`)
@@ -148,7 +138,47 @@ function summarize(character: Character, deps: SheetDeps) {
     classLine,
     saveProfs,
     deviations,
+    derived,
   }
+}
+
+/** One line for each attack: "Longsword +5, 1d8 + 3 slashing (1d10 + 3 with two hands)". */
+export function attackLines(derived: DerivedSheet): string[] {
+  const damage = (dice: string, bonus: number) =>
+    bonus === 0 ? dice : `${dice} ${bonus < 0 ? '-' : '+'} ${Math.abs(bonus)}`
+  return derived.attacks.map((a) => {
+    const two = a.twoHanded
+      ? ` (${damage(a.twoHanded.dice, a.twoHanded.bonus.value)} with two hands)`
+      : ''
+    const types = a.damage.types ? ` ${a.damage.types}` : ''
+    return `${a.name} ${formatMod(a.toHit.value)}, ${damage(a.damage.dice, a.damage.bonus.value)}${types}${two}`
+  })
+}
+
+/** One line for each kind of proficiency the sheet has: "Armor: Light armor, Shields". */
+export function proficiencyLines(derived: DerivedSheet): string[] {
+  const { listing, open } = derived.proficiencies
+  const kinds: [string, Listing[]][] = [
+    ['Saving throws', listing.save],
+    ['Armor', listing.armor],
+    ['Weapons', listing.weapon],
+    ['Tools', listing.tool],
+    ['Languages', listing.language],
+  ]
+  return [
+    ...kinds
+      .filter(([, rows]) => rows.length > 0)
+      .map(([name, rows]) => `${name}: ${rows.map((r) => r.value).join(', ')}`),
+    ...open.map((o) => `To choose - ${o.block.card.name}: ${o.spec.text}`),
+  ]
+}
+
+/** One line for each spellcasting ability: "Wizard: spell save DC 14, spell attack +6". */
+export function spellStatLines(derived: DerivedSheet): string[] {
+  return derived.spellStats.map(
+    (r) =>
+      `${r.from}: spell save DC ${r.dc.value}, spell attack ${formatMod(r.attack.value)}`,
+  )
 }
 
 const oneDecimal = (n: number) => Math.round(n * 10) / 10
@@ -264,8 +294,8 @@ export async function buildCharacterSheet(
   drawLabel(p1, ctx, 'Combat', cx, y + 8)
   const combat: [string, string][] = [
     ['Proficiency Bonus', formatMod(s.prof)],
-    ['Armor Class', String(10 + abilityMod(s.totals.dex))],
-    ['Initiative', formatMod(abilityMod(s.totals.dex))],
+    ['Armor Class', String(s.derived.ac.value)],
+    ['Initiative', formatMod(s.derived.combat.initiative.value)],
     ['Speed', ''],
     ['Hit Points (avg)', String(s.hp.averageHP || '')],
     ['Total Level', String(s.level)],
@@ -339,6 +369,25 @@ export async function buildCharacterSheet(
       8,
     )
     y2 -= 6
+  }
+
+  // Attacks and spellcasting numbers
+  drawLabel(p2, ctx, 'Attacks', MARGIN, y2 + 6)
+  y2 -= 8
+  for (const line of [...attackLines(s.derived), ...spellStatLines(s.derived)]) {
+    y2 = drawWrapped(p2, ctx, line, MARGIN, y2, width - 2 * MARGIN, 9)
+  }
+  y2 -= 8
+
+  // Proficiencies other than skills
+  const profLines = proficiencyLines(s.derived)
+  if (profLines.length > 0) {
+    drawLabel(p2, ctx, 'Proficiencies', MARGIN, y2 + 6)
+    y2 -= 8
+    for (const line of profLines) {
+      y2 = drawWrapped(p2, ctx, line, MARGIN, y2, width - 2 * MARGIN, 9)
+    }
+    y2 -= 8
   }
 
   // Equipment

@@ -12,22 +12,24 @@ import {
   grantedLine,
   MANUAL_TAG,
   otherPicks,
-  pickSkill,
   skillCards,
-  skillRows,
   tagName,
 } from '../../character/skills'
+import { skillPicks, togglePick } from '../../character/picks'
+import { skillTable } from '../../derived/expertise'
+import { collectSources } from '../../derived/sources'
 import { Abbr } from '../Abbr'
 import { NonStandardBadge } from '../NonStandardBadge'
 import { EditorSection } from './EditorSection'
-import { SkillSourceCard } from './SkillSourceCard'
+import { PickCard } from './PickCard'
 import { ToggleChip } from './ToggleChip'
 import { useFeatSummary } from './useFeatSummary'
 
 export function SkillsSection() {
   const character = useActiveCharacter()
   const updateActive = useCharacterStore((s) => s.updateActive)
-  const { classByKey, background, race, summary, loading, error } = useFeatSummary()
+  const { classByKey, background, race, feats, summary, loading, error } =
+    useFeatSummary()
   const [otherOpen, setOtherOpen] = useState(false)
 
   const sources = useMemo(
@@ -41,19 +43,38 @@ export function SkillsSection() {
     [character, classByKey, background, race, summary.skillSources],
   )
 
-  if (!character) return null
+  // The skill table with the expertise the character has, and the cards to pick it.
+  const table = useMemo(
+    () =>
+      character
+        ? skillTable(
+            character,
+            collectSources(character, { classByKey, background, race, feats }),
+            sources,
+            summary.abilityBonus,
+          )
+        : undefined,
+    [character, classByKey, background, race, feats, sources, summary.abilityBonus],
+  )
 
-  const rows = skillRows(character, sources, summary.abilityBonus)
+  if (!character || !table) return null
+
+  const { rows } = table
   const cards = skillCards(character, sources, rows)
   const granted = grantedLine(sources)
-  const others = otherPicks(character.skillProficiencies, sources)
+  const others = otherPicks(skillPicks(character), sources)
   const orphans = others.filter((o) => o.orphan)
   const proficientCount = rows.filter((r) => r.proficient).length
 
   function pick(skill: string, tag: string) {
     if (!character) return
+    updateActive({ grantPicks: togglePick(character.grantPicks, 'skill', skill, tag) })
+  }
+
+  function pickExpertise(value: string, tag: string) {
+    if (!character) return
     updateActive({
-      skillProficiencies: pickSkill(character.skillProficiencies, skill, tag),
+      grantPicks: togglePick(character.grantPicks, 'expertise', value, tag),
     })
   }
 
@@ -102,10 +123,17 @@ export function SkillsSection() {
 
           <div className="d-flex flex-column gap-2 mb-3">
             {cards.map((card) => (
-              <SkillSourceCard
+              <PickCard
                 key={card.tag}
                 card={card}
-                onPick={(skill) => pick(skill, card.tag)}
+                onPick={(chip) => pick(chip.value, card.tag)}
+              />
+            ))}
+            {table.expertise.cards.map((card) => (
+              <PickCard
+                key={`expertise-${card.tag}`}
+                card={card}
+                onPick={(chip) => pickExpertise(chip.value, card.tag)}
               />
             ))}
           </div>
@@ -200,6 +228,11 @@ export function SkillsSection() {
                             {tagName(row.source, sources)}
                           </Badge>
                         ))}
+                      {row.expertise && (
+                        <Badge bg="primary" className="ms-1">
+                          Expertise ({row.expertise})
+                        </Badge>
+                      )}
                     </td>
                   </tr>
                 ))}
