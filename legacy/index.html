@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<!--
+/*=========================================================================
+* @author Derry Everson
+*========================================================================*/
+-->
+<html lang="en" dir="ltr" ng-app="ccApp">
+<head>
+  <title>Character Creator</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="X-UA-Compatible" content="IE=8,IE=9">
+  <meta http-equiv="PRAGMA" content="NO-CACHE">
+  <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
+  <link rel="shortcut icon" href="favicon.png" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/bootstrap/4.2.1/bootstrap.min.css" />
+  <link rel="stylesheet" href="css/fontawesome/4.7.0/all.css" />
+  <link rel="stylesheet" href="css/cc.css">
+
+  <!-- JS -->
+  <script src="js/jquery/3.3.1/jquery.min.js"></script>
+  <script src="js/angularjs/1.7.8/angular.min.js"></script>
+  <script src="js/popper/popper.min.js"></script>
+  <script src="js/bootstrap/4.2.1/bootstrap.min.js"></script>
+  <script src="js/primaryController.js"></script>
+  <script src="js/diceService.js"></script>
+
+</head>
+
+<body ng-controller="ccCtrl">
+
+  <!--==== Header ====-->
+  <header>
+    <!-- <h1>Character Creator</h1> -->
+    <h1>CC</h1>
+  </header>
+  <hr>
+  <!--==== START Book Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row">
+        <div class="input-group mb-3">
+          <div class="input-group-prepend">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Books</button>
+            <ul class="dropdown-menu checkbookList hover">
+              <li class="input-group" ng-repeat="book in books" ng-click="checkboxSwitch(book); checkboxTextUpdate(books);" data-toggle="tT" title="">
+                <input type="text" class="form-control" value="{{book.name}} ({{book.source}})" readonly>
+                <span class="input-group-addon">
+                  <input type="checkbox" ng-model="book.status" ng-click="checkboxSwitchInline(book); checkboxTextUpdate(books);">
+                </span>
+              </li>
+            </ul>
+          </div> <!-- End of Input Group Prepend -->
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.selectedBooks" data-toggle="dropdown" readonly>
+        </div> <!-- End of Input Group -->
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Book Selection ====-->
+  <hr>
+  <!--==== START Stat Rolls ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row">
+        <div class="input-group mb-5 mt-3">
+          <div class="input-group-prepend d-block" ng-init="statType='Roll 4d6k3';matrix=0">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{statType}}</button>
+            <div class="dropdown-menu diceMenu">
+              <a class="dropdown-item" ng-click="statType='Roll 4d6k3'; rollStats4d6k3()">Roll 4d6k3</a>
+              <a class="dropdown-item" ng-click="statType='Roll 4d6k3r1'; rollStats4d6k3r1()">Roll 4d6k3r1</a>
+              <a class="dropdown-item" ng-click="statType='Roll 3d6'; rollStats3d6()">Roll 3d6</a>
+              <a class="dropdown-item" ng-click="statType='Roll 3d6r1'; rollStats3d6r1()">Roll 3d6r1</a>
+              <a class="dropdown-item" ng-click="statType='Roll Matrix'; rollStatsMatrix()">Roll Matrix</a>
+              <a class="dropdown-item" ng-click="statType='Array'; arrayStats()">Array</a>
+              <a class="dropdown-item" ng-click="statType='Point Buy'; pbStats()">Point Buy</a>
+            </div> <!-- End of Dropdown Menu -->
+          </div> <!-- End of Input Group Prepend -->
+          <div class="input-group-append d-block" ng-if="true">
+            <button type="button" class="btn btn-success" ng-click="rollStats4d6k3()" ng-if="statType=='Roll 4d6k3'">Roll</button>
+            <button type="button" class="btn btn-success" ng-click="rollStats4d6k3r1()" ng-if="statType=='Roll 4d6k3r1'">Roll</button>
+            <button type="button" class="btn btn-success" ng-click="rollStats3d6()" ng-if="statType=='Roll 3d6'">Roll</button>
+            <button type="button" class="btn btn-success" ng-click="rollStats3d6r1()" ng-if="statType=='Roll 3d6r1'">Roll</button>
+            <button type="button" class="btn btn-success" ng-click="rollStatsMatrix(); matrix=1" ng-if="statType=='Roll Matrix'">Roll</button>
+          </div> <!-- End of Input Group Append -->
+          <div class="input-group-append mx-auto d-block border-0 mt-n2">
+            <table class="table inline" ng-if="statType!='Roll Matrix'">
+              <tbody>
+                <tr >
+                  <td class="border-0" ng-repeat="stat in data.char.rolledStats | orderBy:'-' track by $index" > <!-- style="padding: 0 0 0 1em;" -->
+                    <span class="rolled" ng-class="{'color-green':stat>=16,'color-blue':stat>=10,'color-red':stat<=9}">{{stat}}</span><span class="rolledMod">{{getMod(stat)}}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div> <!-- End of Input Group Append -->
+        </div> <!-- End of Input Group -->
+      </div> <!-- End of Row -->
+      <div ng-if="statType=='Roll Matrix'">
+        <div class="row mt-n5">
+          <table class="table table-bordered rollMatrixTable mt-n5">
+            <tbody>
+              <tr ng-repeat="col in data.char.rolledMatrixStats">
+                <td class="rollMatrixTd" ng-repeat="row in col" ng-class="{'color-green':row[0]>=16,'color-blue':row[0]>=10,'color-red':row[0]<=9 && row[4]!=1 ,'color-success':row[4]==1}">{{row[0]}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div> <!-- End of Row -->
+      </div> <!-- End of NG-IF -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Stat Rolls ====-->
+  <hr>
+  <!--==== START Class and Level Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-5">
+        <div ng-repeat="class in data.char.class track by $index" class="w-100 mb-3" ng-init="classid = $index">
+          <div class="input-group">
+            <div class="input-group-prepend">
+              <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Class</button>
+              <div class="dropdown-menu">
+                <table class="table-sm table-striped table-hover">
+                  <tbody>
+                    <tr ng-repeat="choice in classOptions" ng-click="loadClass(choice.path, class.level, classid); class.name=choice.name; updateClasses(); resetSkills('class')" class="dropdown-item">
+                      <td><strong>{{choice.name}}</strong></td>
+                      <td>[{{choice.proficiency[0]}},{{choice.proficiency[1]}}]</td>
+                      <td>{{choice.hd.number}}d{{choice.hd.faces}}</td>
+                      <td>{{choice.spellcastingAbility}}</td>
+                      <td><small>(<i>{{choice.source}}: {{choice.page}}</i>)</small></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div> <!-- End of Dropdown Menu -->
+            </div> <!-- End of Input Group Prepend -->
+            <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="class.name" data-toggle="dropdown" readonly>
+            <div class="input-group-append">
+              <span class="input-group-text">Levels</span>
+            </div> <!-- End of Input Group Append -->
+            <input type="number" class="form-control" aria-label="" ng-model="class.level" ng-change="updateLevels()" min="1" required max="{{class.level+data.char.levelsRem}}">
+            <button class="btn btn-danger btn-sm btnRemove" ng-click="removeIndexClass($index); updateLevels()" type="button"><span class="fas fa-minus"></span></button>
+          </div> <!-- End of Input Group -->
+
+
+          <div ng-if="class.name" class="classDescription">
+            Class: {{class.name}}     Hit Dice: {{class.hd.number}}d{{class.hd.faces}}   proficiency: {{class.proficiency}} Book: <small>(<i>{{class.source}}: {{class.page}}</i>)</small>
+            Spellcasting Ability:{{class.spellcastingAbility}}
+            <div ng-if="$index==0">
+              Armor: {{class.startingProficiencies.armor}} Weapons: {{class.startingProficiencies.weapons}} Tools: {{class.startingProficiencies.tools}}
+              Skills: choose ({{class.startingProficiencies.skills[0].choose.count}}) from {{class.startingProficiencies.skills[0].choose.from}}
+              Starting Equipment: {{parseString(class.startingEquipment.default)}}
+            </div>
+            <div ng-if="$index">
+              hello
+              Ability Score Minimum: {{class.multiclassing.requirements}}
+              ProficienciesGained Armor: {{class.multiclassing.proficienciesGained.armor}} Weapons: {{class.multiclassing.proficienciesGained.weapons}} Tools: {{class.multiclassing.proficienciesGained.tools}}
+              <!-- Skills: choose ({{class.multiclassing.proficienciesGained.skills[0].choose.count}}) from {{class.multiclassing.proficienciesGained..skills[0].choose.from}} -->
+            </div>
+          </div>
+
+        </div> <!-- End of NG-Repeat -->
+        <button class="btn btn-primary btn-sm" ng-click="addClass(); updateLevels(); updateClasses();" ng-if="data.char.class[0].name" type="button"><span class="fas fa-plus"></span> Add Multi-Class</button>
+        <button class="btn btn-primary btn-sm" ng-click="addClass(); updateLevels(); updateClasses();" ng-if="!data.char.class[0]" type="button"><span class="fas fa-plus"></span> Add Class</button>
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Class and Level Selection ====-->
+  <hr>
+  <!--==== START Race Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4">
+        <div class="input-group">
+          <div class="input-group-prepend">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Race</button>
+            <div class="dropdown-menu">
+              <table class="table-sm table-striped table-hover">
+                <tbody  class="">
+                  <tr ng-repeat="race in races | orderBy: 'name'" ng-click="data.char.race = race; updateRStats();" class="dropdown-item">
+                    <td><strong>{{race.name}}</strong></td>
+                    <td ng-repeat="(key, data) in race.ability[0]">
+                      <span ng-if="key != 'choose'">[{{key}} +{{data}}]</span>
+                      <span ng-if="key == 'choose'">[choose +{{data.count}}]</span>
+                    </td>
+                    <td ng-if="isNumber(race.speed)"> [walk: {{race.speed}}]</td>
+                    <td ng-if="!isNumber(race.speed)"ng-repeat="(key2, data2) in race.speed">[{{key2}}: {{data2}}]</td>
+                    <td ng-if="race.darkvision"> [DV: {{race.darkvision}}]</td>
+                    <td><small>(<i>{{race.source}}: {{race.page}}</i>)</small></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div> <!-- End of Dropdown Menu -->
+          </div> <!-- End of Input Group Prepend -->
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" data-toggle="dropdown" ng-model="data.char.race.name" readonly>
+        </div> <!-- End of Input Group -->
+
+        <div ng-if="data.char.race.name" class="classDescription">
+          Race: {{data.char.race.name}} Size: {{data.char.race.size}} Speed: {{data.char.race.speed}} Book: <small>(<i>{{data.char.race.source}}: {{data.char.race.page}}</i>)</small>
+          Darkvision: {{data.char.race.darkvision}} Ability: {{data.char.race.ability[0]}} Languages: {{data.char.race.languageProficiencies[0]}}
+          Age: {{data.char.race.entries[0].entries[0]}} etc...
+
+        </div>
+
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Race Selection ====-->
+  <hr>
+  <!--==== START Attributes Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4 mb-3">
+        <table class="table-sm table-striped table-hover w-100">
+          <thead>
+            <tr>
+              <th class="text-center"></th>
+              <th class="text-right">Score</th>
+              <th class="text-left"></th>
+              <th class="text-center">Racial</th>
+              <th class="text-center">Other</th>
+              <th class="text-left"></th>
+              <th class="text-center">Total</th>
+              <th class="text-left">Mod</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="(key, playerStat) in data.char.stats">
+              <td class="text-center"><strong>{{key.toUpperCase()}}</strong></td>
+              <td class="text-center">
+                <div class="input-group" style="place-content: flex-end;">
+                  <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" ng-class="{'color-green':playerStat.sVal>=16,'color-blue':playerStat.sVal>=10,'color-red':playerStat.sVal<=9}"><strong>{{playerStat.sVal}}</strong></button>
+                  <div class="dropdown-menu">
+                    <a class="dropdown-item" ng-repeat="rolledStat in rolledStats | orderBy:'-' track by $index" ng-click="playerStat.sVal = rolledStat; updateRollSelection(rolledStat)" ng-class="{'color-green':rolledStat>=16,'color-blue':rolledStat>=10,'color-red':rolledStat<=9}">{{rolledStat}}</a>
+                  </div> <!-- End of Dropdown Menu -->
+                </div> <!-- End of Input Group -->
+              </td>
+              <td><span class="rolledModTable">{{getMod(playerStat.sVal)}}</span></td>
+              <td class="text-center"><strong>+{{playerStat.rVal}}</strong></td>
+              <td class="text-center" width="10%">
+                <div class="input-group">
+                  <input type="number" class="form-control" aria-label="Text input with segmented dropdown button" ng-model="playerStat.oVal" >
+                </div> <!-- End of Input Group -->
+              </td>
+              <td></td>
+              <td class="text-center" ng-class="{'color-green':playerStat.sVal+playerStat.rVal+playerStat.oVal>=16,'color-blue':playerStat.sVal+playerStat.rVal+playerStat.oVal>=10,'color-red':playerStat.sVal+playerStat.rVal+playerStat.oVal<=9}"><strong>{{playerStat.sVal+playerStat.rVal+playerStat.oVal}}</strong></td>
+              <td class="text-left"><span class="rolledModTable">{{getMod(playerStat.sVal+playerStat.rVal+playerStat.oVal)}}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div> <!-- End of Row -->
+      <button class="btn btn-primary btn-sm" ng-click="resetStats()" ng-if="true" type="button" style="margin-left: -1rem"><span class="fas fa-redo"></span> Reset Attributes</button>
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Attributes Selection ====-->
+  <hr>
+  <!--==== START Background Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4 mb-3">
+        <div class="input-group">
+          <div class="input-group-prepend">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Background</button>
+            <div class="dropdown-menu">
+              <table class="table-sm table-striped table-hover">
+                <tbody  class="">
+                  <tr ng-repeat="background in backgrounds | orderBy: 'name'" ng-click="data.char.background=background; getBackgroundSkillCount(data.char.background); resetSkills('background');" class="dropdown-item">
+                    <td><strong>{{background.name}}</strong></td>
+                    <td>{{parseString(background.entries[0].items[0].entry)}}</td>
+                    <td><small>(<i>{{background.source}}: {{background.page}}</i>)</small></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div> <!-- End of Dropdown Menu -->
+          </div> <!-- End of Input Group Prepend -->
+          <input type="text" class="form-control" aria-label="Text input with dropdown button" ng-model="data.char.background.name" data-toggle="dropdown" readonly>
+        </div> <!-- End of Input Group -->
+
+        <div ng-if="data.char.background.name" class="classDescription">
+          Background: {{data.char.background.name}} Book: <small>(<i>{{data.char.background.source}}: {{data.char.background.page}}</i>)</small>
+          skills: {{data.char.background.skillProficiencies[0]}} Languages: {{data.char.background.languageProficiencies[0]}}
+
+
+        </div>
+
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Background Selection ====-->
+  <hr>
+  <!--==== START Class/Multi-Class Feature Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4 mb-5" ng-repeat="class in data.char.class">
+
+        <div class="col-sm-12 classFeatures scrollable-table">
+          <table class="table-sm table-striped table-hover classFeatures table-header-rotated" ng-if="class.classFeatures">
+            <thead>
+              <tr>
+                <th class="text-center"><div><span>Level</span></div></th>
+                <th class="text-center"><div><span>{{class.name}}: Class Features</span></div></th>
+              </tr>
+            </thead>
+            <tbody  class="">
+              <tr ng-repeat="(key, level) in class.classFeatures | limitTo:class.level" ng-click="">
+                <td>{{key+1}}</td>
+                <td>
+                  <span ng-repeat="feature in level" class="">
+                    <!-- This is used becuase pooper.js transform3d generator is garbage -->
+                    <div class="dropdown" ng-click="isOpen = toggle(isOpen)" ng-mouseleave="isOpen=0">
+                      <button class="btn btn-sm btn-outline-secondary btn-dropdown-toggle" ng-click="printss(feature)" data-toggle="tT" title="{{feature.entries[0]}}">{{feature.name}}</button>
+                      <div class="dropdown-content" ng-class="{'open':isOpen}">
+                        <a class="dropdown-item" ng-repeat="sub in class.subclasses track by $index"  ng-click="printss(sub)" data-toggle="tT" title="">{{sub.name}}</a>
+                      </div> <!-- End of Dropdown Content -->
+                    </div> <!-- End of Dropdown-->
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table class="table-sm  table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[0].rows">
+            <thead>
+              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[0].colLabels" ng-click=""><div><span>{{parseString(row)}}</span></div></th></tr>
+            </thead>
+            <tbody  class="">
+              <tr ng-repeat="(key, row) in class.classTableGroups[0].rows | limitTo:class.level " ng-click="">
+                <td ng-repeat="entry in row track by $index">{{parseString(entry)}}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table class="table-sm  table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[1].rows">
+            <thead>
+              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[1].colLabels" ng-click=""><div><span>{{parseString(row)}}</span></div></th></tr>
+            </thead>
+            <tbody  class="">
+              <tr ng-repeat="(key, row) in class.classTableGroups[1].rows | limitTo:class.level " ng-click="">
+                <td ng-repeat="entry in row track by $index">{{entry}}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table class="table-sm  table-striped table-hover classFeatures table-header-rotated" ng-if="class.classTableGroups[2].rows">
+            <thead>
+              <tr><th class="rotate-45" ng-repeat="(key, row) in class.classTableGroups[2].colLabels" ng-click=""><div><span>{{parseString(row)}}</span></div></th></tr>
+            </thead>
+            <tbody  class="">
+              <tr ng-repeat="(key, row) in class.classTableGroups[2].rows | limitTo:class.level " ng-click="">
+                <td ng-repeat="entry in row track by $index">{{entry}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div> <!-- End of Col 12-->
+      </div><!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Class/Multi-Class Feature Selection ====-->
+  <hr>
+  <!--==== START Skills Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4 mb-3">
+        <div class="col-sm-4 pl-0" ng-if="data.char.class[0].name">
+          <strong>{{data.char.class[0].name}} <span ng-if="isNumber(data.char.class[0].startingProficiencies.skills[0].choose.count)">Choose: {{data.char.class[0].startingProficiencies.skills[0].choose.count}}</span></strong>
+          <ul class="hover">
+            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.class[0].startingProficiencies.skills[0].choose.from" ng-click="skillToggle(data.char.skills[skill], data.char.class[0].startingProficiencies.skills[0].choose, 'class')" data-toggle="tT" title="">
+              <input type="text" class="form-control peww" value="{{skill}} ({{data.char.skills[skill].mod}})" ng-disabled="data.char.skills[skill].lock" ng-readOnly="!data.char.skills[skill].lock">
+              <span class="input-group-addon">
+                <input type="checkbox" ng-model="data.char.skills[skill].prov" ng-disabled="data.char.skills[skill].lock || !data.char.class[0].startingProficiencies.skills[0].choose.count">
+              </span>
+            </li>
+          </ul>
+        </div> <!-- End of Col 4 -->
+
+        <div class="col-sm-4 pl-0" ng-if="data.char.background.name">
+          <strong>{{data.char.background.name}} <span ng-if="isNumber(data.char.background.skillProficiencies[0].choose.count)">Choose: {{data.char.background.skillProficiencies[0].choose.count}}</span></strong>
+          <ul class="hover">
+            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.background.skillProficiencies[0]" ng-click="" data-toggle="tT" title="" ng-if="key !='choose'">
+              <input type="text" class="form-control peww" value="{{key}} ({{data.char.skills[key].mod}})" ng-disabled="data.char.skills[key].lock" ng-readOnly="!data.char.skills[key].lock">
+              <span class="input-group-addon">
+                <input type="checkbox" ng-model="data.char.skills[key].prov" ng-click="" ng-init="data.char.skills[key].prov=true; data.char.skills[key].lock=true; data.char.skills[key].from='background'" disabled>
+              </span>
+            </li>
+            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.background.skillProficiencies[0].choose.from" ng-click="skillToggle(data.char.skills[skill], data.char.background.skillProficiencies[0].choose, 'background')" data-toggle="tT" title="">
+              <input type="text" class="form-control peww" value="{{skill}}  ({{data.char.skills[skill].mod}})" ng-disabled="data.char.skills[skill].lock" ng-readOnly="!data.char.skills[skill].lock">
+              <span class="input-group-addon">
+                <input type="checkbox" ng-model="data.char.skills[skill].prov" ng-disabled="data.char.skills[skill].lock || !data.char.background.skillProficiencies[0].choose.count">
+              </span>
+            </li>
+          </ul>
+        </div> <!-- End of Col 4 -->
+
+        <div class="col-sm-4 pl-0" ng-if="data.char.class[0].name || data.char.background.name">
+          <strong>All Skills</strong>
+          <ul class="hover">
+            <li class="input-group pewww" ng-repeat="(key, skill) in data.char.skills" data-toggle="tT" title="">
+              <input type="text" class="form-control peww" value="{{key}} ({{data.char.skills[key].mod}})" disabled>
+              <span class="input-group-addon">
+                <input type="checkbox" ng-model="data.char.skills[key].prov" disabled>
+              </span>
+            </li>
+          </ul>
+        </div> <!-- End of Col 4 -->
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Skills Selection ====-->
+
+  <!--==== START Hit Dice Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4 mb-3">
+        <div ng-if="data.char.class[0].name">
+          <button type="button" class="btn btn-success" ng-click="calcHitDice()">Hitdice</button>
+
+
+          <table class="table-sm  table-striped table-hover" ng-if="data.char.hitDice[0]">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th>Class Level</th>
+                <th>Current Level</th>
+                <th>Mod</th>
+                <th>Dice</th>
+                <th>Average</th>
+                <th>Rolled</th>
+                <th>Average Total</th>
+                <th>Rolled Total</th>
+              </tr>
+            </thead>
+            <tbody  class="">
+              <tr ng-repeat="dice in data.char.hitDice" ng-click="">
+                <td>{{dice.name}}</td>
+                <td>{{dice.classLevel}}</td>
+                <td>{{dice.curLevel}}</td>
+                <td>{{dice.cMod}}</td>
+                <td>{{dice.diceType}}</td>
+                <td>{{dice.avgValue}}</td>
+                <td>{{dice.diceValue}}</td>
+                <td><strong>{{dice.cMod+dice.avgValue}}</strong></td>
+                <td><strong>{{dice.cMod+dice.diceValue}}</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Totals</strong></td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td><strong>{{getSumHitDice(data.char.hitDice)[0]}}</strong></td>
+                <td><strong>{{getSumHitDice(data.char.hitDice)[1]}}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+
+        </div>
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Hit Dice Selection ====-->
+
+  <!--==== START Spells Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4 mb-3">
+
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Spells Selection ====-->
+
+  <!--==== START Druid Wild-Shape Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4 mb-3">
+
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Druid Wild-Shape Selection ====-->
+
+  <!--==== START Equipment Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4 mb-3">
+
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Equipment Selection ====-->
+
+  <!--==== START Background Story Selection ====-->
+  <div ng-if="true">
+    <div class="container">
+      <div class="row  mt-4 mb-3">
+
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </div> <!-- End of NG-IF -->
+  <!--==== END Background Story Selection ====-->
+
+  <!--==== START Modal EE ====-->
+  <div class="modal fade" id="eModal" tabindex="-1" role="dialog" aria-labelledby="eModalCenterTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-sm-12 text-center">
+              <h4>RickRoll'D</h4>
+              <img class="w-100"src="images/rickroll.gif" alt="RickRoll">
+            </div> <!-- End of Col 12 -->
+            <div class="col-sm-12 text-center">
+              <a href="https://youtu.be/oHg5SJYRHA0" target="_blank">
+                <br>Never gonna give you up<br>
+                Never gonna let you down<br>
+                Never gonna run around and desert you<br>
+                Never gonna make you cry<br>
+                Never gonna say goodbye<br>
+                Never gonna tell a lie and hurt you
+              </a>
+            </div> <!-- End of Col 12 -->
+          </div> <!-- End of Row -->
+        </div> <!-- End of Modal Body -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div> <!-- End of Modal Footer -->
+      </div> <!-- End of Modal Conent -->
+    </div> <!-- End of Modal Dialog -->
+  </div> <!-- End of Modal -->
+  <!--==== END Modal EE ====-->
+
+  <!--==== START Footer ====-->
+  <footer>
+    <div class="container mt-5 mb-2" ng-if="true">
+      <div class="row">
+        <small class="mx-auto">
+          Dungeons & Dragons 5th Edition Character Creator. Arthors: Derry Everson & Mikel Jensen. Contact/Issues: <a href="https://github.com/dneverson/Character-Creator">Github</a>
+          <button type="button" class="btn btn-primary btn-xs inline border-0" data-toggle="modal" data-target="#eModal" style="background:transparent; color:transparent; cursor: default;"></button>
+        </small>
+      </div> <!-- End of Row -->
+    </div> <!-- End of Container -->
+  </footer>
+  <!--==== END Footer ====-->
+
+</body>
+</html>

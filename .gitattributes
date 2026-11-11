@@ -1,0 +1,11 @@
+# Normalize all text files to LF in the repository; Git auto-detects binaries.
+* text=auto eol=lf
+
+# Explicit binaries (never normalized).
+*.png binary
+*.gif binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

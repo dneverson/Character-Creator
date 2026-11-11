@@ -1,0 +1,721 @@
+/* Global app styles. Bootstrap 5.3 handles theming via [data-bs-theme]. */
+
+/*
+ * Bind the UA colour-scheme to the *app* theme, not the OS. `color-scheme: light
+ * dark` let the browser paint native controls (notably scrollbars) from the OS
+ * preference, so a light in-app theme on a dark OS still got dark scrollbars.
+ * `data-bs-theme` is set pre-paint in index.html and only ever resolves to
+ * light/dark, so keying off it is reliable.
+ */
+:root {
+  color-scheme: light;
+}
+:root[data-bs-theme='dark'] {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100vh;
+}
+
+/*
+ * Bootstrap variant colour overrides. These retint the framework variants at one
+ * source, so every primary button and every `bg-info` badge across the app (the
+ * class table, the detail pane, and the Compare modal alike) tracks the same
+ * colour - change it here and it changes everywhere.
+ *
+ * Primary buttons: the stock #0d6efd is too bright; use a calmer steel blue with
+ * a slightly darker hover/active so the button never flashes back to the default.
+ */
+.btn-primary {
+  --bs-btn-bg: #38619d;
+  --bs-btn-border-color: #38619d;
+  --bs-btn-hover-bg: #30537f;
+  --bs-btn-hover-border-color: #2c4d77;
+  --bs-btn-active-bg: #2c4d77;
+  --bs-btn-active-border-color: #284670;
+  --bs-btn-disabled-bg: #38619d;
+  --bs-btn-disabled-border-color: #38619d;
+}
+
+/* The default info cyan is hard to read; use a deep red instead. */
+.bg-info {
+  --bs-bg-opacity: 1;
+  background-color: rgb(133 2 2) !important;
+}
+
+/* Parts of a combined editor section (<SubSection>): a rule divides each part
+   from whatever content precedes it in the card. */
+.editor-subsection:not(:first-child) {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--bs-border-color);
+}
+
+/*
+ * Acronym affordance (<Abbr>): a code is hoverable for its full name. No visual
+ * mark on the text - only the help cursor hints at it. This is the single place
+ * to restyle it: add an underline, a border, or a radius here without touching
+ * the component.
+ */
+.abbr {
+  text-decoration: none;
+  cursor: help;
+}
+
+/*
+ * Tooltips render fully opaque (Bootstrap defaults to 0.9, which let the content
+ * behind them bleed through). One override covers every tooltip in the app.
+ */
+.tooltip {
+  --bs-tooltip-opacity: 1;
+}
+
+/*
+ * A "perfect" ability score (a natural 18) rendered in gold so it stands out at
+ * a glance. `!important` mirrors Bootstrap's own text-colour utilities: the
+ * table cell colour (`.table>:not(caption)>*>*`) is more specific than a bare
+ * class, so gold would otherwise be hidden inside the roll-matrix and the
+ * ability-totals tables.
+ */
+/* The gold tracks the *nearest* theme context, not the root, so a subtree forced
+   to a light theme (the roll matrix / dice tiles) gets the readable darkgoldenrod
+   even while the page is dark. Keyed on the theme attribute so a nested
+   [data-bs-theme] wrapper redefines it for its own descendants. */
+[data-bs-theme] {
+  --cc-score-gold: #b8860b; /* darkgoldenrod - readable on light backgrounds */
+}
+[data-bs-theme='dark'] {
+  --cc-score-gold: #ffce54; /* brighter gold for dark backgrounds */
+}
+.score-perfect {
+  color: var(--cc-score-gold) !important;
+  font-weight: 700;
+}
+
+/*
+ * Rolled ability scores shown as "dice" tiles (ported from the legacy roll UI,
+ * which the owner preferred over flat badges): a large bordered number with a
+ * small circular modifier badge tucked into the corner. Colours use Bootstrap
+ * CSS variables so light/dark theming is automatic.
+ */
+.roll-die {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  min-height: 3rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  background: var(--bs-body-bg);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.roll-die-mod {
+  position: absolute;
+  right: -0.5rem;
+  bottom: -0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.25rem;
+  border: 2px solid var(--bs-border-color);
+  border-radius: 50%;
+  background: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+/*
+ * The roll tiles sit inside a `data-bs-theme="light"` island (so their score
+ * tints read correctly), which pins `--bs-border-color` to the light value even
+ * on a dark page. Restore the dark-theme border with the palette token
+ * `--bs-gray-700` (= the dark theme's border colour, and not redefined by the
+ * island). Borders only - fills/tints are untouched.
+ */
+:root[data-bs-theme='dark'] .roll-die,
+:root[data-bs-theme='dark'] .roll-die-mod {
+  border-color: var(--bs-gray-700);
+}
+/*
+ * A placeholder tile: the Pool keeps six score tiles on screen while grouping, so
+ * a group not yet holding three dice shows as an empty dashed outline rather than
+ * a gap that shifts as groups complete.
+ */
+.roll-die--blank {
+  border-style: dashed;
+  background: transparent;
+}
+
+/*
+ * Shared master-detail data table (src/components/table). The split is a flex
+ * row on wide screens with a draggable handle trading width between the panes;
+ * below the `md` breakpoint the panes stack so the layout is usable on a phone
+ * without a rewrite (the later mobile pass refines this seam). Colours use
+ * Bootstrap CSS variables so dark mode is automatic.
+ */
+.data-table-split {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+/* Room for a detail pane to read in; a table alone is only as tall as its rows. */
+.data-table-split--detail {
+  min-height: 20rem;
+}
+.data-table-split--dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+.data-table-split__master {
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: auto;
+  /* Keep the master content (notably the toolbar's Columns button) off the
+     divider seam so it isn't flush against the resize handle. */
+  padding-inline-end: 0.3rem;
+}
+.data-table-split__detail {
+  flex: 1 1 0;
+  min-width: 0;
+  /* Cap the detail like the grid so a long table of contents scrolls inside the
+     pane instead of growing the whole page; the panes then share one bounded
+     height and each scrolls its own overflow. */
+  max-height: 60vh;
+  overflow: auto;
+  border-left: 1px solid var(--bs-border-color);
+}
+.data-table-split__handle {
+  flex: 0 0 auto;
+  cursor: col-resize;
+  background: var(--bs-secondary-bg);
+  /* The 1px rule on each side is the whole width of the grab strip; a wider
+     handle stole visible space from the panes. */
+  border-inline: 1px solid var(--bs-border-color);
+  touch-action: none;
+}
+.data-table-split__handle:hover,
+.data-table-split__handle:focus-visible {
+  background: var(--bs-primary-bg-subtle);
+  outline: none;
+}
+/* The grid scrolls inside a capped viewport instead of growing the page, and its
+   header row stays frozen at the top of that viewport (spreadsheet behaviour). */
+.data-table-grid {
+  max-height: 60vh;
+  overflow: auto;
+}
+.data-table-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bs-body-bg);
+  /* A persistent divider under the frozen header (the table's own top border
+     scrolls away with the body). */
+  box-shadow: inset 0 -1px 0 var(--bs-border-color);
+}
+/* Keep every cell on a single line (spreadsheet behaviour); the grid scrolls
+   horizontally rather than wrapping text and stretching rows tall. */
+.data-table-grid th,
+.data-table-grid td {
+  white-space: nowrap;
+}
+/* While the browser sizes the columns to their content, no one cell takes more
+   than this: a long list (a race's traits) is cut short with an ellipsis rather
+   than pushing every other column out of view. The full text is in the detail
+   pane, and dragging the column wider shows more of it. */
+.data-table-grid--auto td {
+  max-width: 20rem;
+}
+/* The reason badge in a name cell is capped; the full reason is its title. */
+.non-standard-badge--capped {
+  display: inline-block;
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The Rules column (hidden until chosen) gets the same tighter cap. */
+.data-table-grid--auto td.data-table-grid__rules {
+  max-width: 14rem;
+}
+/* Once a column is resized the table switches to a fixed layout; clip a cell's
+   content to its width with an ellipsis instead of letting it spill into the
+   next column. Headers stay visible so the sort/filter caret is always usable. */
+.data-table-grid td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A drag handle straddling each header's right edge to resize the column. */
+.data-table-grid__th {
+  position: relative;
+  cursor: grab;
+}
+/* Header drag-to-reorder: dim the column being dragged and mark the edge
+   the drop would land on so the target is unambiguous. */
+.data-table-grid__th--dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+/* The drop target: a full-height line down the edge the column would land on, so
+   the new index is obvious for the whole drag. Like the resize guide it hangs
+   100vh and the grid's overflow clips it to the visible table; primary colour
+   keeps it distinct from the neutral resize line. */
+.data-table-grid__th--dropbefore::before,
+.data-table-grid__th--dropafter::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100vh;
+  z-index: 3;
+  background: var(--bs-primary);
+  pointer-events: none;
+}
+.data-table-grid__th--dropbefore::before {
+  left: 0;
+}
+.data-table-grid__th--dropafter::before {
+  right: 0;
+}
+.data-table-grid__resizer {
+  position: absolute;
+  top: 0;
+  /* Flush with the cell's right edge (the column border), fully inside it. An
+     overhang (negative right) would leak past the last column into the grid's
+     overflow:auto area and force a phantom horizontal scrollbar. */
+  right: 0;
+  z-index: 3;
+  width: 0.5rem;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+/* The visible guide: a thin line pinned to the column's right edge. It hangs far
+   past the header (100vh) and the grid's own overflow clips it, so it reads as a
+   full-height divider across the whole table for the length of the drag. A soft
+   translucent line - black on the light theme, white on the dark one - so it
+   sits over the cells without shouting.
+
+   Kept out of layout (display: none, not opacity: 0) until the column is actually
+   being resized: an absolutely-positioned 100vh box counts toward the grid's
+   scrollable overflow even while transparent, which would leave the table with a
+   scrollbar into blank space - worst when few rows make the real content short. */
+.data-table-grid__resizer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2px;
+  height: 100vh;
+  background: #0000005c;
+  display: none;
+  pointer-events: none;
+}
+:root[data-bs-theme='dark'] .data-table-grid__resizer::after {
+  background: #ffffff5c;
+}
+.data-table-grid__resizer--active::after {
+  display: block;
+}
+.data-table-detail {
+  height: 100%;
+}
+/* Centre the row-select checkbox in its cell. The cell itself is centred by the
+   `align-middle text-center` utilities; Bootstrap's `.form-check` still floats
+   the input into a 1.5em left-padding gutter, so neutralise that float/padding
+   here to let the utilities centre the checkbox. */
+.data-table-grid__select .form-check {
+  display: inline-flex;
+  justify-content: center;
+  min-height: 0;
+  margin-bottom: 0;
+  padding-left: 0;
+}
+.data-table-grid__select .form-check-input {
+  float: none;
+  margin-left: 0;
+}
+/* A row that cannot be selected (non-standard while gated, or level-gated). */
+.data-table-grid__gated {
+  opacity: 0.6;
+}
+/* Bootstrap colours table cells themselves, so a muted row needs its cells muted. */
+.data-table-grid__nonstandard > td {
+  color: var(--bs-secondary-color);
+}
+/* Keyboard-navigation cursor. The whole row carries the hover tint so the arrow
+   "mouse over" reads the same as an actual mouse hover; the focus ring then marks
+   which zone (row body vs. the select checkbox) Enter would act on. */
+.data-table-grid__cursor > td {
+  background-color: var(--bs-table-hover-bg);
+}
+.data-table-grid tbody tr:focus-visible,
+.data-table-grid tbody td:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: -2px;
+}
+/* The row body zone is the <tr>; its outline is drawn on the cells so it isn't
+   clipped by the sticky-header stacking context. */
+.data-table-grid tbody tr:focus-visible > td {
+  box-shadow:
+    inset 0 2px 0 var(--bs-primary),
+    inset 0 -2px 0 var(--bs-primary);
+}
+.data-table-grid tbody tr:focus-visible {
+  outline: none;
+}
+/* The image zone: an in-cell button (e.g. an enlargeable cover) the arrow keys
+   focus as its own zone. Ring it like the other zones so the cursor is visible;
+   a small positive offset sits the ring cleanly around the thumbnail. */
+.data-table-grid tbody [data-nav-target]:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+/* The spreadsheet-style column menu, portalled to the body and overlaid on the
+   grid so the grid's own scroll container never clips it. */
+.data-table-headmenu {
+  z-index: 1080;
+  min-width: 15rem;
+  max-width: 20rem;
+}
+.data-table-headmenu__list {
+  max-height: 12rem;
+  overflow-y: auto;
+  /* Keep a wheel that reaches the list's top/bottom from chaining out and
+     scrolling the page behind the popup. The panel's non-scrolling chrome is
+     handled by a wheel listener in JS (React marks onWheel passive). */
+  overscroll-behavior: contain;
+}
+/* A filter value is a label wrapping its own checkbox, so the whole row is one
+   click target (no id/for matching to drift out of sync). Flex keeps the box
+   aligned to the first line when a long value wraps, and `user-select: none`
+   stops a click that drifts a pixel from selecting the text instead of toggling
+   (which reads as an unresponsive "needs a second click"). */
+.data-table-headmenu__option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding-inline: 0.25rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  user-select: none;
+}
+/* Hover highlight so it's obvious which value the pointer is over, matching the
+   grid's own row hover. */
+.data-table-headmenu__option:hover {
+  background: var(--bs-secondary-bg);
+}
+
+/*
+ * Roll-matrix grid (src/components/editor/StatGeneration). A CSS grid of equal
+ * square cells with an absolutely-placed SVG overlay for the picked/hover lines
+ * - the industry-standard way to draw arbitrary lines (including diagonals) over
+ * a grid, which a bordered <table> cannot do cleanly. The cell block has no gap
+ * (cells are separated by an inset border) so the overlay's 0..size viewBox maps
+ * exactly to cell centres. All colours are theme-aware Bootstrap variables.
+ */
+/* The matrix module's two size tokens live on the wrapper so both the grid and
+   the chosen-line tile row below it can read them (the tile row is a sibling of
+   the grid, not a descendant, so tokens set on .matrix-grid would not reach it). */
+.matrix-roll {
+  /* One square edge drives the whole grid: every cell AND every selector is a
+     --matrix-cell square, so the tallest item (a "Best" selector's three lines)
+     sets the size and the rest match it. Change this one value (see the mobile
+     override) and the grid, its selectors, and their text all scale together. */
+  --matrix-cell: 3.1rem;
+  /* A thin spacer track sits between the data-cell block and the selector row and
+     column (see StatGeneration), so the pickers read as a separate group instead
+     of butting against the rolls. Data cells stay gapless among themselves. */
+  --matrix-gap: 5px;
+}
+.matrix-grid {
+  display: grid;
+  gap: 0;
+  width: max-content;
+  max-width: 100%;
+  align-items: stretch;
+  justify-items: stretch;
+  /* The grid wrapper follows the app theme; only the data cells pin a light theme
+     (see StatGeneration). Transparent lets the real page background show through
+     the one empty gutter (left of the cell block, above the bottom-left diagonal
+     picker) and behind the selectors - white in light mode, dark in dark mode -
+     while each data cell still paints its own light-based tint. */
+  background: transparent;
+}
+.matrix-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Grid lines match the page background rather than drawing a contrasting
+     border. In light mode the cells are pinned light so this body colour is
+     white, giving seamless white lines (cells read apart by their score tint).
+     Dark mode overrides this below to the dark page background. */
+  border: 1px solid var(--bs-body-bg);
+  /* Round each cell so it reads as its own mini-tile (echoing the roll dice)
+     rather than a spreadsheet cell. The separation is still just the existing
+     border - no extra gap is added; the rounded corners only expose the page
+     background where cells meet. */
+  border-radius: 0.35rem;
+  font-weight: 600;
+  /* Larger digits in the data cells only - the selectors size their own text as a
+     fraction of the cell square (.matrix-selector), so this does not touch them. */
+  font-size: x-large;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+/* Dark mode: the cell is pinned light so its own body colour is still white; use
+   the dark page background instead so the grid lines match the dark page behind
+   the grid (light mode keeps the white lines above). */
+:root[data-bs-theme='dark'] .matrix-cell {
+  border-color: var(--bs-dark);
+}
+/* Tint by score value, so a grid of scores reads by colour before the numbers do:
+   red = low, blue = mid, green = high, gold = a perfect 18+. Shared by the roll
+   matrix cells and the rolled-pool dice tiles (both pinned to a light theme
+   context), so a given score looks the same wherever it appears, in either app
+   theme: --bs-body-bg is white here and the accent mixes into a pale tint. */
+.score-tint--low {
+  background: color-mix(in srgb, var(--bs-danger) 20%, var(--bs-body-bg));
+}
+.score-tint--mid {
+  background: color-mix(in srgb, var(--bs-primary) 16%, var(--bs-body-bg));
+}
+.score-tint--high {
+  background: color-mix(in srgb, var(--bs-success) 22%, var(--bs-body-bg));
+}
+.score-tint--perfect {
+  background: color-mix(in srgb, #ffc107 32%, var(--bs-body-bg));
+}
+/* The selectors sit in the outer tracks, each filling one --matrix-cell square so
+   it matches the grid cells exactly. */
+.matrix-selector-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The page-theme body colour (the grid wrapper is not pinned light), so the
+     transparent outline selector buttons sit on the page background - white in
+     light mode, dark in dark mode - instead of the light island's white. */
+  background: var(--bs-body-bg);
+}
+/* Every picker is the same --matrix-cell square (D-uniform selectors). Its text is
+   sized as a fraction of that square, so shrinking --matrix-cell on a phone scales
+   the number and its labels with it instead of overflowing. */
+.matrix-selector {
+  width: 100%;
+  height: 100%;
+  padding: 0.1rem;
+  line-height: 1.05;
+  font-size: calc(var(--matrix-cell) * 0.34);
+}
+.matrix-selector .small {
+  font-size: 0.62em;
+}
+/* Dark mode only: Bootstrap's outline-secondary resting text is #6c757d, which
+   sits at ~2.9:1 on the dark page - hard to read. Lift it to a lighter grey via
+   the button's own --bs-btn-color token, so only the resting text changes; the
+   border (--bs-btn-border-color), hover fill, and selected/filled variants stay
+   put. Light mode keeps #6c757d, which already reads well on white. Only the
+   plain (secondary) selectors are touched - the blue "best" (outline-primary)
+   ones stay coloured because their colour carries meaning. */
+:root[data-bs-theme='dark'] .matrix-selector.btn-outline-secondary {
+  --bs-btn-color: #a7a7a7;
+}
+/* Dark mode only: give the resting (unselected) selectors a fill just lighter than
+   the #212529 page, so they read as raised buttons instead of blending into the
+   background. Set only --bs-btn-bg (resting), so the hover fill and the filled
+   selected variants (primary/warning) keep their own backgrounds. */
+:root[data-bs-theme='dark'] .matrix-selector.btn-outline-secondary,
+:root[data-bs-theme='dark'] .matrix-selector.btn-outline-primary {
+  --bs-btn-bg: #2b3137;
+}
+/* The chosen-line tile row spans exactly the grid's rendered width (8 cell tracks
+   + the 2 spacer tracks, matching the inline gridTemplateColumns), and distributes
+   its tiles with space-between, so the leftmost tile aligns with the grid's left
+   edge and the rightmost with its right edge. Both this and .matrix-grid clamp to
+   100%, so they stay aligned even when the grid is capped on a narrow screen. */
+.matrix-line-tiles {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  width: calc(8 * var(--matrix-cell) + 2 * var(--matrix-gap));
+  max-width: 100%;
+}
+/* Overlay layer: stretched over the cell block, drawn above the cells, and
+   click-through so the cells and pickers stay interactive. */
+.matrix-lines {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.matrix-line {
+  fill: none;
+}
+/* Both lines are thin, solid, and semi-transparent so the score numbers stay
+   readable through them; colour alone tells them apart - blue for the picked
+   line, grey for the hover/focus preview of a line about to be picked. */
+.matrix-line--selected {
+  stroke: var(--bs-primary);
+  stroke-width: 2;
+  opacity: 0.3;
+}
+.matrix-line--hover {
+  stroke: #6c757d;
+  stroke-width: 2;
+  opacity: 0.3;
+}
+/* Other lines tied for the best total: same blue as the pick but fainter and
+   thinner, so they read as "also a top option" without competing with the one
+   the player has actually selected. */
+.matrix-line--best {
+  stroke: var(--bs-primary);
+  stroke-width: 1.5;
+  opacity: 0.24;
+}
+/* A best line that also lands at least one 18: the strongest possible pick, so
+   it is drawn gold and outranks any blue. Gold reads harder than the accent
+   blue, so it runs 1px thicker than the selected line to stay legible. */
+.matrix-line--gold {
+  stroke: var(--cc-score-gold);
+  stroke-width: 3;
+  opacity: 0.55;
+}
+
+@media (max-width: 767.98px) {
+  /* Smaller square on phones; cells, selectors, and their text all follow it. */
+  .matrix-roll {
+    --matrix-cell: 2.5rem;
+  }
+  .data-table-split {
+    flex-direction: column;
+  }
+  /* On narrow screens the drag handle is meaningless; the panes just stack. */
+  .data-table-split__master {
+    flex-basis: auto !important;
+  }
+  .data-table-split__handle {
+    display: none;
+  }
+  .data-table-split__detail {
+    border-left: none;
+    border-top: 1px solid var(--bs-border-color);
+  }
+}
+
+/*
+ * Gauntlet method (homebrew): six 3d6 slots, each a roll-die tile (styling shared
+ * with .roll-die inside a pinned light island) plus its reroll control and the
+ * odds of beating the current total. All six totals are live at once, so the tiles
+ * need no extra state styling of their own.
+ */
+
+/*
+ * The Pool method (homebrew): 18 draggable d6 sorted into six groups of three.
+ * Dice, groups, and the pool bank all use Bootstrap CSS variables so light/dark
+ * theming is automatic (unlike the roll tiles, these are not pinned light - the
+ * pip icons and group sums read correctly on the page background in either theme).
+ */
+.pool-die {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.25rem;
+  border: 2px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: grab;
+}
+.pool-die:hover {
+  border-color: var(--bs-primary);
+}
+.pool-die:active {
+  cursor: grabbing;
+}
+.pool-die--placed {
+  background: var(--bs-secondary-bg);
+}
+.pool-group {
+  height: 100%;
+  padding: 0.5rem;
+  border: 2px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  background: var(--bs-body-bg);
+}
+.pool-group--selected {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.15rem color-mix(in srgb, var(--bs-primary) 35%, transparent);
+}
+.pool-group__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0 0 0.5rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.pool-group__sum {
+  margin-left: auto;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.pool-group__dice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-height: 3rem;
+}
+.pool-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  min-height: 3.5rem;
+  padding: 0.5rem;
+  border: 2px dashed var(--bs-border-color);
+  border-radius: 0.5rem;
+  background: var(--bs-secondary-bg);
+}
+
+/*
+ * Compare classes modal: user-resizable (UX request). Bootstrap's .modal-dialog
+ * caps its own width via max-width, which would fight a wider drag, so the dialog
+ * drops that cap and the content box itself carries the size and the resize grip.
+ */
+.compare-modal-dialog {
+  max-width: none;
+}
+/* Dropping the width cap lets the centered dialog (a flex row via .modal-dialog-
+   centered) stretch the full viewport, so its default flex-start would pin the
+   sized content box to the left. Centre it horizontally; vertical centring already
+   comes from .modal-dialog-centered's align-items. */
+.compare-modal-dialog.modal-dialog-centered {
+  justify-content: center;
+}
+/* The content box opens at a sensible default and the user drags from there. CSS
+   `resize` needs a non-visible overflow to take effect; the flex body inside owns
+   the single scroll region, so hiding the content's own overflow is safe. Min/max
+   keep the grip from collapsing the modal to nothing or dragging it off-screen. */
+.compare-modal-content {
+  width: min(1140px, 95vw);
+  height: 82vh;
+  min-width: 520px;
+  min-height: 360px;
+  max-width: 96vw;
+  max-height: 94vh;
+  overflow: hidden;
+  resize: both;
+}

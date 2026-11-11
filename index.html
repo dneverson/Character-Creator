@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Dungeons & Dragons 5th Edition character creator. Data from 5etools."
+    />
+    <!-- Static title: mirrors appConfig.name (src/config/app.ts); App.tsx resets it at runtime. -->
+    <title>D&D 5e Character Creator</title>
+    <script>
+      // Apply the saved (or system) theme before first paint to avoid a flash.
+      // NOTE: 'cc-theme' must match appConfig.storageKeys.theme (src/config/app.ts).
+      // This inline script runs before the bundle, so it cannot import the config.
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('cc-theme')
+          var theme =
+            stored === 'light' || stored === 'dark'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+          document.documentElement.setAttribute('data-bs-theme', theme)
+        } catch (e) {
+          /* localStorage unavailable - fall back to default light */
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

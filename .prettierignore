@@ -1,0 +1,7 @@
+dist
+node_modules
+pnpm-lock.yaml
+legacy
+.local
+public/data
+docs/DATA_CATALOG.md
