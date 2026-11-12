@@ -15,7 +15,6 @@ import {
   itemRowMeta,
   itemSearchText,
   itemTags,
-  withItemVersions,
 } from './itemFacts'
 
 interface Props {
@@ -34,7 +33,6 @@ export function BaseItemChooser({ template, rows, edition, onChoose, onHide }: P
     () => (template ? rows.filter((row) => variantApplies(template, row)) : []),
     [template, rows],
   )
-  const columns = useMemo(() => withItemVersions(itemColumns), [])
   const rowMeta = useMemo(() => itemRowMeta(edition), [edition])
   return (
     <Modal show={template !== undefined} onHide={onHide} size="xl" scrollable>
@@ -48,7 +46,7 @@ export function BaseItemChooser({ template, rows, edition, onChoose, onHide }: P
           <BrowseTable<Item>
             tableId="item-base-chooser"
             rows={fitting}
-            columns={columns}
+            columns={itemColumns}
             idOf={itemKey}
             nameOf={itemName}
             tagsOf={itemTags}

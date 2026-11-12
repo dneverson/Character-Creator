@@ -21,6 +21,14 @@ export interface Fact<T> {
   text: (entry: T) => string
   /** Draws the value where plain text will not do. Not called for an empty value. */
   render?: (entry: T) => ReactNode
+  /**
+   * What the fact is, for a layout that gives these a place of their own (the book
+   * style of the detail pane). `summary` facts read as one italic line under the name,
+   * `body` is the entry's running text, `source`, `page`, `free` (in the free rules)
+   * and `edition` are where the entry is printed. Left out, a fact is a plain
+   * label and value.
+   */
+  role?: 'summary' | 'body' | 'source' | 'page' | 'free' | 'edition'
 }
 
 export interface FactGroup<T> {

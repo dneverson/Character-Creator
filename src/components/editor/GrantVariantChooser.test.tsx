@@ -70,14 +70,7 @@ const byName = spellsByName(
 
 describe('GrantVariantChooser', () => {
   it('shows what each set gives by level, with levels not reached as "at level N"', () => {
-    render(
-      <GrantVariantChooser
-        set={SET}
-        byName={byName}
-        twins={new Set()}
-        editChoice={vi.fn()}
-      />,
-    )
+    render(<GrantVariantChooser set={SET} byName={byName} editChoice={vi.fn()} />)
     expect(
       screen.getByText('Level 3: Hold Person; At level 5: Sleet Storm'),
     ).toBeInTheDocument()
@@ -90,14 +83,7 @@ describe('GrantVariantChooser', () => {
   it('compares sets side by side and takes one from its row', async () => {
     const user = userEvent.setup()
     const editChoice = vi.fn()
-    render(
-      <GrantVariantChooser
-        set={SET}
-        byName={byName}
-        twins={new Set()}
-        editChoice={editChoice}
-      />,
-    )
+    render(<GrantVariantChooser set={SET} byName={byName} editChoice={editChoice} />)
     for (const box of screen.getAllByRole('checkbox').slice(-2)) await user.click(box)
     await user.click(screen.getByRole('button', { name: /^Compare \(2\)/ }))
     const modal = within(await screen.findByRole('dialog'))
@@ -125,7 +111,6 @@ describe('GrantVariantChooser', () => {
       <GrantVariantChooser
         set={{ ...SET, selected: 'Arctic' }}
         byName={byName}
-        twins={new Set()}
         editChoice={editChoice}
       />,
     )

@@ -47,7 +47,6 @@ import {
   itemRowMeta,
   itemSearchText,
   itemTags,
-  withItemVersions,
 } from './itemFacts'
 
 type Which = 'class' | 'background'
@@ -93,14 +92,13 @@ function PickSlot({
   onChoose,
 }: PickSlotProps) {
   const fitting = useMemo(() => pickRows(pick, rows, edition), [rows, pick, edition])
-  const columns = useMemo(() => withItemVersions(itemColumns), [])
   const rowMeta = useMemo(() => itemRowMeta(edition), [edition])
   return (
     <div className="mt-2">
       <PickOne<Item>
         tableId="starting-pick"
         rows={fitting}
-        columns={columns}
+        columns={itemColumns}
         idOf={itemKey}
         nameOf={itemName}
         tagsOf={itemTags}

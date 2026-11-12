@@ -63,8 +63,8 @@ export const attributes: Fact<ClassRow>[] = [
     text: (r) => upper(r.loaded.entry.proficiency) || 'None',
   },
   { key: 'casting', label: 'Spellcasting', text: (r) => castingWithAbility(r.loaded) },
-  { key: 'source', label: 'Source', text: (r) => rowSource(r) },
-  { key: 'edition', label: 'Edition', text: (r) => rowEdition(r) },
+  { key: 'source', role: 'source', label: 'Source', text: (r) => rowSource(r) },
+  { key: 'edition', role: 'edition', label: 'Edition', text: (r) => rowEdition(r) },
   {
     key: 'subclassAt',
     label: 'Subclass chosen at',

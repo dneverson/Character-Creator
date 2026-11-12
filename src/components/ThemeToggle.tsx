@@ -1,4 +1,5 @@
 import Dropdown from 'react-bootstrap/Dropdown'
+import { DETAIL_STYLES } from '../theme/detailStyle'
 import { useTheme } from '../theme/theme-context'
 import type { ThemeMode } from '../theme/theme-context'
 import { Icon, type IconName } from './Icon'
@@ -11,7 +12,7 @@ const OPTIONS: { mode: ThemeMode; label: string; icon: IconName }[] = [
 
 /** Theme switcher: Light / Dark / System, persisted per browser. */
 export function ThemeToggle() {
-  const { mode, resolved, setMode } = useTheme()
+  const { mode, resolved, setMode, detailStyle, setDetailStyle } = useTheme()
   const current = OPTIONS.find((o) => o.mode === mode) ?? OPTIONS[2]
 
   return (
@@ -32,6 +33,17 @@ export function ThemeToggle() {
             onClick={() => setMode(o.mode)}
           >
             <Icon name={o.icon} className="me-2" />
+            {o.label}
+          </Dropdown.Item>
+        ))}
+        <Dropdown.Divider />
+        <Dropdown.Header>Detail pane style</Dropdown.Header>
+        {DETAIL_STYLES.map((o) => (
+          <Dropdown.Item
+            key={o.style}
+            active={o.style === detailStyle}
+            onClick={() => setDetailStyle(o.style)}
+          >
             {o.label}
           </Dropdown.Item>
         ))}

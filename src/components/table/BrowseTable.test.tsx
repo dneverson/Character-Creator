@@ -141,6 +141,41 @@ describe('BrowseTable', () => {
     expect(release).toHaveBeenCalledWith('dog')
   })
 
+  it('shows a row action as a plus (add) or a minus (remove) icon, and the pane keeps its words', async () => {
+    const user = userEvent.setup()
+    renderTable({
+      action: {
+        header: 'Keep',
+        of: (p) =>
+          p.id === 'dog'
+            ? {
+                label: 'Release',
+                detailLabel: 'Release this pet',
+                variant: 'danger',
+                run() {},
+              }
+            : { label: 'Adopt', detailLabel: 'Adopt this pet', run() {} },
+      },
+    })
+    const adopt = within(rowOf('Cat')).getByRole('button', { name: 'Adopt' })
+    expect(adopt).toHaveTextContent('')
+    expect(adopt.querySelector('i')).toHaveClass('bi-plus-lg')
+    expect(adopt).toHaveClass('btn-primary', 'row-action-btn')
+    const release = within(rowOf('Dog')).getByRole('button', { name: 'Release' })
+    expect(release.querySelector('i')).toHaveClass('bi-dash-lg')
+    expect(release).toHaveClass('btn-danger', 'row-action-btn')
+
+    // The tooltip repeats the exact words.
+    await user.hover(adopt)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Adopt')
+
+    // The detail pane keeps the full text button.
+    await user.click(screen.getByText('Dog'))
+    expect(
+      within(detailPane()).getByRole('button', { name: 'Release this pet' }),
+    ).toHaveTextContent('Release this pet')
+  })
+
   it('uses the short label in the detail pane when there is no longer one', async () => {
     const user = userEvent.setup()
     renderTable({ action: { header: 'Adopt', of: () => ({ label: 'Adopt', run() {} }) } })

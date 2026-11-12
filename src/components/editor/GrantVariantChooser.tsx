@@ -30,7 +30,6 @@ interface Option {
 interface Props {
   set: SpellVariantSet
   byName: Map<string, Spell[]>
-  twins: Set<string>
   editChoice: (
     id: string,
     change: (choice: GrantedSpellChoice) => GrantedSpellChoice,
@@ -67,7 +66,7 @@ const choicesText = (option: Option) =>
     )
     .join(', ')
 
-export function GrantVariantChooser({ set, byName, twins, editChoice }: Props) {
+export function GrantVariantChooser({ set, byName, editChoice }: Props) {
   const options = useMemo(
     () =>
       set.options.map(({ name, grants }): Option => ({
@@ -168,7 +167,6 @@ export function GrantVariantChooser({ set, byName, twins, editChoice }: Props) {
           <SpellLines
             tableId="spell-variant"
             lines={lines(o)}
-            twins={twins}
             label={`${o.name} spells`}
           />
         </div>

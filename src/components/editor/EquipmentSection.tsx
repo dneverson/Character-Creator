@@ -59,7 +59,6 @@ import {
   itemSearchText,
   itemSummaryColumns,
   itemTags,
-  withItemVersions,
 } from './itemFacts'
 
 const COINS: (keyof Currency)[] = ['pp', 'gp', 'ep', 'sp', 'cp']
@@ -178,10 +177,7 @@ export function EquipmentSection() {
     const quantityOf = (item: Item) => stackOf.get(item.key)?.quantity ?? 1
     const weighed = (item: Item) =>
       item.weight === undefined ? undefined : oneDecimal(item.weight * quantityOf(item))
-    const base = withItemVersions([
-      ...itemSummaryColumns,
-      ...itemColumns.filter((c) => c.key === 'rarity'),
-    ])
+    const base = [...itemSummaryColumns, ...itemColumns.filter((c) => c.key === 'rarity')]
     const column = (key: string) => base.find((c) => c.key === key) as Column<Item>
     return [
       {
@@ -217,6 +213,7 @@ export function EquipmentSection() {
           )
         },
       },
+      column('edition'),
       {
         key: 'equipped',
         header: 'Equipped',
@@ -308,7 +305,6 @@ export function EquipmentSection() {
       },
     ]
   }, [stackOf, catalog, strength, classNames])
-  const lookupColumns = useMemo(() => withItemVersions(itemColumns), [])
 
   if (!character) return null
   const equipment = character.equipment
@@ -431,7 +427,7 @@ export function EquipmentSection() {
           <PickMany<Item>
             tableId="item-reference"
             rows={lookupRows}
-            columns={lookupColumns}
+            columns={itemColumns}
             idOf={itemKey}
             nameOf={itemName}
             tagsOf={itemTags}

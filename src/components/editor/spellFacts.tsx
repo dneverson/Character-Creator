@@ -33,12 +33,14 @@ const classNames = perEntry((spell: Spell): string[] => [
 
 const level: Fact<Spell> = {
   key: 'level',
+  role: 'summary',
   label: 'Level',
   text: (spell) => spellLevelLabel(spell.level),
 }
 
 const school: Fact<Spell> = {
   key: 'school',
+  role: 'summary',
   label: 'School',
   text: (spell) => schoolName(spell.school),
 }
@@ -229,6 +231,7 @@ const upgradeEntries = (spell: Spell) =>
 
 const description: Fact<Spell> = {
   key: 'description',
+  role: 'body',
   label: 'Description',
   text: (spell) => entriesText(spell.entries),
   render: (spell) => <Entries entries={spell.entries} />,
@@ -364,6 +367,7 @@ export const spellCantripColumns: Column<Spell>[] = spellColumns.map((column) =>
 
 const SUMMARY_KEYS = [
   'name',
+  'edition',
   'level',
   'casting',
   'range',
@@ -392,34 +396,6 @@ export const grantedColumn = (notes: Map<string, string>): Column<Spell> => ({
   sortValue: (spell) => notes.get(spell.key) ?? '',
   filterable: false,
 })
-
-/**
- * The columns with the edition year beside the name of each spell printed in both
- * editions (its key is in `twins`), so two rows of one name are never alike.
- */
-export const withVersions = (
-  columns: Column<Spell>[],
-  twins: Set<string> | undefined,
-): Column<Spell>[] =>
-  !twins || twins.size === 0
-    ? columns
-    : columns.map((column) =>
-        column.key === 'name'
-          ? {
-              ...column,
-              render: (spell) => (
-                <>
-                  {column.render(spell)}
-                  {twins.has(spell.key) && (
-                    <Badge bg="light" text="dark" className="ms-1 border">
-                      {editionYear(spell.edition)}
-                    </Badge>
-                  )}
-                </>
-              ),
-            }
-          : column,
-      )
 
 /** Everything the search box looks through for a spell: what it is and what it does. */
 export const spellSearchText = perEntry((spell: Spell) =>

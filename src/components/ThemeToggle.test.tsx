@@ -31,4 +31,21 @@ describe('ThemeToggle', () => {
     await user.click(screen.getByRole('button', { name: /Light/i }))
     expect(document.documentElement.getAttribute('data-bs-theme')).toBe('light')
   })
+
+  it('offers the detail pane style beside the theme and remembers the choice', async () => {
+    const user = userEvent.setup()
+    render(
+      <ThemeProvider>
+        <ThemeToggle />
+      </ThemeProvider>,
+    )
+    await user.click(screen.getByRole('button', { name: 'Theme: System' }))
+    expect(screen.getByText('Detail pane style')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Standard' })).toHaveClass('active')
+    await user.click(screen.getByRole('button', { name: 'Parchment' }))
+    expect(document.documentElement.getAttribute('data-detail-style')).toBe('parchment')
+    expect(localStorage.getItem('cc-detail-style')).toBe('parchment')
+    await user.click(screen.getByRole('button', { name: 'Theme: System' }))
+    expect(screen.getByRole('button', { name: 'Parchment' })).toHaveClass('active')
+  })
 })

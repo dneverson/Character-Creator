@@ -202,9 +202,6 @@ export const beastColumns: Column<Beast>[] = [
     render: (b) => (
       <>
         <strong>{b.name}</strong>
-        <Badge bg="secondary" className="ms-2">
-          {editionYear(b.edition)}
-        </Badge>
         {b.swarm && (
           <Badge bg="secondary" className="ms-2">
             Swarm
@@ -268,7 +265,7 @@ export const beastColumns: Column<Beast>[] = [
   factColumn(traitNames, { filterable: false, defaultHidden: true }),
 ]
 
-const SUMMARY_KEYS = ['name', 'cr', 'size', 'ac', 'hp', 'speed']
+const SUMMARY_KEYS = ['name', 'edition', 'cr', 'size', 'ac', 'hp', 'speed']
 
 /** The short table of chosen forms: the stats played with, nothing to hunt through. */
 export const beastSummaryColumns: Column<Beast>[] = SUMMARY_KEYS.flatMap((key) =>

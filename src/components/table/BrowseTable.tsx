@@ -12,6 +12,7 @@ import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
 import Stack from 'react-bootstrap/Stack'
 import { NonStandardBadge } from '../NonStandardBadge'
+import { RowActionButton } from './RowActionButton'
 import { CompareModal } from './CompareModal'
 import { DataTable } from './DataTable'
 import { EntryDetail } from './EntryDetail'
@@ -184,23 +185,20 @@ export function BrowseTable<T>({
         {
           key: action.key ?? 'action',
           action: true,
+          className: 'data-table-grid__action',
+          headerClassName: 'data-table-grid__action',
           header: action.header,
           render: (row) => {
             const act = action.of(row)
             if (!act) return null
             return (
-              <Button
-                size="sm"
+              <RowActionButton
+                label={act.label}
+                kind={act.variant === 'danger' ? 'remove' : 'add'}
                 variant={act.variant ?? 'primary'}
                 disabled={!canRun(row, act)}
-                onClick={(e) => {
-                  // The click is the action, not a request for the row's detail.
-                  e.stopPropagation()
-                  act.run()
-                }}
-              >
-                {act.label}
-              </Button>
+                onClick={act.run}
+              />
             )
           },
         },
@@ -319,9 +317,13 @@ export function BrowseTable<T>({
         renderDetail={(row) => {
           const act = action?.of(row)
           return (
-            <div>
-              {act && (
-                <div className="p-3 pb-0">
+            <EntryDetail
+              entry={row}
+              describe={describeWithRules}
+              name={nameOf(row)}
+              tags={tagsOf?.(row)}
+              action={
+                act && (
                   <Button
                     size="sm"
                     variant={act.variant ?? 'primary'}
@@ -330,17 +332,11 @@ export function BrowseTable<T>({
                   >
                     {act.detailLabel ?? act.label}
                   </Button>
-                </div>
-              )}
-              <EntryDetail
-                entry={row}
-                describe={describeWithRules}
-                name={nameOf(row)}
-                tags={tagsOf?.(row)}
-              >
-                {detailFooter?.(row)}
-              </EntryDetail>
-            </div>
+                )
+              }
+            >
+              {detailFooter?.(row)}
+            </EntryDetail>
           )
         }}
         detail={{ tableShare }}

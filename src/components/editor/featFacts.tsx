@@ -229,6 +229,7 @@ export const featSummary: Fact<Feat>[] = [
 
 const description: Fact<Feat> = {
   key: 'description',
+  role: 'body',
   label: 'Description',
   text: (feat) => (feat.entries.length > 0 ? JSON.stringify(feat.entries) : ''),
   render: (feat) => <Entries entries={feat.entries} />,

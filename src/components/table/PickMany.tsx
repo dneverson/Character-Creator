@@ -16,6 +16,7 @@ import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
 import { NonStandardBadge } from '../NonStandardBadge'
+import { RowActionButton } from './RowActionButton'
 import { BrowseTable, type BrowseTableProps, type RowAction } from './BrowseTable'
 import { usePickerBrowsing, type PickerBrowsingProps } from './pickerBrowsing'
 import type { Column, RowMeta } from './types'
@@ -87,17 +88,15 @@ function QuantityCell({
   const [draft, setDraft] = useState<string>()
   return (
     <span className="d-inline-flex align-items-center gap-1">
-      <Button
-        size="sm"
+      <RowActionButton
+        label={`One fewer ${name}`}
+        kind="remove"
         variant="secondary"
-        aria-label={`One fewer ${name}`}
         onClick={() => {
           setDraft(undefined)
           onChange(quantity - 1)
         }}
-      >
-        -
-      </Button>
+      />
       <Form.Control
         type="number"
         size="sm"
@@ -112,17 +111,15 @@ function QuantityCell({
           if (e.target.value !== '' && Number.isFinite(n)) onChange(n)
         }}
       />
-      <Button
-        size="sm"
+      <RowActionButton
+        label={`One more ${name}`}
+        kind="add"
         variant="secondary"
-        aria-label={`One more ${name}`}
         onClick={() => {
           setDraft(undefined)
           onChange(quantity + 1)
         }}
-      >
-        +
-      </Button>
+      />
     </span>
   )
 }

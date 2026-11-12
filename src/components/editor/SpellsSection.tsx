@@ -364,7 +364,6 @@ export function SpellsSection() {
             grants={cardAndPlaced}
             byKey={byKey}
             byName={byName}
-            twins={twins}
             removeClassPick={(classKey, spell) =>
               edit(classKey, (c) => ({
                 ...c,
@@ -730,7 +729,6 @@ function CasterCard({
               </div>
             )}
             <SpellPicker
-              twins={twins}
               rows={body.rows}
               picked={body.picked}
               fixed={

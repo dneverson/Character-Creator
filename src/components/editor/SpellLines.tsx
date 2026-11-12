@@ -3,7 +3,6 @@
 // whole list. The same stats as every spell table (spellFacts), drawn once more
 // around a spell line instead of a bare spell.
 
-import { useMemo } from 'react'
 import type { Spell } from '../../data/spells'
 import { BrowseTable } from '../table/BrowseTable'
 import { factColumn, type Describe, type Fact, type FactGroup } from '../table/facts'
@@ -14,7 +13,6 @@ import {
   spellSearchText,
   spellSummaryColumns,
   spellTags,
-  withVersions,
 } from './spellFacts'
 
 /** One spell the character has, and what it owes to whatever gives it. */
@@ -71,24 +69,20 @@ const describeLines: Describe<SpellLine> = (lines) => [
 ]
 
 /** How it is cast and from what come right after the name: they are why the spell is here. */
-const columnsFor = (twins: Set<string> | undefined): Column<SpellLine>[] => {
-  const [name, ...stats] = withVersions(spellSummaryColumns, twins).map(lineColumn)
+const columns: Column<SpellLine>[] = (() => {
+  const [name, ...stats] = spellSummaryColumns.map(lineColumn)
   return [name, factColumn(castFact), factColumn(fromFact), ...stats]
-}
+})()
 
 export function SpellLines({
   tableId,
   lines,
   label,
-  twins,
 }: {
   tableId: string
   lines: SpellLine[]
   label: string
-  /** Spells printed in both editions: each row says which version it is. */
-  twins?: Set<string>
 }) {
-  const columns = useMemo(() => columnsFor(twins), [twins])
   return (
     <BrowseTable<SpellLine>
       tableId={tableId}

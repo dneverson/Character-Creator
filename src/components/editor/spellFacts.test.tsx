@@ -13,7 +13,6 @@ import {
   spellSearchText,
   spellSummaryColumns,
   spellTags,
-  withVersions,
 } from './spellFacts'
 
 const fireball = makeSpell({
@@ -169,25 +168,13 @@ describe('spell facts', () => {
 })
 
 describe('spell versions', () => {
-  const name = (columns: typeof spellColumns, spell: Spell) => {
-    const column = columns.find((c) => c.key === 'name')
-    if (!column) throw new Error('no name column')
-    render(<>{column.render(spell)}</>)
-  }
-
-  it('puts the edition year by the name of a spell printed in both editions only', () => {
-    const twins = new Set([fireball.key])
-    expect(withVersions(spellColumns, new Set())).toBe(spellColumns)
-    expect(withVersions(spellColumns, undefined)).toBe(spellColumns)
-    name(withVersions(spellColumns, twins), fireball)
-    expect(screen.getByText('2024')).toBeInTheDocument()
-  })
-
-  it('leaves a spell with no namesake alone and keeps the other columns', () => {
-    const columns = withVersions(spellColumns, new Set(['other|phb']))
-    expect(columns.map((c) => c.key)).toEqual(spellColumns.map((c) => c.key))
-    name(columns, fireball)
+  it('keeps the edition out of the name cell and in a visible Edition column after Source', () => {
+    const name = spellColumns.find((c) => c.key === 'name')
+    render(<>{name?.render(fireball)}</>)
     expect(screen.queryByText('2024')).not.toBeInTheDocument()
+    const keys = spellColumns.filter((c) => !c.defaultHidden).map((c) => c.key)
+    expect(keys[keys.indexOf('source') + 1]).toBe('edition')
+    expect(spellSummaryColumns.map((c) => c.key).slice(0, 2)).toEqual(['name', 'edition'])
   })
 })
 
@@ -321,6 +308,7 @@ describe('spell columns', () => {
   it('shortens the picks table to the stats played with', () => {
     expect(spellSummaryColumns.map((c) => c.key)).toEqual([
       'name',
+      'edition',
       'level',
       'casting',
       'range',

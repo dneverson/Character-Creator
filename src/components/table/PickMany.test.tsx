@@ -389,6 +389,9 @@ describe('PickMany with a quantity', () => {
     const user = userEvent.setup()
     render(<Counted />)
     const box = screen.getByRole('spinbutton', { name: 'Quantity of Cat' })
+    // The steppers are the same plus and minus icons as a row's action.
+    expect(button('One more Cat').querySelector('i')).toHaveClass('bi-plus-lg')
+    expect(button('One fewer Cat').querySelector('i')).toHaveClass('bi-dash-lg')
     await user.click(button('One more Cat'))
     expect(box).toHaveValue(2)
     await user.click(button('One fewer Cat'))

@@ -4,10 +4,7 @@
 import { SpellLines } from './SpellLines'
 import { yourSpellLines, type YourSpellsInputs } from './yourSpellLines'
 
-export function YourSpells({
-  twins,
-  ...props
-}: YourSpellsInputs & { twins: Set<string> }) {
+export function YourSpells(props: YourSpellsInputs) {
   const { lines, granted } = yourSpellLines(props)
   if (lines.length === 0) return null
   return (
@@ -16,7 +13,7 @@ export function YourSpells({
       <div className="small text-body-secondary mb-2">
         {lines.length} {lines.length === 1 ? 'spell' : 'spells'}, {granted} granted
       </div>
-      <SpellLines tableId="spell-yours" lines={lines} label="Your spells" twins={twins} />
+      <SpellLines tableId="spell-yours" lines={lines} label="Your spells" />
     </section>
   )
 }

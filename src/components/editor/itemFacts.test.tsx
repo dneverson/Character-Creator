@@ -18,7 +18,6 @@ import {
   itemSearchText,
   itemSummaryColumns,
   itemTags,
-  withItemVersions,
 } from './itemFacts'
 
 const longsword = makeItem({
@@ -435,6 +434,7 @@ describe('the item table', () => {
   it('keeps a short table of the stats played with', () => {
     expect(itemSummaryColumns.map((c) => c.key)).toEqual([
       'name',
+      'edition',
       'type',
       'damage',
       'damageType',
@@ -447,17 +447,15 @@ describe('the item table', () => {
 })
 
 describe('the two editions of an item', () => {
-  it('puts the edition year beside the name of an item with a twin only', () => {
-    const name = withItemVersions(itemColumns).find((c) => c.key === 'name')
-    render(
-      <>
-        {name?.render(longsword)}
-        {name?.render(longbow)}
-      </>,
-    )
-    expect(screen.getAllByText('2024')).toHaveLength(1)
-    expect(screen.getByText('Longbow')).toBeInTheDocument()
-    expect(withItemVersions(itemColumns)).toHaveLength(itemColumns.length)
+  it('keeps the edition out of the name cell and in a column of its own, after the name in the short table', () => {
+    const name = itemColumns.find((c) => c.key === 'name')
+    render(<>{name?.render(longsword)}</>)
+    expect(screen.queryByText('2024')).not.toBeInTheDocument()
+    expect(screen.getByText('Longsword')).toBeInTheDocument()
+    const edition = itemColumns.find((c) => c.key === 'edition')
+    expect(edition?.defaultHidden).toBeUndefined()
+    expect(edition?.render(longsword)).toBe('2024')
+    expect(itemSummaryColumns.map((c) => c.key).slice(0, 2)).toEqual(['name', 'edition'])
   })
 
   it('greys the other edition of an item and says which one to choose', () => {

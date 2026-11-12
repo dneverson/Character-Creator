@@ -3,7 +3,6 @@
 // player choose), so the columns, the limit, the compact table of picks and the
 // switch for non-standard choices are the same everywhere.
 
-import { useMemo } from 'react'
 import type { Spell } from '../../data/spells'
 import { PickMany, type PickManyLimit } from '../table/PickMany'
 import type { RowMeta } from '../table/types'
@@ -18,7 +17,6 @@ import {
   spellSearchText,
   spellSummaryColumns,
   spellTags,
-  withVersions,
 } from './spellFacts'
 
 type Meta = Omit<RowMeta, 'id'>
@@ -29,8 +27,6 @@ export interface SpellPickerProps {
   picked: Spell[]
   /** Spells there whatever is picked, with a note on where each comes from. */
   fixed?: { spells: Spell[]; notes: Map<string, string> }
-  /** Spells printed in both editions: each row says which version it is. */
-  twins?: Set<string>
   /** What is chosen, plural ("Cleric cantrips"). */
   noun: string
   limit?: PickManyLimit
@@ -55,7 +51,6 @@ export function SpellPicker({
   rows,
   picked,
   fixed,
-  twins,
   noun,
   limit,
   cantrips,
@@ -72,15 +67,8 @@ export function SpellPicker({
 }: SpellPickerProps) {
   const granted = fixed !== undefined && fixed.spells.length > 0
   const notes = fixed?.notes
-  const columns = useMemo(
-    () => withVersions(cantrips ? spellCantripColumns : spellColumns, twins),
-    [cantrips, twins],
-  )
-  const summary = useMemo(
-    () =>
-      withVersions(cantrips ? spellCantripSummaryColumns : spellSummaryColumns, twins),
-    [cantrips, twins],
-  )
+  const columns = cantrips ? spellCantripColumns : spellColumns
+  const summary = cantrips ? spellCantripSummaryColumns : spellSummaryColumns
   return (
     <PickMany<Spell>
       // The cantrip tier hides Level, and a layout is remembered per table.

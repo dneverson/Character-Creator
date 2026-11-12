@@ -40,6 +40,7 @@ export const appConfig = {
    */
   storageKeys: {
     theme: 'cc-theme',
+    detailStyle: 'cc-detail-style',
     characters: 'cc-characters',
     charactersMoved: 'cc-characters-moved',
   },

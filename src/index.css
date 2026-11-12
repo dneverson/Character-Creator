@@ -241,6 +241,8 @@ body {
 .data-table-grid {
   max-height: 60vh;
   overflow: auto;
+  /* Table text, cells and headers, is 14px; the detail pane keeps the page's size. */
+  font-size: 0.875rem;
 }
 /* The same table in a full-screen window has the whole height to scroll in. */
 .data-table-fullscreen .data-table-grid,
@@ -362,6 +364,18 @@ body {
 }
 .data-table-detail {
   height: 100%;
+}
+/* A row's plus / minus button: one size everywhere, in one fixed-width action column. */
+.row-action-btn {
+  width: 2rem;
+  padding-inline: 0;
+  text-align: center;
+}
+.data-table-grid th.data-table-grid__action,
+.data-table-grid td.data-table-grid__action {
+  width: 5.5rem;
+  min-width: 5.5rem;
+  max-width: 5.5rem;
 }
 /* Centre the row-select checkbox in its cell. The cell itself is centred by the
    `align-middle text-center` utilities; Bootstrap's `.form-check` still floats
@@ -656,7 +670,10 @@ body {
   .data-table-split__handle {
     display: none;
   }
+  /* Stacked, the pane's height comes from its content: the wide layout's
+     'flex: 1 1 0' has a zero basis, which collapses a column item to its border. */
   .data-table-split__detail {
+    flex: 0 0 auto;
     border-left: none;
     border-top: 1px solid var(--bs-border-color);
   }
@@ -798,4 +815,123 @@ body {
 .class-level-table__ahead {
   color: var(--bs-secondary-color);
   opacity: 0.7;
+}
+
+/*
+ * Detail pane styles (src/theme/detailStyle.ts). The setting is one attribute on
+ * the root, data-detail-style: "standard" (the table of facts, nothing here applies),
+ * "book" (a book entry on the page) and "parchment" (the same on a paper panel).
+ * Everything the book styles draw comes from the --detail-* variables below, so a
+ * template can supply its own set. The hex values are mirrored in DETAIL_PALETTE.
+ */
+:root[data-detail-style='book'],
+:root[data-detail-style='parchment'] {
+  --detail-font: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+  --detail-title-color: #7a1f1f;
+  --detail-rule-color: var(--detail-title-color);
+  --detail-ink: var(--bs-body-color);
+}
+:root[data-bs-theme='dark'][data-detail-style='book'],
+:root[data-bs-theme='dark'][data-detail-style='parchment'] {
+  --detail-title-color: #e0c080;
+}
+:root[data-detail-style='parchment'] {
+  --detail-ground: #fdf1dc;
+  --detail-ink: #2b2118;
+  --detail-border: #dcc9a3;
+}
+:root[data-bs-theme='dark'][data-detail-style='parchment'] {
+  --detail-ground: #2b2722;
+  --detail-ink: #eadfc8;
+  --detail-border: #4a4237;
+}
+.entry-book {
+  font-family: var(--detail-font);
+  color: var(--detail-ink);
+}
+/* The panel: the ink and ground also reach the Bootstrap tokens, so a table or a
+   muted line inside the entry stays readable on the paper. */
+:root[data-detail-style='parchment'] .entry-book {
+  --bs-body-color: var(--detail-ink);
+  --bs-emphasis-color: var(--detail-ink);
+  --bs-secondary-color: color-mix(in srgb, var(--detail-ink) 75%, var(--detail-ground));
+  --bs-body-bg: var(--detail-ground);
+  --bs-border-color: var(--detail-border);
+  background: var(--detail-ground);
+  border: 1px solid var(--detail-border);
+  border-radius: 0.25rem;
+  margin: 0.5rem;
+}
+.entry-book__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  /* Clear of the close button in the pane's corner. */
+  padding-right: 2.5rem;
+}
+.entry-book__title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.02em;
+  color: var(--detail-title-color);
+}
+.entry-book__printed {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 0.4rem;
+  font-family: var(--bs-font-sans-serif);
+  font-size: 0.75rem;
+  color: var(--detail-title-color);
+}
+.entry-book__summary {
+  margin: 0.15rem 0 0.5rem;
+  font-style: italic;
+}
+.entry-book__rule {
+  margin: 0.4rem 0 0.75rem;
+  border: 0;
+  border-top: 1px solid var(--detail-rule-color);
+  opacity: 1;
+}
+.entry-book__pairs {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 1.25rem;
+  row-gap: 0.15rem;
+  margin: 0 0 0.75rem;
+}
+.entry-book__pairs dt,
+.entry-book__pairs dd {
+  display: inline;
+  margin: 0;
+}
+.entry-book__pairs dt,
+.entry-book__run {
+  color: var(--detail-title-color);
+}
+.entry-book__pairs dt {
+  font-weight: 700;
+}
+.entry-book__block {
+  margin-bottom: 0.6rem;
+  line-height: 1.55;
+}
+.entry-book__block > :last-child {
+  margin-bottom: 0;
+}
+.entry-book__run {
+  font-style: italic;
+}
+.entry-book__action {
+  margin: 0.25rem 0 0.75rem;
+}
+.entry-book__footer {
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--detail-rule-color);
+  font-size: 0.78rem;
+  font-style: italic;
 }

@@ -84,6 +84,7 @@ describe('beast columns', () => {
     }
     expect(beastSummaryColumns.map((c) => c.key)).toEqual([
       'name',
+      'edition',
       'cr',
       'size',
       'ac',
@@ -122,7 +123,7 @@ describe('beast columns', () => {
     expect(cell('hp', makeBeast({ name: 'X', hp: 0 })).textContent).toBe('-')
     expect(cell('cr', makeBeast({ name: 'X', hasCr: false })).textContent).toBe('-')
     expect(cell('name', makeBeast({ name: 'Rats', swarm: true })).textContent).toBe(
-      'Rats2014Swarm',
+      'RatsSwarm',
     )
   })
 })

@@ -127,7 +127,6 @@ export function GrantedSpells({
                 <GrantVariantChooser
                   set={block.variants}
                   byName={byName}
-                  twins={twins}
                   editChoice={editChoice}
                 />
               </div>
@@ -146,7 +145,6 @@ export function GrantedSpells({
                 <SpellLines
                   tableId="spell-granted"
                   lines={fixed}
-                  twins={twins}
                   label={`${block.from} spells`}
                 />
               </div>
@@ -270,7 +268,6 @@ function PickBlock({
   return (
     <div className="mb-2">
       <SpellPicker
-        twins={twins}
         rows={rows}
         picked={picked}
         noun={noun}

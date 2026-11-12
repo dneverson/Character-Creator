@@ -47,6 +47,7 @@ interface FromABook {
 
 export const sourceFact: Fact<FromABook> = {
   key: 'source',
+  role: 'source',
   label: 'Source',
   text: (entry) => entry.source,
   render: (entry) => <Abbr code={entry.source} kind="source" />,
@@ -54,6 +55,7 @@ export const sourceFact: Fact<FromABook> = {
 
 export const editionFact: Fact<FromABook> = {
   key: 'edition',
+  role: 'edition',
   label: 'Edition',
   text: (entry) => editionYear(entry.edition),
 }

@@ -203,14 +203,22 @@ const isTemplate = (item: Item) => item.variant !== undefined
 
 const type: Fact<Item> = {
   key: 'type',
+  role: 'summary',
   label: 'Type',
   text: (item) => item.category ?? '',
 }
 
-const cost: Fact<Item> = { key: 'cost', label: 'Cost', text: costText, render: costCell }
+const cost: Fact<Item> = {
+  key: 'cost',
+  role: 'summary',
+  label: 'Cost',
+  text: costText,
+  render: costCell,
+}
 
 const weight: Fact<Item> = {
   key: 'weight',
+  role: 'summary',
   label: 'Weight',
   text: weightText,
   render: weightCell,
@@ -238,12 +246,14 @@ const tier: Fact<Item> = {
 
 const freeRules: Fact<Item> = {
   key: 'free',
+  role: 'free',
   label: 'In the free rules',
   text: (item) => (item.free ? YES : ''),
 }
 
 const page: Fact<Item> = {
   key: 'page',
+  role: 'page',
   label: 'Page',
   text: (item) => (item.page === undefined ? '' : `p. ${item.page}`),
 }
@@ -362,6 +372,7 @@ const entriesText = (item: Item) =>
 
 const description: Fact<Item> = {
   key: 'description',
+  role: 'body',
   label: 'Description',
   text: entriesText,
   render: (item) => <Entries entries={item.entries} />,
@@ -487,6 +498,7 @@ export const itemColumns: Column<Item>[] = [
 
 const SUMMARY_KEYS = [
   'name',
+  'edition',
   'type',
   'damage',
   'damageType',
@@ -500,29 +512,6 @@ const SUMMARY_KEYS = [
 export const itemSummaryColumns: Column<Item>[] = SUMMARY_KEYS.flatMap((key) =>
   itemColumns.filter((column) => column.key === key),
 )
-
-/**
- * The columns with the edition year beside the name of each item printed in both
- * editions (it has a twin), so two rows of one name are never alike.
- */
-export const withItemVersions = (columns: Column<Item>[]): Column<Item>[] =>
-  columns.map((column) =>
-    column.key === 'name'
-      ? {
-          ...column,
-          render: (item) => (
-            <>
-              {column.render(item)}
-              {item.twin !== undefined && (
-                <Badge bg="light" text="dark" className="ms-1 border">
-                  {editionYear(item.edition)}
-                </Badge>
-              )}
-            </>
-          ),
-        }
-      : column,
-  )
 
 /** The name of an item from its key: "Longsword XPHB". */
 const twinLabel = (key: string) => {
