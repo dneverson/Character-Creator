@@ -18,7 +18,7 @@ import { DataTable } from './DataTable'
 import { EntryDetail } from './EntryDetail'
 import { useShowUnavailable } from './useShowUnavailable'
 import type { Describe } from './facts'
-import type { Column, RowMeta } from './types'
+import type { Column, DetailTarget, RowMeta } from './types'
 
 /** What can be done with a row. */
 export interface RowAction {
@@ -73,6 +73,8 @@ export interface BrowseTableProps<T> {
    * divider is dragged. For a table with many columns.
    */
   tableShare?: number
+  /** Shows the clicked row's detail in another pane instead of beside the table. */
+  detailTarget?: DetailTarget
   /**
    * A short table to read (a section's picks): no search box, no column chooser
    * and no switch for non-standard rows. Compare, the detail pane, sorting and
@@ -116,6 +118,7 @@ export function BrowseTable<T>({
   onAllowNonStandardChange,
   detailFooter,
   tableShare,
+  detailTarget,
   compact,
   toolbar,
   labels,
@@ -340,6 +343,7 @@ export function BrowseTable<T>({
           )
         }}
         detail={{ tableShare }}
+        detailTarget={detailTarget}
         searchPlaceholder={labels.search}
         ariaLabel={labels.table}
       />

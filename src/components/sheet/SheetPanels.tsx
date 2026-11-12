@@ -30,7 +30,3 @@ export function SkillsTabPanel({ sheet }: SheetPanelProps) {
     </div>
   )
 }
-
-export function NotBuiltPanel() {
-  return <div className="text-body-secondary p-3">Not built yet: step 7.</div>
-}

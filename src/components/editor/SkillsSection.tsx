@@ -101,6 +101,7 @@ export function SkillsSection() {
 
   return (
     <EditorSection
+      id="skills"
       title="Skills"
       subtitle="Each card lists what that source allows and how many picks are left. A pick outside the lists is allowed but flagged for your DM."
       actions={<Badge bg="secondary">{proficientCount} proficient</Badge>}

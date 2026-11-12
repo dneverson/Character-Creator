@@ -13,7 +13,12 @@ import Spinner from 'react-bootstrap/Spinner'
 import { ASI_FEAT_KEY, ASI_OPTIONS, featCategoryLabel, type Feat } from '../../data/feats'
 import { BONUS_SLOT_PREFIX, type FeatChoice } from '../../character/model'
 import { useActiveCharacter, useCharacterStore } from '../../character/store'
-import type { FeatFlag, ResolvedFeatSlot, TakenFeat } from '../../character/feats'
+import {
+  isSlotEmpty,
+  type FeatFlag,
+  type ResolvedFeatSlot,
+  type TakenFeat,
+} from '../../character/feats'
 import { featRuleFlags } from '../../character/feats'
 import { NonStandardBadge } from '../NonStandardBadge'
 import { PickOne } from '../table/PickOne'
@@ -61,9 +66,6 @@ function asiRowOf(feats: Feat[]): Feat {
   }
 }
 
-/** Whether a slot has nothing to show for itself yet. */
-const isEmpty = (r: ResolvedFeatSlot) => r.kind !== 'asi' && !r.feat
-
 export function FeatsSection() {
   const character = useActiveCharacter()
   const updateActive = useCharacterStore((s) => s.updateActive)
@@ -83,9 +85,9 @@ export function FeatsSection() {
   if (!character) return null
   const state = character.feats
   const emptyOtherThan = (id: string) =>
-    summary.slots.find((r) => r.slot.id !== id && isEmpty(r))?.slot.id ?? null
+    summary.slots.find((r) => r.slot.id !== id && isSlotEmpty(r))?.slot.id ?? null
   const open =
-    opened === undefined ? (summary.slots.find(isEmpty)?.slot.id ?? null) : opened
+    opened === undefined ? (summary.slots.find(isSlotEmpty)?.slot.id ?? null) : opened
 
   function setChoice(slotId: string, choice: FeatChoice | undefined) {
     const choices = { ...state.choices }
@@ -113,6 +115,7 @@ export function FeatsSection() {
 
   return (
     <EditorSection
+      id="feats"
       title="Feats & Ability Score Improvements"
       subtitle="Each slot your race, background, and class levels grant, in the order you gain them. Every feat from your books is listed; the ones that do not fit a slot are greyed with the reason. Rules problems are flagged, not blocked."
     >

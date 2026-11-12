@@ -22,9 +22,13 @@ import { DerivedTable } from '../editor/DerivedTable'
 import { Icon } from '../Icon'
 import { DetailPane } from '../table/DetailPane'
 import { EntryHeading } from '../table/EntryDetail'
+import type { DetailTarget } from '../table/types'
 
 /** From this width the pane sits beside the table (Bootstrap's xl breakpoint). */
 export const WIDE = '(min-width: 1200px)'
+
+/** What the id of an open table row starts with, to tell it from a number's breakdown. */
+const ROW_PREFIX = 'row:'
 
 /** One table of a breakdown: a number, and the lines it adds up from. */
 export interface BreakdownTable {
@@ -41,6 +45,8 @@ export interface Breakdown {
   id: string
   title: string
   tables: BreakdownTable[]
+  /** A row's own detail (its full text), already drawn: shown instead of the tables. */
+  content?: ReactNode
 }
 
 interface SheetDetailValue {
@@ -48,12 +54,15 @@ interface SheetDetailValue {
   /** Opens the breakdown, or closes it when it is the one already open. */
   toggle: (breakdown: Breakdown) => void
   hide: () => void
+  /** Closes the full text of a table row (it belongs to the tab it was opened in). */
+  dismissRow: () => void
 }
 
 const CLOSED: SheetDetailValue = {
   current: null,
   toggle: () => undefined,
   hide: () => undefined,
+  dismissRow: () => undefined,
 }
 
 const SheetDetailContext = createContext<SheetDetailValue>(CLOSED)
@@ -71,9 +80,27 @@ export function useWideSheet(): boolean {
   return useContext(WideContext)
 }
 
+/**
+ * Where the rows of a sheet table open their full text: the sheet's one pane. A row is
+ * open while the pane holds it, so closing the pane also unmarks the row.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useSheetRowDetail(scope: string): DetailTarget {
+  const { current, toggle } = useSheetDetail()
+  const prefix = `${ROW_PREFIX}${scope}:`
+  const openId = current?.id.startsWith(prefix) ? current.id.slice(prefix.length) : null
+  return {
+    openId,
+    show: (id, content) =>
+      toggle({ id: `${prefix}${id}`, title: 'Details', tables: [], content }),
+  }
+}
+
 /** The heading and the tables of a breakdown, in whichever detail pane style is set. */
 function BreakdownDetail({ breakdown }: { breakdown: Breakdown }) {
   const style = useDetailStyle()
+  // A row's detail brings its own heading, drawn in the same style.
+  if (breakdown.content) return <>{breakdown.content}</>
   const tables = (
     <div className="d-flex flex-column gap-3">
       {breakdown.tables.map((table) => (
@@ -150,7 +177,17 @@ export function SheetDetailProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('keydown', onKey)
   }, [current, hide])
 
-  const value = useMemo(() => ({ current, toggle, hide }), [current, toggle, hide])
+  // A row's text goes with its tab; the focus stays on the tab that was clicked.
+  const dismissRow = useCallback(() => {
+    if (!current?.id.startsWith(ROW_PREFIX)) return
+    opener.current = null
+    setCurrent(null)
+  }, [current])
+
+  const value = useMemo(
+    () => ({ current, toggle, hide, dismissRow }),
+    [current, toggle, hide, dismissRow],
+  )
 
   return (
     <SheetDetailContext.Provider value={value}>

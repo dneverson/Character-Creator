@@ -97,6 +97,7 @@ export function HitPoints() {
 
   return (
     <EditorSection
+      id="hp"
       title="Hit Points"
       subtitle="Max at 1st level, average (or rolled) after, plus your Constitution modifier each level. Bonuses from your class, race and feats are added automatically; the manual lines take any ruling from your DM."
       actions={

@@ -76,6 +76,9 @@ export interface ResolvedFeatSlot {
   flags: FeatFlag[]
 }
 
+/** Whether a slot has nothing to show for itself yet: no feat, and not an Ability Score Improvement. */
+export const isSlotEmpty = (r: ResolvedFeatSlot) => r.kind !== 'asi' && !r.feat
+
 export interface FeatSummary {
   slots: ResolvedFeatSlot[]
   /** Ability increases from every slot combined. */

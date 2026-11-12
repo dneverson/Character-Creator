@@ -1,15 +1,44 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import Card from 'react-bootstrap/Card'
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
+import Tooltip from 'react-bootstrap/Tooltip'
+import type { SectionId } from '../../derived/checklist'
 import { Icon } from '../Icon'
+import { sectionDomId, useChecklist } from './checklistContext'
 import { useSectionCommand } from './sectionCollapse'
 import { navbarHeight, useSectionTrail } from './sectionTrail'
 
 interface Props {
+  /** Which section of the editor it is, to show whether the build checklist has it open. */
+  id?: SectionId
   title: string
   subtitle?: ReactNode
   /** Right-aligned controls in the header. */
   actions?: ReactNode
   children: ReactNode
+}
+
+/** Caution while the build checklist has something open here, a check once it has not. */
+function SectionStatusIcon({ id }: { id: SectionId }) {
+  const checklist = useChecklist()
+  const status = checklist?.status[id]
+  if (!status) return null
+  const open = checklist.items.filter((item) => item.section === id)
+  const text =
+    status === 'open'
+      ? `Still open: ${open.map((item) => item.label).join('; ')}`
+      : 'Complete: nothing left to choose here'
+  return (
+    <OverlayTrigger placement="top" overlay={<Tooltip>{text}</Tooltip>}>
+      <span className="editor-section__status ms-1" tabIndex={0}>
+        <Icon
+          name={status === 'open' ? 'warning' : 'check'}
+          className={status === 'open' ? 'text-warning' : 'text-success'}
+          label={text}
+        />
+      </span>
+    </OverlayTrigger>
+  )
 }
 
 /**
@@ -18,7 +47,7 @@ interface Props {
  * the sections they are done with and reclaim vertical space. Its header stays
  * pinned under the navbar while any of the section is on screen.
  */
-export function EditorSection({ title, subtitle, actions, children }: Props) {
+export function EditorSection({ id, title, subtitle, actions, children }: Props) {
   const [open, setOpen] = useState(true)
   const bodyId = useId()
   const cardRef = useRef<HTMLDivElement>(null)
@@ -35,7 +64,7 @@ export function EditorSection({ title, subtitle, actions, children }: Props) {
   const [seenNonce, setSeenNonce] = useState(command?.nonce ?? null)
   if (command && command.nonce !== seenNonce) {
     setSeenNonce(command.nonce)
-    setOpen(command.open)
+    if (command.only === undefined || command.only === id) setOpen(command.open)
   }
 
   // Collapsing a long section from far down shrinks the page under the reader. Bring
@@ -49,7 +78,7 @@ export function EditorSection({ title, subtitle, actions, children }: Props) {
   }, [open])
 
   return (
-    <Card className="mb-4" ref={cardRef}>
+    <Card className="mb-4" ref={cardRef} id={id && sectionDomId(id)}>
       {/* The collapse control is the chevron button; a click elsewhere on the bar
           toggles too, unless it ends a text selection or lands on the text or in `actions`. */}
       <Card.Header
@@ -85,6 +114,7 @@ export function EditorSection({ title, subtitle, actions, children }: Props) {
               />
             </button>
             <h2 className="editor-section__title h5 mb-0">{title}</h2>
+            {id && <SectionStatusIcon id={id} />}
             {trail && (
               <span className="editor-section__trail text-body-secondary">
                 {' - '}

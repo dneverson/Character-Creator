@@ -106,6 +106,18 @@ export interface DetailPaneOptions {
   tableShare?: number
 }
 
+/**
+ * Where a row's detail is shown when it is not beside the table (the sheet has one pane
+ * for everything). The row's detail is drawn as usual and handed over; the table only
+ * marks the row that is open there.
+ */
+export interface DetailTarget {
+  /** The id of the row whose detail is open there, or null. */
+  openId: string | null
+  /** Opens a row's detail there, or closes it when that row is the one open. */
+  show: (id: string, content: ReactNode) => void
+}
+
 export interface DataTableProps<T> {
   /**
    * Stable id for this table, unique across the app. Keys the persisted column
@@ -142,6 +154,11 @@ export interface DataTableProps<T> {
    * Detail-pane settings. Only meaningful when `renderDetail` is set.
    */
   detail?: DetailPaneOptions
+  /**
+   * Sends the detail of the clicked row elsewhere: the table then has no pane of its own
+   * and takes the full width. Only meaningful when `renderDetail` is set.
+   */
+  detailTarget?: DetailTarget
   /**
    * When false, non-standard rows are greyed and not selectable (the default);
    * when true, they become selectable (the per-section homebrew opt-in).

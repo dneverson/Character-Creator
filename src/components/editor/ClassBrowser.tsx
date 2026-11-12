@@ -201,6 +201,7 @@ export function ClassBrowser() {
 
   return (
     <EditorSection
+      id="class"
       title="Class & Level"
       subtitle="Tune your build up top, then browse every class and subclass below. Add one to your build, click a row for full details, or select rows to compare them."
     >

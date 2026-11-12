@@ -343,6 +343,7 @@ export function CombatSection() {
 
   return (
     <EditorSection
+      id="combat"
       title="Combat"
       subtitle="Armor class, initiative, passive scores, attacks and spell numbers worked out from what you wear, wield and are. Every line says where it comes from; anything against the rules is flagged and still counted, and the manual line takes any ruling from your DM."
       actions={

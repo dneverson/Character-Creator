@@ -6,7 +6,7 @@
 import type { Spell } from '../../data/spells'
 import { BrowseTable } from '../table/BrowseTable'
 import { factColumn, type Describe, type Fact, type FactGroup } from '../table/facts'
-import type { Column } from '../table/types'
+import type { Column, DetailTarget } from '../table/types'
 import {
   describeSpells,
   spellName,
@@ -78,10 +78,13 @@ export function SpellLines({
   tableId,
   lines,
   label,
+  detailTarget,
 }: {
   tableId: string
   lines: SpellLine[]
   label: string
+  /** Where a row's full text opens, when not beside the table. */
+  detailTarget?: DetailTarget
 }) {
   return (
     <BrowseTable<SpellLine>
@@ -112,6 +115,7 @@ export function SpellLines({
       }
       compact
       tableShare={70}
+      detailTarget={detailTarget}
       labels={{
         compare: 'Compare spells',
         search: 'Search spells…',

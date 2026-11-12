@@ -3,10 +3,15 @@
 
 import type { ComponentType } from 'react'
 import type { DerivedSheet } from '../derived'
+import { ExtrasPanel } from '../components/sheet/ExtrasPanel'
+import { FeaturesPanel } from '../components/sheet/FeaturesPanel'
+import { InventoryPanel } from '../components/sheet/InventoryPanel'
+import { NotesPanel } from '../components/sheet/NotesPanel'
+import { SpellsPanel } from '../components/sheet/SpellsPanel'
+import { StoryPanel } from '../components/sheet/StoryPanel'
 import {
   ActionsPanel,
   CorePanel,
-  NotBuiltPanel,
   SkillsTabPanel,
   type SheetPanelProps,
 } from '../components/sheet/SheetPanels'
@@ -34,18 +39,23 @@ export const SHEET_TABS: readonly SheetTab[] = [
     id: 'spells',
     label: 'Spells',
     shows: (sheet) => sheet.spellStats.length > 0,
-    Panel: NotBuiltPanel,
+    Panel: SpellsPanel,
   },
-  { id: 'inventory', label: 'Inventory', shows: () => true, Panel: NotBuiltPanel },
+  { id: 'inventory', label: 'Inventory', shows: () => true, Panel: InventoryPanel },
   {
     id: 'features',
     label: 'Features & Traits',
     shows: () => true,
-    Panel: NotBuiltPanel,
+    Panel: FeaturesPanel,
   },
-  { id: 'story', label: 'Story', shows: () => true, Panel: NotBuiltPanel },
-  { id: 'notes', label: 'Notes', shows: () => true, Panel: NotBuiltPanel },
-  { id: 'extras', label: 'Extras', shows: () => true, Panel: NotBuiltPanel },
+  { id: 'story', label: 'Story', shows: () => true, Panel: StoryPanel },
+  { id: 'notes', label: 'Notes', shows: () => true, Panel: NotesPanel },
+  {
+    id: 'extras',
+    label: 'Extras',
+    shows: (sheet) => sheet.wildShapes.length > 0,
+    Panel: ExtrasPanel,
+  },
 ]
 
 /** The tabs to offer: the phone-only ones only on a phone, the empty ones never. */

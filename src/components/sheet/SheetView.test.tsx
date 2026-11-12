@@ -187,7 +187,7 @@ describe('SheetView', () => {
     expect(screen.getByRole('heading', { name: 'Languages' })).toBeInTheDocument()
   })
 
-  it('holds the attacks in the Actions tab and says what is not built yet', async () => {
+  it('holds the attacks in the Actions tab and the items in the Inventory tab', async () => {
     const user = userEvent.setup()
     seed()
     renderSheet()
@@ -200,7 +200,7 @@ describe('SheetView', () => {
     // A fighter casts nothing, so there is no Spells tab.
     expect(screen.queryByRole('tab', { name: 'Spells' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: 'Inventory' }))
-    expect(screen.getByRole('tabpanel')).toHaveTextContent('Not built yet: step 7.')
+    expect(await screen.findByRole('table', { name: 'Items' })).toBeInTheDocument()
     expect(screen.queryByRole('table', { name: 'Attacks' })).not.toBeInTheDocument()
   })
 
@@ -470,7 +470,9 @@ describe('SheetView breakdowns', () => {
     const attacks = await screen.findByRole('table', { name: 'Attacks' })
     expect(within(attacks).queryByRole('button', { name: /^(Show|Hide) how/ })).toBeNull()
     await user.click(
-      within(attacks).getByRole('button', { name: 'How Longsword attack bonus adds up' }),
+      await within(attacks).findByRole('button', {
+        name: 'How Longsword attack bonus adds up',
+      }),
     )
     const pane = () => document.querySelector('.data-table-detail') as HTMLElement
     expect(within(pane()).getByText('Longsword attack bonus +5')).toBeInTheDocument()

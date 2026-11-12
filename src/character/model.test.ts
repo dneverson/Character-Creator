@@ -443,6 +443,21 @@ describe('ensureCharacterDefaults', () => {
       })
     })
 
+    it('loads a document saved before Done existed as a draft', () => {
+      const { completedAt: _none, ...older } = createCharacter('Old') as Character
+      expect(ensureCharacterDefaults(older).completedAt).toBeUndefined()
+      expect('completedAt' in ensureCharacterDefaults(older)).toBe(false)
+    })
+
+    it('keeps the time of Done and drops a value that is not a time', () => {
+      const made = createCharacter()
+      expect(ensureCharacterDefaults({ ...made, completedAt: 1234 }).completedAt).toBe(
+        1234,
+      )
+      const junk = JSON.parse(JSON.stringify({ ...made, completedAt: 'yes' }))
+      expect(ensureCharacterDefaults(junk).completedAt).toBeUndefined()
+    })
+
     it('keeps the number of a newer version of the model', () => {
       const newer = { ...createCharacter(), schemaVersion: CHARACTER_SCHEMA_VERSION + 1 }
       expect(ensureCharacterDefaults(newer).schemaVersion).toBe(

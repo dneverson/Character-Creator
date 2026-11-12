@@ -19,7 +19,6 @@ import Spinner from 'react-bootstrap/Spinner'
 import Tooltip from 'react-bootstrap/Tooltip'
 import {
   listStanding,
-  loadSpells,
   spellLevelLabel,
   standingProblem,
   type GrantedAccess,
@@ -27,7 +26,17 @@ import {
 } from '../../data/spells'
 import { matchesFilter, type FilterLists } from '../../data/grants'
 import { useActiveCharacter, useCharacterStore } from '../../character/store'
-import { characterCasters } from '../../character/spellcasting'
+import {
+  EMPTY_SELECTION,
+  cardGrantsOf,
+  hasRoom,
+  isPlaced,
+  spellRooms,
+  tiersOf,
+  type Hosted,
+  type Room,
+  type TierSpec,
+} from '../../character/spellTiers'
 import {
   classMaxSpellLevel,
   spellbookFreeCount,
@@ -41,90 +50,15 @@ import type {
   GrantedSpellChoice,
   SpellRef,
 } from '../../character/model'
-import {
-  grantedSpell,
-  resolveSpellGrants,
-  spellsByName,
-  type SpellGrant,
-} from '../../character/spellGrants'
+import { grantedSpell, type SpellGrant } from '../../character/spellGrants'
 import { refKey, refOf, without, withRef } from '../../character/spellRefs'
-import { useAsyncData } from '../../hooks/useAsyncData'
 import { Abbr } from '../Abbr'
 import { EditorSection } from './EditorSection'
 import { NotInBooksAlert } from './NotInBooksAlert'
 import { GrantedSpells } from './GrantedSpells'
-import { pickTierId } from './grantedCast'
 import { SpellPicker } from './SpellPicker'
 import { YourSpells } from './YourSpells'
-import { useFeatSummary } from './useFeatSummary'
-
-const EMPTY_SELECTION: ClassSpellSelection = { cantrips: [], spells: [] }
-
-// ---- Tiers ------------------------------------------------------------------
-
-type TierKind = 'cantrips' | 'spells' | 'book' | 'prepared'
-
-/** One table a class chooses in, and how full it is. */
-interface TierSpec {
-  id: string
-  kind: TierKind
-  /** What is chosen, plural, lower case: it heads the count. */
-  noun: string
-  count: number
-  /** The most the rules allow, when they state one. */
-  max?: number
-  /** How many picks make the tier done: the cap, else something chosen. */
-  target: number
-}
-
-/** Spells a class always has, by where they are shown: the cantrip tier, or the spell tier. */
-interface Hosted {
-  cantrips: number
-  leveled: number
-}
-const NOTHING_HOSTED: Hosted = { cantrips: 0, leveled: 0 }
-
-/** The tiers of a caster, in the order they are chosen. A tier with no room is left out. */
-function tiersOf(
-  caster: ClassCaster,
-  selection: ClassSpellSelection,
-  hosted: Hosted = NOTHING_HOSTED,
-): TierSpec[] {
-  const tier = (
-    kind: TierKind,
-    noun: string,
-    count: number,
-    max: number | undefined,
-    target = max ?? 1,
-  ): TierSpec => ({ id: `${caster.classKey}:${kind}`, kind, noun, count, max, target })
-  const out: TierSpec[] = [
-    tier('cantrips', 'cantrips', selection.cantrips.length, caster.cantripsKnown),
-  ]
-  if (usesSpellbook(caster.name)) {
-    const book = selection.spellbook ?? selection.spells
-    out.push(
-      tier(
-        'book',
-        'spellbook spells',
-        book.length,
-        undefined,
-        caster.spellbookFree ?? spellbookFreeCount(caster.level),
-      ),
-      tier('prepared', 'spells prepared', selection.spells.length, caster.preparedMax),
-    )
-  } else if (caster.kind === 'known') {
-    out.push(tier('spells', 'spells known', selection.spells.length, caster.spellsKnown))
-  } else {
-    out.push(
-      tier('spells', 'spells prepared', selection.spells.length, caster.preparedMax),
-    )
-  }
-  const hosts = (t: TierSpec) =>
-    t.kind === 'cantrips' ? hosted.cantrips : t.kind === 'book' ? 0 : hosted.leveled
-  return out.filter((t) => t.max !== 0 || t.count > 0 || hosts(t) > 0)
-}
-
-const hasRoom = (t: { count: number; target: number }) => t.count < t.target
+import { useSpellList } from './useSpellList'
 
 /** The character as it is now, for handlers that run more than once in a click. */
 function latestCharacter() {
@@ -140,43 +74,30 @@ interface Fixed {
   spell: Spell
 }
 
-/** Whether a class's own grant of a named spell is shown in that class's tier. */
-const isPlaced = (grant: SpellGrant, casters: ClassCaster[]) =>
-  (grant.origin === 'class' || grant.origin === 'subclass') &&
-  grant.spell !== undefined &&
-  (grant.mode === 'known' || grant.mode === 'prepared') &&
-  casters.some((c) => c.classKey === grant.classKey)
-
-/** How full a table the player chooses in is. */
-interface Room {
-  id: string
-  count: number
-  target: number
-}
-
 // ---- Section ----------------------------------------------------------------
 
 export function SpellsSection() {
   const character = useActiveCharacter()
   const updateActive = useCharacterStore((s) => s.updateActive)
-  const featSummary = useFeatSummary()
-  const spellsData = useAsyncData(loadSpells)
-  const { classByKey, race, background, summary } = featSummary
+  const {
+    featSummary,
+    casters,
+    allSpells,
+    byKey,
+    byName,
+    resolved,
+    grants,
+    loading,
+    error,
+  } = useSpellList()
+  const { classByKey } = featSummary
   // The tier whose table is open; unset until the player opens or shuts one, when
   // it is the first with room left. `null` is every table shut.
   const [opened, setOpened] = useState<string | null | undefined>(undefined)
   const [allowNonStandard, setAllowNonStandard] = useState(false)
 
-  const casters = useMemo(
-    () =>
-      character ? characterCasters(character, classByKey, summary.abilityBonus) : [],
-    [character, classByKey, summary.abilityBonus],
-  )
   const slots = useMemo(() => spellSlots(casters), [casters])
-  const allSpells = useMemo(() => spellsData.data ?? [], [spellsData.data])
   const selectedBooks = character?.selectedBooks
-  const byKey = useMemo(() => new Map(allSpells.map((s) => [s.key, s])), [allSpells])
-  const byName = useMemo(() => spellsByName(allSpells), [allSpells])
   const inBooks = useMemo(() => {
     const books = new Set(selectedBooks ?? [])
     return allSpells.filter((s) => books.has(s.source))
@@ -195,19 +116,6 @@ export function SpellsSection() {
     )
   }, [inBooks])
 
-  const resolved = useMemo(
-    () =>
-      character
-        ? resolveSpellGrants(character, {
-            race,
-            background,
-            featSlots: summary.slots,
-            classByKey,
-          })
-        : undefined,
-    [character, race, background, summary.slots, classByKey],
-  )
-  const grants = useMemo(() => resolved?.grants ?? [], [resolved])
   // What each class always has, and the spells a source adds to a class's list.
   const fixedByClass = useMemo(() => {
     const out = new Map<string, Fixed[]>()
@@ -220,10 +128,7 @@ export function SpellsSection() {
     }
     return out
   }, [grants, casters, byName])
-  const cardGrants = useMemo(
-    () => grants.filter((g) => g.mode !== 'expanded' && !isPlaced(g, casters)),
-    [grants, casters],
-  )
+  const cardGrants = useMemo(() => cardGrantsOf(grants, casters), [grants, casters])
   // What a filter's class is read against: every class, in the selected books.
   const filterLists = useMemo<FilterLists>(
     () => ({
@@ -239,9 +144,6 @@ export function SpellsSection() {
   if (!character || !resolved) return null
   const cardAndPlaced = grants.filter((g) => g.mode !== 'expanded')
 
-  const loading = featSummary.loading || spellsData.loading
-  const error = featSummary.error ?? spellsData.error
-
   const hostedOf = (classKey: string): Hosted => {
     const fixed = fixedByClass.get(classKey) ?? []
     return {
@@ -250,22 +152,8 @@ export function SpellsSection() {
     }
   }
   /** Every table the player chooses in, with how full it is, for the character as given. */
-  const roomsOf = (now: Character): Room[] => [
-    ...casters.flatMap((c) =>
-      tiersOf(c, now.spells[c.classKey] ?? EMPTY_SELECTION, hostedOf(c.classKey)),
-    ),
-    ...cardGrants.flatMap((g) =>
-      g.pick && !g.locked
-        ? [
-            {
-              id: pickTierId(g),
-              count: (now.spellGrants[g.id]?.picks ?? []).length,
-              target: g.pick.count,
-            },
-          ]
-        : [],
-    ),
-  ]
+  const roomsOf = (now: Character): Room[] =>
+    spellRooms(now, casters, cardGrants, hostedOf)
   const firstWithRoom = (now: Character) => roomsOf(now).find(hasRoom)?.id ?? null
   const open = opened === undefined ? firstWithRoom(character) : opened
 
@@ -316,6 +204,7 @@ export function SpellsSection() {
 
   return (
     <EditorSection
+      id="spells"
       title="Spells"
       subtitle="Cantrips and spells per spellcasting class, chosen from every spell in your books. Limits are shown; a spell your class cannot have is greyed with the reason, and the switch allows it as a non-standard choice."
     >

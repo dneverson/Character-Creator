@@ -10,5 +10,4 @@ export const MODE_CAST: Record<SpellGrant['mode'], string> = {
   expanded: '',
 }
 
-/** The id of the table in which a grant's choices are made. */
-export const pickTierId = (grant: SpellGrant) => `grant:${grant.id}`
+export { pickTierId } from '../../character/spellTiers'

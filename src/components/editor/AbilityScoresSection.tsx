@@ -6,6 +6,7 @@ import { StatGeneration } from './StatGeneration'
 export function AbilityScoresSection() {
   return (
     <EditorSection
+      id="abilities"
       title="Ability Scores"
       subtitle="Generate your scores, then assign them and add any bonuses."
     >

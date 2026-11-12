@@ -7,41 +7,21 @@
 import { useMemo, useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
-import Form from 'react-bootstrap/Form'
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Tooltip from 'react-bootstrap/Tooltip'
 import Spinner from 'react-bootstrap/Spinner'
 import { applyVariant } from '../../data/itemVariants'
-import { goldLabel, loadItems, type Item } from '../../data/items'
-import { lookup } from '../../data/glossary'
-import { appConfig } from '../../config/app'
+import { loadItems, type Item } from '../../data/items'
 import { useActiveCharacter } from '../../character/store'
-import { editEquipment, editItems } from '../../character/inventoryEdit'
-import type { Currency, InventoryItem } from '../../character/model'
+import { editItems } from '../../character/inventoryEdit'
+import type { InventoryItem } from '../../character/model'
 import { characterAbilityTotals } from '../../character/derive'
 import {
   CUSTOM_SOURCE,
-  indexItems,
   inventoryKey,
-  resolveInventoryItem,
   uniqueCustomName,
-  unlistedItem,
   unpackStack,
 } from '../../character/inventory'
-import {
-  attunedCount,
-  carriedWeight,
-  carryingCapacity,
-  lacksClass,
-  purseValue,
-  strengthNeeded,
-  totalValue,
-} from '../../rules/equipment'
 import { useAsyncData } from '../../hooks/useAsyncData'
-import { AbbrText } from '../Abbr'
-import { NonStandardBadge } from '../NonStandardBadge'
 import { PickMany } from '../table/PickMany'
-import { NO_VALUE } from '../table/facts'
 import type { Column } from '../table/types'
 import { EditorSection } from './EditorSection'
 import { BaseItemChooser } from './BaseItemChooser'
@@ -49,7 +29,9 @@ import { CustomItemModal, type CustomItemDraft } from './CustomItemModal'
 import { NotInBooksAlert } from './NotInBooksAlert'
 import { StartingEquipment } from './StartingEquipment'
 import { useFeatSummary } from './useFeatSummary'
-import { DraftInput } from './DraftInput'
+import { editStack, inventoryColumns } from './inventoryColumns'
+import { CoinPurse, InventoryTotals } from './InventoryTotals'
+import { useOwnedItems } from './useOwnedItems'
 import {
   describeItems,
   itemColumns,
@@ -57,21 +39,8 @@ import {
   itemName,
   itemRowMeta,
   itemSearchText,
-  itemSummaryColumns,
   itemTags,
 } from './itemFacts'
-
-const COINS: (keyof Currency)[] = ['pp', 'gp', 'ep', 'sp', 'cp']
-
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
-/** "Gold pieces": a coin spelled out, from the glossary the tooltips use. */
-const coinName = (coin: keyof Currency) =>
-  capitalize(lookup(coin, 'currency')?.full ?? coin)
-
-const oneDecimal = (n: number) => Math.round(n * 10) / 10
-
-const editStack = (key: string, patch: Partial<InventoryItem>) =>
-  editItems((all) => all.map((s) => (inventoryKey(s) === key ? { ...s, ...patch } : s)))
 
 const addItem = (item: Item) =>
   editItems((all) =>
@@ -121,21 +90,11 @@ const saveCustom = (draft: CustomItemDraft, editing?: InventoryItem) =>
 const setQuantity = (item: Item, quantity: number) => editStack(item.key, { quantity })
 const removeKey = (key: string) =>
   editItems((all) => all.filter((s) => inventoryKey(s) !== key))
-const setCoin = (coin: keyof Currency, value: number) =>
-  editEquipment((equipment) => ({
-    ...equipment,
-    currency: { ...equipment.currency, [coin]: Math.max(0, value || 0) },
-  }))
-
-/** Whether an item can be attuned to (it needs attunement, or may have it). */
-const attunable = (item: Item) => item.attunement !== undefined
-
 export function EquipmentSection() {
   const character = useActiveCharacter()
   const { data: items, error, loading } = useAsyncData(loadItems)
   const { background, classByKey, race, summary } = useFeatSummary()
 
-  const catalog = useMemo(() => indexItems(items ?? []), [items])
   const selectedBooks = character?.selectedBooks
   const lookupRows = useMemo(() => {
     const books = new Set(selectedBooks ?? [])
@@ -148,14 +107,7 @@ export function EquipmentSection() {
   const [custom, setCustom] = useState<boolean | InventoryItem>(false)
 
   const stacks = useMemo(() => character?.equipment.items ?? [], [character])
-  const owned = useMemo(
-    () => stacks.map((s) => resolveInventoryItem(s, catalog) ?? unlistedItem(s)),
-    [stacks, catalog],
-  )
-  const stackOf = useMemo(
-    () => new Map(stacks.map((s) => [inventoryKey(s), s])),
-    [stacks],
-  )
+  const { catalog, owned, stackOf } = useOwnedItems(items, stacks)
   const firstClass = classByKey.get(
     character?.classes[0]
       ? `${character.classes[0].name}|${character.classes[0].source}`
@@ -173,138 +125,41 @@ export function EquipmentSection() {
     [characterClasses],
   )
 
-  const summaryColumns = useMemo<Column<Item>[]>(() => {
-    const quantityOf = (item: Item) => stackOf.get(item.key)?.quantity ?? 1
-    const weighed = (item: Item) =>
-      item.weight === undefined ? undefined : oneDecimal(item.weight * quantityOf(item))
-    const base = [...itemSummaryColumns, ...itemColumns.filter((c) => c.key === 'rarity')]
-    const column = (key: string) => base.find((c) => c.key === key) as Column<Item>
-    return [
-      {
-        ...column('name'),
-        render: (item) => {
-          const stack = stackOf.get(item.key)
-          return (
-            <>
-              {column('name').render(item)}
-              {stack && item.pack && item.pack.length > 0 && (
-                <Button
-                  size="sm"
-                  variant="link"
-                  className="py-0"
-                  aria-label={`Unpack ${item.name}`}
-                  onClick={() => editItems((all) => unpackStack(all, item, catalog))}
-                >
-                  Unpack
-                </Button>
-              )}
-              {stack?.custom && (
-                <Button
-                  size="sm"
-                  variant="link"
-                  className="py-0"
-                  aria-label={`Edit ${item.name}`}
-                  onClick={() => setCustom(stack)}
-                >
-                  Edit
-                </Button>
-              )}
-            </>
-          )
-        },
-      },
-      column('edition'),
-      {
-        key: 'equipped',
-        header: 'Equipped',
-        sortable: false,
-        filterable: false,
-        render: (item) => {
-          const equipped = stackOf.get(item.key)?.equipped === true
-          const needed = equipped
-            ? strengthNeeded(item.armor?.strength, strength)
-            : undefined
-          return (
-            <>
-              <Form.Check
-                type="checkbox"
-                aria-label={`${item.name} equipped`}
-                checked={equipped}
-                onChange={(e) => editStack(item.key, { equipped: e.target.checked })}
-              />
-              {needed !== undefined && (
-                <NonStandardBadge
-                  reason={`${item.name} needs Strength ${needed}; the character has ${strength} (DM approval)`}
-                  label={`Needs Strength ${needed} (you have ${strength})`}
-                />
-              )}
-            </>
-          )
-        },
-      },
-      {
-        key: 'attuned',
-        header: 'Attuned',
-        sortable: false,
-        filterable: false,
-        render: (item) =>
-          attunable(item) ? (
-            <>
-              <Form.Check
-                type="checkbox"
-                aria-label={`${item.name} attuned`}
-                checked={stackOf.get(item.key)?.attuned === true}
-                onChange={(e) => editStack(item.key, { attuned: e.target.checked })}
-              />
-              {lacksClass(item.attunement?.classes ?? [], classNames) && (
-                <NonStandardBadge
-                  reason={`${item.name} is attuned to by ${item.attunement?.classes.join(' or ')} (DM approval)`}
-                  label={`Requires ${item.attunement?.classes.join(' or ')}`}
-                />
-              )}
-            </>
-          ) : (
-            NO_VALUE
-          ),
-      },
-      { ...column('type'), priority: 5 },
-      { ...column('rarity'), priority: 6 },
-      {
-        ...column('weight'),
-        priority: 8,
-        sortValue: (item) => weighed(item) ?? -1,
-        filterable: false,
-        render: (item) => {
-          const weight = weighed(item)
-          return weight === undefined ? (
-            NO_VALUE
-          ) : (
-            <AbbrText text={`${weight} lb.`} kind="term" />
-          )
-        },
-      },
-      { ...column('cost'), priority: 7 },
-      { ...column('damage'), priority: 4 },
-      { ...column('damageType'), priority: 4 },
-      { ...column('ac'), priority: 3 },
-      { ...column('properties'), priority: 2 },
-      {
-        key: 'note',
-        header: 'Note',
-        sortable: false,
-        filterable: false,
-        priority: 1,
-        render: (item) => (
-          <DraftInput
-            size="sm"
-            aria-label={`Note on ${item.name}`}
-            value={stackOf.get(item.key)?.note ?? ''}
-            onCommit={(note) => editStack(item.key, { note: note || undefined })}
-          />
+  const summaryColumns = useMemo<Column<Item>[]>(
+    () =>
+      inventoryColumns({
+        stackOf,
+        strength,
+        classNames,
+        nameExtras: (item, stack) => (
+          <>
+            {item.pack && item.pack.length > 0 && (
+              <Button
+                size="sm"
+                variant="link"
+                className="py-0"
+                aria-label={`Unpack ${item.name}`}
+                onClick={() => editItems((all) => unpackStack(all, item, catalog))}
+              >
+                Unpack
+              </Button>
+            )}
+            {stack.custom && (
+              <Button
+                size="sm"
+                variant="link"
+                className="py-0"
+                aria-label={`Edit ${item.name}`}
+                onClick={() => setCustom(stack)}
+              >
+                Edit
+              </Button>
+            )}
+          </>
         ),
-      },
-    ]
-  }, [stackOf, catalog, strength, classNames])
+      }),
+    [stackOf, catalog, strength, classNames],
+  )
 
   if (!character) return null
   const equipment = character.equipment
@@ -312,19 +167,9 @@ export function EquipmentSection() {
     (item) => item.source !== 'Custom' && !selectedBooks?.includes(item.source),
   )
 
-  const carried = carriedWeight(
-    owned.map((item, i) => ({ quantity: stacks[i].quantity, weight: item.weight })),
-    equipment.currency,
-  )
-  const worth = totalValue(
-    owned.map((item, i) => ({ quantity: stacks[i].quantity, value: item.value })),
-  )
-  const capacity = strength > 0 ? carryingCapacity(strength, race?.size?.[0]) : undefined
-  const attuned = attunedCount(stacks)
-  const limit = appConfig.rules.attunementLimit
-
   return (
     <EditorSection
+      id="equipment"
       title="Equipment"
       subtitle="Look up any item of your books, add it, and keep track of what you carry."
     >
@@ -338,69 +183,14 @@ export function EquipmentSection() {
 
       {!loading && !error && (
         <>
-          <div className="d-flex flex-wrap align-items-center column-gap-4 row-gap-1 mb-3">
-            <span>
-              Carried <strong>{oneDecimal(carried.pounds)}</strong>
-              {capacity !== undefined && ` of ${capacity}`} lb
-              {capacity !== undefined && carried.pounds > capacity && (
-                <>
-                  {' '}
-                  <NonStandardBadge
-                    reason="More than the character can carry (DM approval)"
-                    label="Over capacity"
-                  />
-                </>
-              )}
-            </span>
-            <span>
-              Attuned <strong>{attuned}</strong> of {limit}
-              {attuned > limit && (
-                <>
-                  {' '}
-                  <NonStandardBadge
-                    reason={`More than ${limit} attuned items (DM approval)`}
-                    label={`More than ${limit} attuned`}
-                  />
-                </>
-              )}
-            </span>
-            <span>
-              Items worth <strong>{goldLabel(worth.copper)}</strong>
-            </span>
-            {carried.unlisted > 0 && (
-              <span className="small text-body-secondary">
-                {carried.unlisted === 1
-                  ? '1 item has no listed weight'
-                  : `${carried.unlisted} items have no listed weight`}
-              </span>
-            )}
-          </div>
-
-          <div className="d-flex flex-wrap align-items-end gap-2 mb-3">
-            {COINS.map((coin) => (
-              <div key={coin} style={{ width: 110 }}>
-                <OverlayTrigger
-                  placement="top"
-                  overlay={<Tooltip>{coin.toUpperCase()}</Tooltip>}
-                >
-                  <Form.Label htmlFor={`coin-${coin}`} className="small mb-1">
-                    {coinName(coin)}
-                  </Form.Label>
-                </OverlayTrigger>
-                <DraftInput
-                  id={`coin-${coin}`}
-                  type="number"
-                  size="sm"
-                  min={0}
-                  value={String(equipment.currency[coin])}
-                  onCommit={(text) => setCoin(coin, Number(text))}
-                />
-              </div>
-            ))}
-            <span className="small text-body-secondary pb-1">
-              Purse worth {goldLabel(purseValue(equipment.currency))}
-            </span>
-          </div>
+          <InventoryTotals
+            stacks={stacks}
+            owned={owned}
+            currency={equipment.currency}
+            strength={strength}
+            size={race?.size?.[0]}
+          />
+          <CoinPurse currency={equipment.currency} />
 
           <StartingEquipment
             catalog={items ?? []}

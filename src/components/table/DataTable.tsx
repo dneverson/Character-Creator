@@ -27,6 +27,7 @@ export function DataTable<T>({
   renderDetail,
   header,
   detail: detailOptions,
+  detailTarget,
   allowNonStandard = true,
   standardFirst,
   compact = false,
@@ -90,6 +91,16 @@ export function DataTable<T>({
     )
   }
 
+  // The detail goes to another pane (the sheet's): this table keeps none of its own.
+  const inPane = renderDetail !== undefined && detailTarget === undefined
+  const sendDetail =
+    detailTarget && renderDetail
+      ? (id: string) => {
+          const row = rows.find((r) => rowMeta(r).id === id)
+          if (row !== undefined) detailTarget.show(id, renderDetail(row))
+        }
+      : undefined
+
   const master = (
     <div>
       {header}
@@ -124,8 +135,8 @@ export function DataTable<T>({
         extendSelectionTo={state.extendSelectionTo}
         selectAllVisible={state.selectAllVisible}
         clearSelection={state.clearSelection}
-        focusedId={state.focusedId}
-        onFocus={state.toggleFocus}
+        focusedId={detailTarget ? detailTarget.openId : state.focusedId}
+        onFocus={sendDetail ?? state.toggleFocus}
         sort={state.sort}
         onSort={state.onSort}
         sortBy={state.sortBy}
@@ -134,8 +145,8 @@ export function DataTable<T>({
         widths={layout.widths}
         onWidthsChange={layout.setWidths}
         onReorderColumn={layout.reorderColumn}
-        onEnterDetail={renderDetail !== undefined ? handleEnterDetail : undefined}
-        onExitToClose={renderDetail !== undefined ? state.clearFocus : undefined}
+        onEnterDetail={inPane ? handleEnterDetail : undefined}
+        onExitToClose={inPane ? state.clearFocus : undefined}
         apiRef={gridApiRef}
         emptyLabel={emptyLabel}
         ariaLabel={ariaLabel}
@@ -169,7 +180,7 @@ export function DataTable<T>({
       view
     )
 
-  if (renderDetail === undefined) return inWindow(master)
+  if (!inPane) return inWindow(master)
 
   // The pane is absent until a row is focused. The split still
   // mounts (so the grid stays full width via an absent detail rather than a

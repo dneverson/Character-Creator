@@ -175,6 +175,7 @@ export function ProficienciesSection() {
 
   return (
     <EditorSection
+      id="proficiencies"
       title="Proficiencies"
       subtitle="Everything you are proficient with except skills, where each comes from, and what each source lets you choose. Skills have their own section."
       actions={

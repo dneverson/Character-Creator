@@ -9,6 +9,8 @@ import { createContext, useContext } from 'react'
 export interface SectionCommand {
   open: boolean
   nonce: number
+  /** Only this section obeys (opening the one a link points to); every section when absent. */
+  only?: string
 }
 
 export const SectionCollapseContext = createContext<SectionCommand | null>(null)

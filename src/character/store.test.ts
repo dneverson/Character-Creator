@@ -135,6 +135,46 @@ describe('character store', () => {
     expect(useCharacterStore.getState().view).toBe('editor')
   })
 
+  it('opens a finished build on its sheet and one in progress in the editor', () => {
+    const store = useCharacterStore.getState
+    store().newCharacter()
+    const id = store().activeId!
+    store().backToList()
+    store().openCharacter(id)
+    expect(store().view).toBe('editor')
+
+    store().completeBuild()
+    store().backToList()
+    store().openCharacter(id)
+    expect(store().view).toBe('sheet')
+  })
+
+  it('completing the build records it once and shows the sheet', () => {
+    const store = useCharacterStore.getState
+    store().newCharacter()
+    const id = store().activeId!
+    store().completeBuild()
+    const first = store().characters[id]
+    expect(first.completedAt).toBeTypeOf('number')
+    expect(first.history.at(-1)?.action).toEqual({ type: 'completed' })
+    expect(store().view).toBe('sheet')
+
+    store().setView('editor')
+    store().completeBuild()
+    const again = store().characters[id]
+    expect(again.completedAt).toBe(first.completedAt)
+    expect(again.history).toHaveLength(first.history.length)
+    expect(store().view).toBe('sheet')
+  })
+
+  it('completing with no character open does nothing', () => {
+    useCharacterStore.getState().completeBuild()
+    expect(useCharacterStore.getState().view).toBe('list')
+    useCharacterStore.setState({ activeId: 'ghost', view: 'editor' })
+    useCharacterStore.getState().completeBuild()
+    expect(useCharacterStore.getState().view).toBe('editor')
+  })
+
   it('duplicating an unknown id is a no-op', () => {
     useCharacterStore.getState().duplicateCharacter('missing')
     expect(useCharacterStore.getState().order).toHaveLength(0)

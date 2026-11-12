@@ -5,23 +5,13 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Stack from 'react-bootstrap/Stack'
 import Tooltip from 'react-bootstrap/Tooltip'
 import { useActiveCharacter, useCharacterStore } from '../../character/store'
-import type { Character } from '../../character/model'
+import { identityLine } from '../../character/identity'
 import { Icon } from '../Icon'
+import { sectionDomId } from '../editor/checklistContext'
 import { DraftInput } from '../editor/DraftInput'
 
 const LEVEL_UP_REASON =
   'Finish the build first. While building, set levels in Class & Level.'
-
-/** "Wood Elf, Druid 5 (Circle of the Moon), Hermit": who the character is, in one line. */
-function identityLine(character: Character): string {
-  const classes = character.classes
-    .filter((c) => c.level > 0)
-    .map((c) => `${c.name} ${c.level}${c.subclass ? ` (${c.subclass.name})` : ''}`)
-    .join(' / ')
-  return [character.race?.name, classes, character.background?.name]
-    .filter(Boolean)
-    .join(', ')
-}
 
 interface Props {
   /** Which view the header is in: the sheet shows the name, the editor lets it be changed. */
@@ -58,6 +48,7 @@ export function CharacterHeader({ mode, ruleset, actions }: Props) {
         <DraftInput
           value={character.name}
           onCommit={(name) => updateActive({ name })}
+          id={sectionDomId('name')}
           aria-label="Character name"
           className="fw-semibold"
           style={{ maxWidth: 360 }}

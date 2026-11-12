@@ -1,7 +1,10 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ChecklistContext } from './checklistContext'
 import { EditorSection } from './EditorSection'
+import { SectionCollapseContext } from './sectionCollapse'
+import type { Checklist } from '../../derived/checklist'
 import { SubSection } from './SubSection'
 import { navbarHeight, TRAIL_ATTRIBUTE, trailAt } from './sectionTrail'
 
@@ -154,5 +157,70 @@ describe('navbarHeight', () => {
     expect(navbarHeight()).toBe(0)
     document.documentElement.style.setProperty('--app-navbar-height', '48px')
     expect(navbarHeight()).toBe(48)
+  })
+
+  describe('the build checklist mark', () => {
+    const checklist: Checklist = {
+      items: [
+        { id: 'a', section: 'skills', count: 1, label: '1 skill choice to make' },
+        { id: 'b', section: 'skills', count: 2, label: '2 expertise to choose' },
+      ],
+      status: { skills: 'open', race: 'done' },
+    }
+    const inChecklist = (id: 'skills' | 'race' | 'spells') =>
+      render(
+        <ChecklistContext.Provider value={checklist}>
+          <EditorSection id={id} title="Section">
+            <p>Body</p>
+          </EditorSection>
+        </ChecklistContext.Provider>,
+      )
+
+    it('shows caution that says what is open', () => {
+      inChecklist('skills')
+      expect(
+        screen.getByRole('img', {
+          name: 'Still open: 1 skill choice to make; 2 expertise to choose',
+        }),
+      ).toHaveClass('text-warning')
+    })
+
+    it('shows a check on a complete section, and nothing on one it cannot judge', () => {
+      const { unmount } = inChecklist('race')
+      expect(
+        screen.getByRole('img', { name: 'Complete: nothing left to choose here' }),
+      ).toHaveClass('text-success')
+      unmount()
+      inChecklist('spells')
+      expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    })
+
+    it('shows nothing outside the editor, where there is no checklist', () => {
+      render(
+        <EditorSection id="skills" title="Section">
+          <p>Body</p>
+        </EditorSection>,
+      )
+      expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    })
+
+    it('opens only the section a command is for', () => {
+      const both = (command: { open: boolean; nonce: number; only?: string }) => (
+        <SectionCollapseContext.Provider value={command}>
+          <EditorSection id="skills" title="Skills">
+            <p>Skills body</p>
+          </EditorSection>
+          <EditorSection id="race" title="Race">
+            <p>Race body</p>
+          </EditorSection>
+        </SectionCollapseContext.Provider>
+      )
+      const { rerender } = render(both({ open: true, nonce: 1 }))
+      rerender(both({ open: false, nonce: 2 }))
+      expect(screen.queryByText('Skills body')).not.toBeInTheDocument()
+      rerender(both({ open: true, nonce: 3, only: 'race' }))
+      expect(screen.getByText('Race body')).toBeInTheDocument()
+      expect(screen.queryByText('Skills body')).not.toBeInTheDocument()
+    })
   })
 })

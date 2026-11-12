@@ -601,4 +601,33 @@ describe('DataTable', () => {
       '70',
     )
   })
+
+  it('hands a clicked row to the detail target and keeps no pane of its own', async () => {
+    const user = userEvent.setup()
+    const show = vi.fn()
+    const { rerender } = renderTable({ detailTarget: { openId: null, show } })
+    await user.click(screen.getByText('Fireball'))
+    expect(show).toHaveBeenCalledTimes(1)
+    expect(show.mock.calls[0][0]).toBe('fireball')
+    render(<>{show.mock.calls[0][1]}</>)
+    expect(screen.getByText('Detail for Fireball')).toBeInTheDocument()
+    expect(document.querySelector('.data-table-detail')).toBeNull()
+    expect(screen.queryByRole('separator', { name: 'Resize panes' })).toBeNull()
+
+    // The row it says is open is the one marked; the target decides, not the table.
+    rerender(
+      <DataTable<Spell>
+        tableId="spells"
+        rows={SPELLS}
+        columns={columns}
+        rowMeta={rowMeta}
+        renderDetail={(s) => <div>Detail for {s.name}</div>}
+        detailTarget={{ openId: 'bless', show }}
+        ariaLabel="Spells"
+      />,
+    )
+    const marked = document.querySelectorAll('tr.table-active')
+    expect(marked).toHaveLength(1)
+    expect(marked[0]).toHaveTextContent('Bless')
+  })
 })

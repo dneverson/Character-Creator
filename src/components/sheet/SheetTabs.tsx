@@ -9,7 +9,7 @@ import { SheetDetailPane, useSheetDetail, useWideSheet } from './SheetDetail'
 export function SheetTabs({ sheet, phone }: { sheet: DerivedSheet; phone: boolean }) {
   const [openId, setOpenId] = useState<string | null>(null)
   const wide = useWideSheet()
-  const { current } = useSheetDetail()
+  const { current, dismissRow } = useSheetDetail()
   const tabs = visibleTabs(sheet, phone)
   // The open tab may have left (a phone turned wide, a caster who lost the spells).
   const open = tabs.find((t) => t.id === openId) ?? tabs[0]
@@ -27,7 +27,10 @@ export function SheetTabs({ sheet, phone }: { sheet: DerivedSheet; phone: boolea
               aria-selected={tab.id === open.id}
               aria-controls="sheet-tab-panel"
               className={`sheet-tabs__tab${tab.id === open.id ? ' active' : ''}`}
-              onClick={() => setOpenId(tab.id)}
+              onClick={() => {
+                if (tab.id !== open.id) dismissRow()
+                setOpenId(tab.id)
+              }}
             >
               {tab.label}
             </button>

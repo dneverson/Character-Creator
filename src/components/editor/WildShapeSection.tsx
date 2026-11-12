@@ -184,6 +184,7 @@ export function WildShapeSection() {
 
   return (
     <EditorSection
+      id="wildshape"
       title="Wild Shape"
       subtitle="Beast forms your Druid can assume. Forms beyond your level's limits are allowed but flagged."
       actions={

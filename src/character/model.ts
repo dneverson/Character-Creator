@@ -170,6 +170,8 @@ export type HistoryAction =
    * newer state (a matrix line picked, a gauntlet slot rerolled).
    */
   | { type: 'roll'; roll: RollRecord }
+  /** The player pressed Done: the build counts as finished (open choices or not). */
+  | { type: 'completed' }
 
 export interface HistoryEntry {
   id: string
@@ -678,6 +680,12 @@ export interface Character {
   // --- Play ---
   play: PlayState
 
+  /**
+   * When the player pressed Done (ms epoch). Absent means the build is still in progress,
+   * so every document saved before this field existed loads as a draft.
+   */
+  completedAt?: number
+
   // --- History ---
   /** Everything done to the character, oldest first. Only ever added to. */
   history: HistoryEntry[]
@@ -983,6 +991,8 @@ export function ensureCharacterDefaults(raw: StoredCharacter | undefined): Chara
   merged.wildShapes = Array.isArray(raw?.wildShapes) ? raw!.wildShapes : []
   merged.story = { ...defaultStory(), ...(raw?.story ?? {}) }
   merged.play = normalizePlay(raw.play)
+  if (typeof raw.completedAt === 'number') merged.completedAt = raw.completedAt
+  else delete merged.completedAt
   Object.assign(merged, storedHistory(raw))
   merged.createdAt = raw?.createdAt ?? base.createdAt
   merged.updatedAt = raw?.updatedAt ?? base.updatedAt

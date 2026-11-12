@@ -61,6 +61,7 @@ export function RaceSelection() {
 
   return (
     <EditorSection
+      id="race"
       title="Race / Species"
       subtitle="Every race and species from your books, stat by stat. Click a row for its traits in full, tick rows to compare them side by side, then choose one."
     >

@@ -10,6 +10,7 @@ import { EditorSection } from './EditorSection'
 export function BackgroundSection() {
   return (
     <EditorSection
+      id="background"
       title="Background"
       subtitle="Every background from your books, stat by stat, then the story: pick or roll each table, or write your own."
     >

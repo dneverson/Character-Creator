@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
 import Card from 'react-bootstrap/Card'
 import Col from 'react-bootstrap/Col'
@@ -6,6 +7,7 @@ import Container from 'react-bootstrap/Container'
 import Row from 'react-bootstrap/Row'
 import Stack from 'react-bootstrap/Stack'
 import { downloadCharacter, parseImportedCharacter } from '../character/io'
+import { classLine } from '../character/identity'
 import { useCharacterStore } from '../character/store'
 import { formatTimestamp } from '../ui/date'
 
@@ -63,6 +65,13 @@ export function CharacterList() {
               <Card className="h-100">
                 <Card.Body className="d-flex flex-column">
                   <Card.Title className="text-truncate">{c.name}</Card.Title>
+                  <div className="mb-1 small">
+                    {c.completedAt === undefined ? (
+                      <Badge bg="secondary">In progress</Badge>
+                    ) : (
+                      classLine(c) || 'No class'
+                    )}
+                  </div>
                   <Card.Subtitle className="mb-3 text-body-secondary small">
                     Updated {formatTimestamp(c.updatedAt)}
                   </Card.Subtitle>

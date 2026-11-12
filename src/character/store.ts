@@ -40,6 +40,11 @@ interface CCState {
    */
   setView: (view: 'editor' | 'sheet') => void
   /**
+   * The player pressed Done on the active character: record it (once) and open the sheet.
+   * Open choices do not stop it.
+   */
+  completeBuild: () => void
+  /**
    * Merge a patch into the active character, bump `updatedAt` and record the edit
    * in its history. `action` says what the edit was when it was more than an
    * edit (a roll).
@@ -64,8 +69,13 @@ export const useCharacterStore = create<CCState>()((set, get) => ({
   },
 
   openCharacter: (id) => {
-    if (!get().characters[id]) return
-    set({ activeId: id, view: 'editor' })
+    const character = get().characters[id]
+    if (!character) return
+    // A finished build opens on its sheet; one still in progress, in the editor.
+    set({
+      activeId: id,
+      view: character.completedAt === undefined ? 'editor' : 'sheet',
+    })
   },
 
   deleteCharacter: (id) => {
@@ -132,6 +142,17 @@ export const useCharacterStore = create<CCState>()((set, get) => ({
   setView: (view) => {
     if (!get().activeId) return
     set({ view })
+  },
+
+  completeBuild: () => {
+    const { activeId, characters } = get()
+    if (!activeId) return
+    const existing = characters[activeId]
+    if (!existing) return
+    if (existing.completedAt === undefined) {
+      get().updateActive({ completedAt: Date.now() }, { type: 'completed' })
+    }
+    set({ view: 'sheet' })
   },
 
   updateActive: (patch, action) => {

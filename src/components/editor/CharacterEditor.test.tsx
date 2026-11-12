@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CharacterEditor } from './CharacterEditor'
@@ -26,8 +26,8 @@ vi.mock('./HitPoints', async (importOriginal) => {
 const mockDownload = vi.mocked(downloadCharacter)
 const mockPdf = vi.mocked(exportCharacterPdf)
 
-function seedActive() {
-  const c = createCharacter('Tordek')
+function seedActive(name = 'Tordek') {
+  const c = createCharacter(name)
   useCharacterStore.setState({
     characters: { [c.id]: c },
     order: [c.id],
@@ -180,5 +180,83 @@ describe('CharacterEditor', () => {
 
     await user.click(screen.getByRole('button', { name: 'Export PDF' }))
     expect(await screen.findByText('PDF export failed')).toBeInTheDocument()
+  })
+
+  describe('Done', () => {
+    const doneButton = async () => {
+      const button = screen.getByRole('button', { name: 'Done' })
+      await waitFor(() => expect(button).toBeEnabled())
+      return button
+    }
+
+    it('lists the open choices, and finishes anyway without them being made', async () => {
+      const user = userEvent.setup()
+      const c = seedActive('New Character')
+      renderEditor()
+
+      await user.click(await doneButton())
+      const modal = await screen.findByRole('dialog')
+      expect(within(modal).getByText('Finish the build')).toBeInTheDocument()
+      expect(
+        within(modal).getByRole('button', { name: 'Class & Level: Choose a class' }),
+      ).toBeInTheDocument()
+      expect(
+        within(modal).getByRole('button', { name: 'Name: Name your character' }),
+      ).toBeInTheDocument()
+
+      await user.click(within(modal).getByRole('button', { name: 'Keep building' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(state().characters[c.id].completedAt).toBeUndefined()
+      expect(state().view).toBe('editor')
+
+      await user.click(screen.getByRole('button', { name: 'Done' }))
+      await user.click(await screen.findByRole('button', { name: 'Finish anyway' }))
+      expect(state().characters[c.id].completedAt).toBeTypeOf('number')
+      expect(state().view).toBe('sheet')
+    })
+
+    it('opens the section a link points to and scrolls it under the navbar', async () => {
+      const user = userEvent.setup()
+      seedActive()
+      const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => {})
+      renderEditor()
+      await user.click(screen.getByRole('button', { name: 'Collapse all' }))
+      const expanded = (title: string) =>
+        screen
+          .getByRole('heading', { name: title })
+          .closest('.card')
+          ?.querySelector('[aria-expanded]')
+          ?.getAttribute('aria-expanded')
+
+      await user.click(await doneButton())
+      await user.click(
+        await screen.findByRole('button', {
+          name: 'Race / Species: Choose a race or species',
+        }),
+      )
+      await waitFor(() => expect(scrollBy).toHaveBeenCalled())
+      expect(expanded('Race / Species')).toBe('true')
+      expect(expanded('Class & Level')).toBe('false')
+    })
+
+    it('takes the name link to the name field', async () => {
+      const user = userEvent.setup()
+      seedActive('New Character')
+      vi.spyOn(window, 'scrollBy').mockImplementation(() => {})
+      renderEditor()
+      await user.click(await doneButton())
+      await user.click(
+        await screen.findByRole('button', { name: 'Name: Name your character' }),
+      )
+      await waitFor(() => expect(screen.getByLabelText('Character name')).toHaveFocus())
+    })
+
+    it('marks the sections with caution while open', async () => {
+      seedActive()
+      renderEditor()
+      expect(
+        await screen.findByRole('img', { name: 'Still open: Choose a class' }),
+      ).toBeInTheDocument()
+    })
   })
 })

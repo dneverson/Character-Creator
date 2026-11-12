@@ -417,6 +417,7 @@ export function BookSelection() {
 
   return (
     <EditorSection
+      id="books"
       title="Books"
       subtitle="Choose which sources (2014 and 2024) are available. All other menus filter to these."
       actions={<Badge bg="secondary">{selectedBooks.length} selected</Badge>}

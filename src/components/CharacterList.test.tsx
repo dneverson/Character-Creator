@@ -41,6 +41,25 @@ describe('CharacterList', () => {
     expect(screen.getByText(/No characters yet/i)).toBeInTheDocument()
   })
 
+  it('says a build is in progress, or what class a finished one is', () => {
+    const [draft, finished] = seed('Tordek', 'Mialee')
+    const { characters } = useCharacterStore.getState()
+    useCharacterStore.setState({
+      characters: {
+        ...characters,
+        [finished]: {
+          ...characters[finished],
+          completedAt: 1,
+          classes: [{ name: 'Wizard', source: 'PHB', level: 3 }],
+        },
+      },
+    })
+    render(<CharacterList />)
+    expect(screen.getAllByText('In progress')).toHaveLength(1)
+    expect(screen.getByText('Wizard 3')).toBeInTheDocument()
+    expect(draft).not.toBe(finished)
+  })
+
   it('creates a new character from the header button', async () => {
     const user = userEvent.setup()
     render(<CharacterList />)

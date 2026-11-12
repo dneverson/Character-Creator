@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import Button from 'react-bootstrap/Button'
 import Container from 'react-bootstrap/Container'
 import Spinner from 'react-bootstrap/Spinner'
@@ -8,7 +8,16 @@ import { downloadCharacter } from '../../character/io'
 import { exportCharacterPdf } from '../../pdf/exportPdf'
 import { useActiveCharacter } from '../../character/store'
 import { useContentNames } from '../../hooks/useContentNames'
+import {
+  SECTION_TITLES,
+  type ChecklistTarget,
+  type SectionId,
+} from '../../derived/checklist'
+import { ChecklistContext, sectionDomId } from './checklistContext'
+import { FinishBuild } from './FinishBuild'
 import { SectionCollapseContext, type SectionCommand } from './sectionCollapse'
+import { navbarHeight } from './sectionTrail'
+import { useDerivedSheet } from './useDerivedSheet'
 import { AbilityScoresSection } from './AbilityScoresSection'
 import { BackgroundSection } from './BackgroundSection'
 import { BookSelection } from './BookSelection'
@@ -37,23 +46,23 @@ import { WildShapeSection } from './WildShapeSection'
  * To reorder, just move a line - sections are self-contained and take no props.
  * Keep a section below whatever produces the data it reads.
  *
- * `title` names the section in the notice shown if it fails to render, so it
- * matches the heading the section gives itself.
+ * `id` is the key of `SECTION_TITLES`, whose title names the section in the notice shown if it fails to render, so it
+ * matches the heading the section gives itself; the build checklist marks the section by `id`.
  */
-const SECTIONS: { title: string; Section: ComponentType }[] = [
-  { title: 'Books', Section: BookSelection },
-  { title: 'Class & Level', Section: ClassBrowser },
-  { title: 'Race / Species', Section: RaceSelection },
-  { title: 'Background', Section: BackgroundSection },
-  { title: 'Ability Scores', Section: AbilityScoresSection },
-  { title: 'Feats & Ability Score Improvements', Section: FeatsSection },
-  { title: 'Skills', Section: SkillsSection },
-  { title: 'Proficiencies', Section: ProficienciesSection },
-  { title: 'Hit Points', Section: HitPoints },
-  { title: 'Combat', Section: CombatSection },
-  { title: 'Spells', Section: SpellsSection },
-  { title: 'Wild Shape', Section: WildShapeSection },
-  { title: 'Equipment', Section: EquipmentSection },
+const SECTIONS: { id: SectionId; Section: ComponentType }[] = [
+  { id: 'books', Section: BookSelection },
+  { id: 'class', Section: ClassBrowser },
+  { id: 'race', Section: RaceSelection },
+  { id: 'background', Section: BackgroundSection },
+  { id: 'abilities', Section: AbilityScoresSection },
+  { id: 'feats', Section: FeatsSection },
+  { id: 'skills', Section: SkillsSection },
+  { id: 'proficiencies', Section: ProficienciesSection },
+  { id: 'hp', Section: HitPoints },
+  { id: 'combat', Section: CombatSection },
+  { id: 'spells', Section: SpellsSection },
+  { id: 'wildshape', Section: WildShapeSection },
+  { id: 'equipment', Section: EquipmentSection },
 ]
 
 export function CharacterEditor() {
@@ -61,7 +70,30 @@ export function CharacterEditor() {
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfError, setPdfError] = useState<string | null>(null)
   const [sectionCommand, setSectionCommand] = useState<SectionCommand | null>(null)
+  const [jump, setJump] = useState<{ target: ChecklistTarget; nonce: number } | null>(
+    null,
+  )
+  const { sheet, loading } = useDerivedSheet()
   useContentNames()
+
+  // Open the section a link of the Done window points to and bring it under the navbar.
+  useEffect(() => {
+    if (!jump) return
+    const element = document.getElementById(sectionDomId(jump.target))
+    if (!element) return
+    window.scrollBy({
+      top: element.getBoundingClientRect().top - navbarHeight() - 8,
+      behavior: 'smooth',
+    })
+    if (jump.target === 'name') element.focus({ preventScroll: true })
+  }, [jump])
+
+  function jumpTo(target: ChecklistTarget) {
+    if (target !== 'name') {
+      setSectionCommand((c) => ({ open: true, only: target, nonce: (c?.nonce ?? 0) + 1 }))
+    }
+    setJump((j) => ({ target, nonce: (j?.nonce ?? 0) + 1 }))
+  }
 
   function setAllSections(open: boolean) {
     setSectionCommand((c) => ({ open, nonce: (c?.nonce ?? 0) + 1 }))
@@ -88,6 +120,10 @@ export function CharacterEditor() {
         mode="edit"
         actions={
           <>
+            <FinishBuild
+              checklist={loading ? undefined : sheet?.checklist}
+              onJump={jumpTo}
+            />
             <Button variant="secondary" onClick={() => downloadCharacter(character)}>
               Export JSON
             </Button>
@@ -129,15 +165,17 @@ export function CharacterEditor() {
         </Button>
       </div>
 
-      <SectionCollapseContext.Provider value={sectionCommand}>
-        {SECTIONS.map(({ title, Section }) => (
-          // One section failing to render leaves the others usable. The key ties a
-          // caught failure to this character, so opening another one starts clean.
-          <ErrorBoundary key={`${character.id}:${title}`} title={title}>
-            <Section />
-          </ErrorBoundary>
-        ))}
-      </SectionCollapseContext.Provider>
+      <ChecklistContext.Provider value={loading ? null : (sheet?.checklist ?? null)}>
+        <SectionCollapseContext.Provider value={sectionCommand}>
+          {SECTIONS.map(({ id, Section }) => (
+            // One section failing to render leaves the others usable. The key ties a
+            // caught failure to this character, so opening another one starts clean.
+            <ErrorBoundary key={`${character.id}:${id}`} title={SECTION_TITLES[id]}>
+              <Section />
+            </ErrorBoundary>
+          ))}
+        </SectionCollapseContext.Provider>
+      </ChecklistContext.Provider>
     </Container>
   )
 }

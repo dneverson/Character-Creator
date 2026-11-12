@@ -6,8 +6,8 @@ import type { AbilityKey } from '../dice/dice'
 import { characterAbilityTotals, totalLevel } from '../character/derive'
 import { hpBreakdown } from '../character/hp'
 import { proficiencyBonus } from '../data/skills'
-import { buildSkillSources } from '../character/skills'
-import type { Character } from '../character/model'
+import { buildSkillSources, skillCards } from '../character/skills'
+import type { BeastRef, Character } from '../character/model'
 import type { PickCard } from '../character/picks'
 import { armorClass, type AbilityTotals } from './armorClass'
 import { attackRows, type AttackRow } from './attacks'
@@ -33,8 +33,10 @@ import { speedQuantity } from './speed'
 import { abilityQuantities } from './abilities'
 import { saveRows, type SaveRow } from './saves'
 import { skillTotals, type DerivedSkill } from './skillTotals'
+import { buildChecklist, type Checklist } from './checklist'
 import { combatNumbers, type CombatNumbers } from './combat'
 import { classOptionCards } from './classOptions'
+import { featureRows, type FeatureRow } from './features'
 import { collectSources, type DeriveDeps } from './sources'
 import { spellStats, type SpellStatRow } from './spellStats'
 import { BASE_SOURCE, quantity, type Quantity } from './types'
@@ -61,6 +63,10 @@ export interface DerivedSheet {
   combat: CombatNumbers
   attacks: AttackRow[]
   spellStats: SpellStatRow[]
+  /** Every feature and trait: of the classes, the species, the background and the feats. */
+  features: FeatureRow[]
+  /** The beast forms the character can take with Wild Shape. */
+  wildShapes: BeastRef[]
   proficiencies: Proficiencies
   /** The skill table: every skill with its modifier, and what makes it proficient. */
   skills: DerivedSkill[]
@@ -78,6 +84,8 @@ export interface DerivedSheet {
   grantTags: string[]
   /** How many picks of the grants are not made yet. */
   choicesOpen: number
+  /** What the build still needs, and which creator sections are open or complete. */
+  checklist: Checklist
   hp: Quantity
 }
 
@@ -127,6 +135,7 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
     items: deps.items ?? [],
     books: character.selectedBooks,
   }
+  const classOptions = classOptionCards(sources, deps.fightingStyles ?? [])
   const breakdown = hpBreakdown(character, deps.classByKey, sources.summary)
   const rolled = character.hp.method === 'rolled' && breakdown.rolledHP !== undefined
   return {
@@ -143,6 +152,8 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
     combat: combatNumbers(sources, totals, table.rows, prof.value),
     attacks: attackRows(sources, totals, prof.value, known, ac.lines),
     spellStats: spellStats(sources, deps, totals, prof.value, ac.lines),
+    features: featureRows(sources),
+    wildShapes: character.wildShapes,
     proficiencies: known,
     skills: skillTotals(
       table.rows,
@@ -154,7 +165,7 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
     ),
     expertise: table.expertise,
     picks: pickCards(sources, choices, catalog, known.listing),
-    classOptions: classOptionCards(sources, deps.fightingStyles ?? []),
+    classOptions,
     alternatives: altChoices(blocks, choices),
     optionals: optionalSwitches(blocks, choices),
     grantTags: [...new Set(blocks.map((b) => b.card.tag))],
@@ -165,5 +176,13 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
         .reduce((n, o) => n + o.left, 0) +
       table.expertise.cards.reduce((n, c) => n + c.left, 0),
     hp: hpQuantity(character, breakdown, rolled),
+    checklist: buildChecklist({
+      sources,
+      deps,
+      openPicks: known.open,
+      skills: skillCards(character, skillSources, table.rows),
+      expertise: table.expertise.cards,
+      classOptions,
+    }),
   }
 }
