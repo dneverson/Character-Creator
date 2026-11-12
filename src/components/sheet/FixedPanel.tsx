@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { DerivedBox, type BreakdownSpec } from '../derived/DerivedNumber'
 
 /** A titled box of the sheet's fixed part, the one place a heading and its body sit. */
 export function FixedPanel({
@@ -19,21 +20,27 @@ export function FixedPanel({
   )
 }
 
-/** A number in a box: its label, the value and, small under it, what goes with it. */
+/**
+ * A number in a box: its label, the value and, small under it, what goes with it. With a
+ * `breakdown` the whole box opens how the number adds up.
+ */
 export function StatBox({
   label,
   value,
   sub,
+  breakdown,
 }: {
   label: string
   value: ReactNode
   sub?: ReactNode
+  breakdown?: BreakdownSpec
 }) {
   return (
     <div className="sheet-stat" role="group" aria-label={label}>
       <div className="sheet-stat__label">{label}</div>
       <div className="sheet-stat__value">{value}</div>
       {sub !== undefined && <div className="sheet-stat__sub">{sub}</div>}
+      {breakdown && <DerivedBox {...breakdown} />}
     </div>
   )
 }

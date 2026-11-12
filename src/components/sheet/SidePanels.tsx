@@ -6,8 +6,9 @@ import Tooltip from 'react-bootstrap/Tooltip'
 import { ABILITIES, ABILITY_NAMES, formatMod } from '../../dice/dice'
 import type { DerivedSheet } from '../../derived'
 import { Abbr } from '../Abbr'
+import { feet } from '../../data/labels'
+import { DerivedNumber } from '../derived/DerivedNumber'
 import { ListingTable } from '../editor/ProficienciesSection'
-import { NO_VALUE } from '../table/facts'
 import { FixedPanel } from './FixedPanel'
 
 const MARKS = {
@@ -29,17 +30,23 @@ function ProficiencyMark({ kind }: { kind?: keyof typeof MARKS }) {
 }
 
 export function SavesPanel({ sheet }: { sheet: DerivedSheet }) {
-  const proficient = new Set(sheet.proficiencies.listing.save.map((s) => s.value))
   return (
     <FixedPanel title="Saving throws" area="saves">
       <ul className="sheet-rows" aria-label="Saving throws">
         {ABILITIES.map((key) => (
           <li key={key} className="sheet-row">
             <ProficiencyMark
-              kind={proficient.has(ABILITY_NAMES[key]) ? 'proficient' : undefined}
+              kind={sheet.saves[key].proficient ? 'proficient' : undefined}
             />
             <span className="sheet-row__name">{ABILITY_NAMES[key]}</span>
-            <span className="sheet-row__value">{NO_VALUE}</span>
+            <DerivedNumber
+              id={`save:${key}`}
+              label={`${ABILITY_NAMES[key]} save`}
+              quantity={sheet.saves[key].total}
+              kind="mod"
+              format={formatMod}
+              amountHeader="Save"
+            />
           </li>
         ))}
       </ul>
@@ -66,7 +73,14 @@ export function SkillsPanel({ sheet }: { sheet: DerivedSheet }) {
             <span className="sheet-row__ability">
               <Abbr code={skill.ability.toUpperCase()} />
             </span>
-            <span className="sheet-row__value">{formatMod(skill.modifier)}</span>
+            <DerivedNumber
+              id={`skill:${skill.key}`}
+              label={skill.label}
+              quantity={skill.total}
+              kind="mod"
+              format={formatMod}
+              amountHeader="Mod"
+            />
           </li>
         ))}
       </ul>
@@ -78,10 +92,26 @@ export function SensesPanel({ sheet }: { sheet: DerivedSheet }) {
   return (
     <FixedPanel title="Senses" area="senses">
       <ul className="sheet-rows" aria-label="Senses">
+        {sheet.senses.map((sense) => (
+          <li key={sense.key} className="sheet-row">
+            <span className="sheet-row__name">{sense.label}</span>
+            <DerivedNumber
+              id={`sense:${sense.key}`}
+              label={sense.label}
+              quantity={sense.range}
+              format={feet}
+              amountHeader="Range"
+            />
+          </li>
+        ))}
         {sheet.combat.passives.map((row) => (
           <li key={row.key} className="sheet-row">
             <span className="sheet-row__name">Passive {row.label}</span>
-            <span className="sheet-row__value">{row.score.value}</span>
+            <DerivedNumber
+              id={`passive:${row.key}`}
+              label={`Passive ${row.label}`}
+              quantity={row.score}
+            />
           </li>
         ))}
       </ul>

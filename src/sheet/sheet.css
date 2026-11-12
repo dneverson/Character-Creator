@@ -1,7 +1,19 @@
 /*
  * The character sheet's structure: where each box goes and how it is spaced. The look
- * (colours, fonts, borders) is read from variables so a template can change it.
+ * (colours, fonts, borders) is read only from the --sheet-* variables, which the chosen
+ * template supplies (src/sheet/templates.ts); a test keeps literals out of this file.
  */
+.sheet-root {
+  background: var(--sheet-page-bg);
+  color: var(--sheet-ink);
+  font-family: var(--sheet-body-font);
+  /* The Bootstrap parts inside the sheet (tables, list groups) take the template too. */
+  --bs-body-color: var(--sheet-ink);
+  --bs-emphasis-color: var(--sheet-ink);
+  --bs-secondary-color: var(--sheet-muted-ink);
+  --bs-body-bg: var(--sheet-panel-bg);
+  --bs-border-color: var(--sheet-panel-border);
+}
 .sheet {
   max-width: 1680px;
   font-size: 0.875rem;
@@ -12,12 +24,13 @@
 }
 .sheet-header__name {
   margin: 0;
+  font-family: var(--sheet-heading-font);
   font-size: 1.35rem;
   font-weight: 600;
   line-height: 1.2;
 }
 .sheet-header__line {
-  color: var(--bs-secondary-color);
+  color: var(--sheet-muted-ink);
 }
 
 /* The fixed part: the six abilities, then the numbers that go with them. */
@@ -35,7 +48,7 @@
   grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 .sheet-vitals {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 @media (min-width: 1200px) {
   .sheet-top {
@@ -44,20 +57,26 @@
 }
 
 .sheet-stat {
-  border: 1px solid var(--bs-border-color);
-  border-radius: var(--bs-border-radius);
-  background: var(--bs-body-bg);
+  position: relative;
+  border: var(--sheet-panel-border-width) var(--sheet-panel-border-style)
+    var(--sheet-panel-border);
+  border-radius: var(--sheet-panel-radius);
+  box-shadow: var(--sheet-panel-shadow);
+  background: var(--sheet-panel-bg);
   padding: 0.3rem 0.4rem;
   text-align: center;
   min-width: 0;
 }
 .sheet-stat__label {
+  font-family: var(--sheet-heading-font);
   font-size: 0.7rem;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--bs-secondary-color);
+  text-transform: var(--sheet-label-transform);
+  font-variant: var(--sheet-label-variant);
+  color: var(--sheet-muted-ink);
 }
 .sheet-stat__value {
+  font-family: var(--sheet-number-font);
   font-size: 1.5rem;
   font-weight: 600;
   line-height: 1.2;
@@ -65,7 +84,7 @@
 }
 .sheet-stat__sub {
   font-size: 0.75rem;
-  color: var(--bs-secondary-color);
+  color: var(--sheet-muted-ink);
 }
 
 /* Left column beside the switching box. */
@@ -99,19 +118,23 @@
 }
 
 .sheet-panel {
-  border: 1px solid var(--bs-border-color);
-  border-radius: var(--bs-border-radius);
-  background: var(--bs-body-bg);
+  border: var(--sheet-panel-border-width) var(--sheet-panel-border-style)
+    var(--sheet-panel-border);
+  border-radius: var(--sheet-panel-radius);
+  box-shadow: var(--sheet-panel-shadow);
+  background: var(--sheet-panel-bg);
   padding: 0.4rem 0.5rem;
   min-width: 0;
 }
 .sheet-panel__title {
   margin: 0 0 0.25rem;
+  font-family: var(--sheet-heading-font);
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--bs-secondary-color);
+  text-transform: var(--sheet-label-transform);
+  font-variant: var(--sheet-label-variant);
+  color: var(--sheet-muted-ink);
 }
 
 .sheet-rows {
@@ -124,7 +147,7 @@
   align-items: baseline;
   gap: 0.4rem;
   padding: 0.1rem 0;
-  border-bottom: 1px solid var(--bs-border-color-translucent);
+  border-bottom: 1px solid color-mix(in srgb, var(--sheet-panel-border) 50%, transparent);
 }
 .sheet-row:last-child {
   border-bottom: 0;
@@ -137,10 +160,11 @@
   flex: 0 0 auto;
   width: 2.5rem;
   font-size: 0.75rem;
-  color: var(--bs-secondary-color);
+  color: var(--sheet-muted-ink);
 }
 .sheet-row__value {
   flex: 0 0 auto;
+  font-family: var(--sheet-number-font);
   width: 3.5ch;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -158,24 +182,29 @@
 /* The switching box. */
 .sheet-tabs {
   min-width: 0;
-  border: 1px solid var(--bs-border-color);
-  border-radius: var(--bs-border-radius);
-  background: var(--bs-body-bg);
+  border: var(--sheet-panel-border-width) var(--sheet-panel-border-style)
+    var(--sheet-panel-border);
+  border-radius: var(--sheet-panel-radius);
+  box-shadow: var(--sheet-panel-shadow);
+  background: var(--sheet-panel-bg);
 }
 .sheet-tabs__strip {
   overflow-x: auto;
-  border-bottom: 1px solid var(--bs-border-color);
+  border-bottom: 1px solid var(--sheet-panel-border);
 }
 .sheet-tabs__tab {
   border: 0;
   border-bottom: 2px solid transparent;
   background: transparent;
-  color: var(--bs-body-color);
+  color: var(--sheet-ink);
+  font-family: var(--sheet-heading-font);
   padding: 0.45rem 0.8rem;
   white-space: nowrap;
 }
 .sheet-tabs__tab.active {
-  border-bottom-color: var(--bs-primary);
+  border-bottom-color: var(--sheet-accent);
+  background: var(--sheet-tab-active-bg);
+  color: var(--sheet-accent-ink);
   font-weight: 600;
 }
 .sheet-tabs__panel {
@@ -200,7 +229,7 @@
     z-index: 5;
     padding: 0.25rem 0;
     margin-bottom: 0.5rem;
-    background: var(--bs-body-bg);
+    background: var(--sheet-page-bg);
   }
   .sheet-abilities {
     order: 2;
@@ -210,4 +239,100 @@
   .sheet-main {
     order: 3;
   }
+}
+
+/* A number that opens how it adds up: the number, then the info button in its own narrow
+   column, so a column of them lines up. */
+.derived-number {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  font-family: var(--sheet-number-font);
+  font-variant-numeric: tabular-nums;
+}
+.derived-number__value,
+.derived-number__info,
+.derived-box {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+.derived-number__value {
+  min-width: 3ch;
+  text-align: right;
+  font-weight: 600;
+  border-radius: var(--sheet-panel-radius);
+}
+.derived-number--mod .derived-number__value {
+  min-width: 3.5ch;
+}
+.derived-number--score .derived-number__value {
+  min-width: 3ch;
+}
+.derived-number__value:hover {
+  text-decoration: underline;
+}
+.derived-number__info {
+  flex: 0 0 1.75rem;
+  width: 1.75rem;
+  text-align: center;
+  color: var(--sheet-muted-ink);
+}
+.derived-number__info:hover {
+  color: var(--sheet-ink);
+}
+.derived-number__value[aria-pressed='true'],
+.derived-number__info[aria-pressed='true'] {
+  color: var(--sheet-accent-ink);
+  box-shadow: 0 0 0 2px var(--sheet-accent);
+  border-radius: var(--sheet-panel-radius);
+}
+.derived-number__value:focus-visible,
+.derived-number__info:focus-visible,
+.derived-box:focus-visible {
+  outline: 2px solid var(--sheet-accent);
+  outline-offset: 1px;
+}
+
+/* A stat box that opens how it adds up: the whole box is the button. */
+.derived-box {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 2px solid transparent;
+  border-radius: var(--sheet-panel-radius);
+}
+.derived-box[aria-pressed='true'] {
+  border-color: var(--sheet-accent);
+}
+.derived-box__icon {
+  position: absolute;
+  bottom: 0.15rem;
+  right: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--sheet-muted-ink);
+}
+.derived-box:hover .derived-box__icon {
+  color: var(--sheet-ink);
+}
+
+/* The breakdown tables hold their columns, so every one lines up the same. */
+.derived-table--aligned {
+  table-layout: fixed;
+}
+.derived-table--aligned td,
+.derived-table--aligned th {
+  overflow-wrap: anywhere;
+}
+.derived-table--aligned td:last-child,
+.derived-table--aligned th:last-child {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Over the sheet on a tablet or a phone: 420px wide, the whole screen when that is less. */
+.sheet-detail-overlay.offcanvas {
+  --bs-offcanvas-width: min(420px, 100vw);
 }

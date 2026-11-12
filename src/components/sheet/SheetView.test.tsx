@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SheetView } from './SheetView'
@@ -100,6 +100,22 @@ function setPhone() {
     }) as MediaQueryList
 }
 
+/** A window whose width matches only the queries that `matching` accepts. */
+function setWidth(matching: (query: string) => boolean) {
+  window.matchMedia = (query: string): MediaQueryList =>
+    ({
+      matches: matching(query),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList
+}
+const setWide = () => setWidth((q) => q.includes('min-width: 1200px'))
+
 beforeEach(() => {
   localStorage.clear()
   vi.clearAllMocks()
@@ -129,7 +145,9 @@ describe('SheetView', () => {
     seed()
     renderSheet()
     expect(screen.getByRole('heading', { name: 'Tordek', level: 1 })).toBeInTheDocument()
-    expect(screen.getByText('Dwarf, Fighter 3 (Champion)')).toBeInTheDocument()
+    expect(
+      screen.getByText('Dwarf, Fighter 3 (Champion) - 2014 rules'),
+    ).toBeInTheDocument()
     await settle()
   })
 
@@ -242,10 +260,253 @@ describe('SheetView', () => {
     await settle()
   })
 
+  it('wears the app look by default and switches to parchment, remembering it', async () => {
+    const user = userEvent.setup()
+    seed()
+    const { container, unmount } = renderSheet()
+    const root = () => container.querySelector('.sheet-root') as HTMLElement
+    expect(root()).toHaveAttribute('data-sheet-template', 'app')
+    expect(root().style.getPropertyValue('--sheet-panel-bg')).toBe('#ffffff')
+    await user.click(screen.getByRole('button', { name: 'Look: App' }))
+    await user.click(screen.getByRole('button', { name: /Parchment/ }))
+    expect(root()).toHaveAttribute('data-sheet-template', 'parchment')
+    expect(root().style.getPropertyValue('--sheet-panel-bg')).toBe('#f4ecd8')
+    expect(screen.getByRole('button', { name: 'Look: Parchment' })).toBeInTheDocument()
+    await settle()
+    unmount()
+    // A fresh visit to the sheet opens in the remembered look.
+    const again = renderSheet()
+    expect(again.container.querySelector('.sheet-root')).toHaveAttribute(
+      'data-sheet-template',
+      'parchment',
+    )
+    await settle()
+  })
+
+  it('takes the dark tokens when the theme is dark', async () => {
+    localStorage.setItem('cc-theme', 'dark')
+    seed()
+    const { container } = renderSheet()
+    expect(
+      (container.querySelector('.sheet-root') as HTMLElement).style.getPropertyValue(
+        '--sheet-panel-bg',
+      ),
+    ).toBe('#212529')
+    await settle()
+  })
+
+  it('opens in the app look when the remembered look is unknown', async () => {
+    localStorage.setItem('cc-sheet-template', 'scroll')
+    seed()
+    const { container } = renderSheet()
+    expect(container.querySelector('.sheet-root')).toHaveAttribute(
+      'data-sheet-template',
+      'app',
+    )
+    await settle()
+  })
+
+  it('forgets the remembered look when the app look is chosen again', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('cc-sheet-template', 'parchment')
+    seed()
+    renderSheet()
+    await user.click(screen.getByRole('button', { name: 'Look: Parchment' }))
+    await user.click(screen.getByRole('button', { name: /^App/ }))
+    expect(localStorage.getItem('cc-sheet-template')).toBeNull()
+    await settle()
+  })
+
   it('tells the player when the data could not be loaded', async () => {
     vi.mocked(loadClasses).mockRejectedValue(new Error('offline'))
     seed()
     renderSheet()
     expect(await screen.findByText(/Could not load the data/)).toBeInTheDocument()
+  })
+})
+
+describe('SheetView speed, senses and rules', () => {
+  it('shows the speed and darkvision of the species, each with how it adds up', async () => {
+    const user = userEvent.setup()
+    setWide()
+    seed()
+    vi.mocked(loadRaces).mockResolvedValue([
+      {
+        key: 'dwarf|phb',
+        name: 'Dwarf',
+        baseName: 'Dwarf',
+        source: 'PHB',
+        speed: 25,
+        darkvision: 60,
+        abilityOptions: [],
+        featGrants: [],
+      },
+    ])
+    renderSheet()
+    const speed = await screen.findByRole('group', { name: 'Speed' })
+    await waitFor(() => expect(within(speed).getByText('25')).toBeInTheDocument())
+    await user.click(within(speed).getByRole('button', { name: 'How Speed adds up' }))
+    const pane = document.querySelector('.data-table-detail') as HTMLElement
+    expect(within(pane).getAllByText('Walking speed')).toHaveLength(2)
+    const senses = screen.getByRole('list', { name: 'Senses' })
+    expect(within(senses).getByText('Darkvision')).toBeInTheDocument()
+    expect(
+      within(senses).getByRole('button', { name: 'Darkvision: 60 ft.' }),
+    ).toBeInTheDocument()
+    await settle()
+  })
+})
+
+describe('SheetView breakdowns', () => {
+  it('opens how armor class adds up over the sheet on a narrow screen, and Back closes it', async () => {
+    const user = userEvent.setup()
+    seed()
+    renderSheet()
+    const box = await screen.findByRole('group', { name: 'Armor class' })
+    const open = within(box).getByRole('button', { name: 'How Armor class adds up' })
+    expect(open).toHaveAttribute('aria-pressed', 'false')
+    await user.click(open)
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Armor class 12')).toBeInTheDocument()
+    const table = within(dialog).getByRole('table', { name: 'Armor class' })
+    expect(within(table).getByText('Armor class', { selector: 'td' })).toBeInTheDocument()
+    expect(open).toHaveAttribute('aria-pressed', 'true')
+    await user.click(within(dialog).getByRole('button', { name: 'Back' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(open).toHaveFocus()
+    expect(open).toHaveAttribute('aria-pressed', 'false')
+    await settle()
+  })
+
+  it('opens it in the pane beside the table on a wide screen and closes it three ways', async () => {
+    const user = userEvent.setup()
+    setWide()
+    seed()
+    renderSheet()
+    const open = await screen.findByRole('button', { name: 'How Armor class adds up' })
+    await user.click(open)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    const pane = document.querySelector('.data-table-detail') as HTMLElement
+    expect(within(pane).getByText('Armor class 12')).toBeInTheDocument()
+    expect(within(pane).getByRole('table', { name: 'Armor class' })).toBeInTheDocument()
+    // The same click closes it.
+    await user.click(open)
+    expect(document.querySelector('.data-table-detail')).toBeNull()
+    // Escape closes it from the opener, and the close control from the pane.
+    await user.click(open)
+    await user.keyboard('{Escape}')
+    expect(document.querySelector('.data-table-detail')).toBeNull()
+    expect(open).toHaveFocus()
+    await user.click(open)
+    await user.click(screen.getByRole('button', { name: 'Close details' }))
+    expect(document.querySelector('.data-table-detail')).toBeNull()
+    await settle()
+  })
+
+  it('opens how an ability score, a saving throw and a skill add up', async () => {
+    const user = userEvent.setup()
+    setWide()
+    seed()
+    renderSheet()
+    await user.click(await screen.findByRole('button', { name: 'How Strength adds up' }))
+    const pane = () => document.querySelector('.data-table-detail') as HTMLElement
+    expect(within(pane()).getByRole('table', { name: 'Strength' })).toBeInTheDocument()
+    expect(within(pane()).getByText('Base score')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'How Strength save adds up' }))
+    expect(
+      within(pane()).getByRole('table', { name: 'Strength save' }),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'How Athletics adds up' }))
+    expect(within(pane()).getByRole('table', { name: 'Athletics' })).toBeInTheDocument()
+    expect(within(pane()).getByText('Ability modifier')).toBeInTheDocument()
+    await settle()
+  })
+
+  it('moves the open breakdown from one number to the next', async () => {
+    const user = userEvent.setup()
+    setWide()
+    seed()
+    renderSheet()
+    await user.click(
+      await screen.findByRole('button', { name: 'How Armor class adds up' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'How Initiative adds up' }))
+    const pane = document.querySelector('.data-table-detail') as HTMLElement
+    expect(within(pane).getByText('Initiative +2')).toBeInTheDocument()
+    expect(within(pane).queryByText('Armor class 12')).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'How Armor class adds up' }),
+    ).toHaveAttribute('aria-pressed', 'false')
+    await settle()
+  })
+
+  it('opens the proficiency bonus, hit points and a passive score', async () => {
+    const user = userEvent.setup()
+    setWide()
+    seed()
+    renderSheet()
+    await user.click(
+      await screen.findByRole('button', { name: 'How Proficiency bonus adds up' }),
+    )
+    const pane = () => document.querySelector('.data-table-detail') as HTMLElement
+    expect(within(pane()).getByText('Proficiency bonus +2')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'How Hit points adds up' }))
+    expect(within(pane()).getByRole('table', { name: 'Hit points' })).toBeInTheDocument()
+    expect(within(pane()).getByText('Maximum hit points')).toBeInTheDocument()
+    await user.click(
+      screen.getByRole('button', { name: 'How Passive Perception adds up' }),
+    )
+    expect(
+      within(pane()).getByRole('heading', { name: 'Passive Perception 5' }),
+    ).toBeInTheDocument()
+    await settle()
+  })
+
+  it('opens an attack bonus and its damage, with the two-handed damage under it', async () => {
+    const user = userEvent.setup()
+    setWide()
+    seed()
+    renderSheet()
+    const attacks = await screen.findByRole('table', { name: 'Attacks' })
+    expect(within(attacks).queryByRole('button', { name: /^(Show|Hide) how/ })).toBeNull()
+    await user.click(
+      within(attacks).getByRole('button', { name: 'How Longsword attack bonus adds up' }),
+    )
+    const pane = () => document.querySelector('.data-table-detail') as HTMLElement
+    expect(within(pane()).getByText('Longsword attack bonus +5')).toBeInTheDocument()
+    await user.click(
+      within(attacks).getByRole('button', { name: 'How Longsword damage adds up' }),
+    )
+    expect(
+      within(pane()).getByRole('table', { name: 'Longsword damage' }),
+    ).toBeInTheDocument()
+    expect(
+      within(pane()).getByRole('table', { name: 'Longsword damage, two hands' }),
+    ).toBeInTheDocument()
+    await settle()
+  })
+
+  it('draws the pane as a book entry when the detail style is Book', async () => {
+    const user = userEvent.setup()
+    localStorage.setItem('cc-detail-style', 'book')
+    setWide()
+    seed()
+    renderSheet()
+    await user.click(
+      await screen.findByRole('button', { name: 'How Armor class adds up' }),
+    )
+    const pane = document.querySelector('.data-table-detail') as HTMLElement
+    expect(pane.querySelector('.entry-book__title')).toHaveTextContent('Armor class 12')
+    await settle()
+  })
+
+  it('names every info button and shows its words as a tooltip', async () => {
+    const user = userEvent.setup()
+    seed()
+    renderSheet()
+    const open = await screen.findByRole('button', { name: 'How Initiative adds up' })
+    await user.hover(open)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('How Initiative adds up')
+    await settle()
   })
 })

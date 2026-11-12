@@ -41,6 +41,7 @@ export const appConfig = {
   storageKeys: {
     theme: 'cc-theme',
     detailStyle: 'cc-detail-style',
+    sheetTemplate: 'cc-sheet-template',
     characters: 'cc-characters',
     charactersMoved: 'cc-characters-moved',
   },

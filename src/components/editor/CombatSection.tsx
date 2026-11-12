@@ -17,19 +17,10 @@ import { Abbr } from '../Abbr'
 import { NO_VALUE } from '../table/facts'
 import { DerivedTable } from './DerivedTable'
 import { EditorSection } from './EditorSection'
+import { damageText } from './attackText'
 import { PickCard } from './PickCard'
 import { SignedInput } from './SignedInput'
 import { useDerivedSheet } from './useDerivedSheet'
-
-/**
- * "1d8 + 3": the die and the bonus with its sign; the kind of damage has its own
- * column. With no die the bonus is the whole damage ("4").
- */
-function damageText(dice: string, bonus: number): string {
-  if (dice === '') return String(bonus)
-  const amount = bonus === 0 ? '' : ` ${bonus < 0 ? '-' : '+'} ${Math.abs(bonus)}`
-  return `${dice}${amount}`
-}
 
 /** A button that opens the lines of a number under its row. */
 function HowButton({
@@ -140,6 +131,33 @@ function AttackDetails({ attack }: { attack: AttackRow }) {
   )
 }
 
+/** The badges and notes of an attack: its range, properties, mastery and any flag. */
+export function AttackNotes({ attack, flag }: { attack: AttackRow; flag?: Line }) {
+  return (
+    <>
+      {attack.range && <Badge bg="secondary">Range {attack.range}</Badge>}{' '}
+      {attack.properties.map((p) => (
+        <Fragment key={p.code}>
+          <Badge bg="secondary" title={p.rule}>
+            {p.label}
+          </Badge>{' '}
+        </Fragment>
+      ))}
+      {attack.mastery && (
+        <Badge bg="info" title={attack.mastery.rule}>
+          Mastery: {attack.mastery.name}
+        </Badge>
+      )}
+      {flag && <div className="small">{flag.label}</div>}
+      {attack.notes.map((n) => (
+        <div key={n} className="small text-body-secondary">
+          {n}
+        </div>
+      ))}
+    </>
+  )
+}
+
 export function AttacksTable({ attacks }: { attacks: AttackRow[] }) {
   const [openId, setOpenId] = useState<string | null>(null)
   return (
@@ -177,25 +195,7 @@ export function AttacksTable({ attacks }: { attacks: AttackRow[] }) {
                 </td>
                 <td>{attack.damage.types || NO_VALUE}</td>
                 <td>
-                  {attack.range && <Badge bg="secondary">Range {attack.range}</Badge>}{' '}
-                  {attack.properties.map((p) => (
-                    <Fragment key={p.code}>
-                      <Badge bg="secondary" title={p.rule}>
-                        {p.label}
-                      </Badge>{' '}
-                    </Fragment>
-                  ))}
-                  {attack.mastery && (
-                    <Badge bg="info" title={attack.mastery.rule}>
-                      Mastery: {attack.mastery.name}
-                    </Badge>
-                  )}
-                  {flag && <div className="small">{flag.label}</div>}
-                  {attack.notes.map((n) => (
-                    <div key={n} className="small text-body-secondary">
-                      {n}
-                    </div>
-                  ))}
+                  <AttackNotes attack={attack} flag={flag} />
                 </td>
                 <td className="text-end">
                   <HowButton

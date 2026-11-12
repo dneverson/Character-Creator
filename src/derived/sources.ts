@@ -15,6 +15,7 @@ import type { Feat } from '../data/feats'
 import type { Item } from '../data/items'
 import type { ClassOption } from '../data/classOptions'
 import type { Language } from '../data/languages'
+import type { Edition } from '../data/edition'
 import type { Holder } from '../rules/holder'
 import type { SourceRef } from './types'
 
@@ -31,6 +32,8 @@ export interface DeriveDeps {
   languages?: readonly Language[]
   /** The fighting styles of the books, for the class option cards. */
   fightingStyles?: readonly ClassOption[]
+  /** The rules edition of each book, from the books list; the 2024 books by name without it. */
+  editionOf?: (source: string) => Edition
 }
 
 export interface ClassSource {

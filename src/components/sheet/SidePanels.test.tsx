@@ -29,19 +29,8 @@ describe('sheet side panels', () => {
 
   it('lists the six saving throws and marks the ones the character is proficient in', () => {
     const sheet = sheetOf()
-    const source = { kind: 'class', tag: 'class:Fighter|PHB', label: 'Fighter' } as const
-    const save = [{ value: 'Strength', sources: [source] }]
-    render(
-      <SavesPanel
-        sheet={{
-          ...sheet,
-          proficiencies: {
-            ...sheet.proficiencies,
-            listing: { ...sheet.proficiencies.listing, save },
-          },
-        }}
-      />,
-    )
+    const saves = { ...sheet.saves, str: { ...sheet.saves.str, proficient: true } }
+    render(<SavesPanel sheet={{ ...sheet, saves }} />)
     const list = screen.getByRole('list', { name: 'Saving throws' })
     expect(within(list).getAllByRole('listitem')).toHaveLength(6)
     const strength = within(list).getByText('Strength').closest('li') as HTMLElement

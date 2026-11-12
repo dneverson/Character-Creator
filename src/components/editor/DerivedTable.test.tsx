@@ -82,4 +82,28 @@ describe('DerivedTable', () => {
     expect(screen.getByText('custom row')).toBeTruthy()
     expect(screen.getByText('+18')).toBeTruthy()
   })
+
+  it('holds its three columns at fixed widths when asked, and not otherwise', () => {
+    const { rerender } = render(
+      <DerivedTable
+        quantity={quantity(lines)}
+        ariaLabel="t"
+        amountHeader="x"
+        totalLabel="Total"
+        aligned
+      />,
+    )
+    const widths = () =>
+      [...screen.getByRole('table').querySelectorAll('col')].map((c) => c.style.width)
+    expect(widths()).toEqual(['40%', '44%', '16%'])
+    rerender(
+      <DerivedTable
+        quantity={quantity(lines)}
+        ariaLabel="t"
+        amountHeader="x"
+        totalLabel="Total"
+      />,
+    )
+    expect(widths()).toEqual([])
+  })
 })

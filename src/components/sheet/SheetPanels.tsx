@@ -1,7 +1,7 @@
 // What each tab of the sheet's switching box shows.
 
 import type { DerivedSheet } from '../../derived'
-import { AttacksTable } from '../editor/CombatSection'
+import { SheetAttacks } from './SheetAttacks'
 import { ProficienciesPanel, SavesPanel, SensesPanel, SkillsPanel } from './SidePanels'
 
 export interface SheetPanelProps {
@@ -9,7 +9,7 @@ export interface SheetPanelProps {
 }
 
 export function ActionsPanel({ sheet }: SheetPanelProps) {
-  return <AttacksTable attacks={sheet.attacks} />
+  return <SheetAttacks attacks={sheet.attacks} />
 }
 
 /** On a phone the left column is two tabs; this is the first, the skills the second. */

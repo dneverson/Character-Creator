@@ -26,6 +26,8 @@ function identityLine(character: Character): string {
 interface Props {
   /** Which view the header is in: the sheet shows the name, the editor lets it be changed. */
   mode: 'sheet' | 'edit'
+  /** The rules the character plays by ("2024 rules"), shown after who it is. */
+  ruleset?: string
   /** Buttons at the right-hand end. */
   actions?: ReactNode
 }
@@ -34,13 +36,13 @@ interface Props {
  * The top of an open character, shared by the sheet and the editor: the way back, the
  * name, the Sheet | Edit | Level up switch and whatever the view adds on the right.
  */
-export function CharacterHeader({ mode, actions }: Props) {
+export function CharacterHeader({ mode, ruleset, actions }: Props) {
   const character = useActiveCharacter()
   const backToList = useCharacterStore((s) => s.backToList)
   const setView = useCharacterStore((s) => s.setView)
   const updateActive = useCharacterStore((s) => s.updateActive)
   if (!character) return null
-  const line = identityLine(character)
+  const line = [identityLine(character), ruleset].filter(Boolean).join(' - ')
 
   return (
     <Stack

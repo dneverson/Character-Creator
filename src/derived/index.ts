@@ -2,10 +2,11 @@
 // and the loaded data, each with the lines it adds up from. Sections and the PDF read
 // this and never work a number out for themselves.
 
+import type { AbilityKey } from '../dice/dice'
 import { characterAbilityTotals, totalLevel } from '../character/derive'
 import { hpBreakdown } from '../character/hp'
 import { proficiencyBonus } from '../data/skills'
-import { buildSkillSources, type SkillRow } from '../character/skills'
+import { buildSkillSources } from '../character/skills'
 import type { Character } from '../character/model'
 import type { PickCard } from '../character/picks'
 import { armorClass, type AbilityTotals } from './armorClass'
@@ -23,6 +24,15 @@ import { hpQuantity } from './hp'
 import { itemBonus } from './itemBonus'
 import { pickCards } from './pickCards'
 import { proficiencies, type Proficiencies } from './proficiencies'
+import type { Edition } from '../data/edition'
+import { characterEdition } from './edition'
+import { hitDice, type HitDie } from './hitDice'
+import { senseRows, type SenseRow } from './senses'
+import { deriveSlots, type DerivedSlots } from './slots'
+import { speedQuantity } from './speed'
+import { abilityQuantities } from './abilities'
+import { saveRows, type SaveRow } from './saves'
+import { skillTotals, type DerivedSkill } from './skillTotals'
 import { combatNumbers, type CombatNumbers } from './combat'
 import { classOptionCards } from './classOptions'
 import { collectSources, type DeriveDeps } from './sources'
@@ -32,14 +42,28 @@ import { BASE_SOURCE, quantity, type Quantity } from './types'
 export interface DerivedSheet {
   prof: Quantity
   totals: AbilityTotals
+  /** Each ability score with the lines it adds up from. */
+  abilities: Record<AbilityKey, Quantity>
+  /** The six saving throws. */
+  saves: Record<AbilityKey, SaveRow>
   ac: Quantity
+  /** Walking speed, with the other ways of moving as notes. */
+  speed: Quantity
+  /** The senses, each with its range in feet. */
+  senses: SenseRow[]
+  /** The hit dice by die size. */
+  hitDice: HitDie[]
+  /** The spell slots, the Pact Magic slots and the combined caster level. */
+  slots: DerivedSlots
+  /** The rules edition that applies to the character. */
+  edition: Edition
   /** Initiative and the passive scores. */
   combat: CombatNumbers
   attacks: AttackRow[]
   spellStats: SpellStatRow[]
   proficiencies: Proficiencies
   /** The skill table: every skill with its modifier, and what makes it proficient. */
-  skills: SkillRow[]
+  skills: DerivedSkill[]
   /** The expertise the character has, and the cards to pick it with. */
   expertise: ExpertiseState
   /** A card for each source that lets the player choose a language, tool, weapon or armor. */
@@ -108,12 +132,26 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
   return {
     prof,
     totals,
+    abilities: abilityQuantities(character, sources),
+    saves: saveRows(sources, totals, prof.value, known),
     ac,
+    speed: speedQuantity(sources),
+    senses: senseRows(sources),
+    hitDice: hitDice(character, deps.classByKey),
+    slots: deriveSlots(character, deps.classByKey, sources),
+    edition: characterEdition(character, deps.editionOf),
     combat: combatNumbers(sources, totals, table.rows, prof.value),
     attacks: attackRows(sources, totals, prof.value, known, ac.lines),
     spellStats: spellStats(sources, deps, totals, prof.value, ac.lines),
     proficiencies: known,
-    skills: table.rows,
+    skills: skillTotals(
+      table.rows,
+      skillSources,
+      sources,
+      totals,
+      prof.value,
+      table.expertise.held,
+    ),
     expertise: table.expertise,
     picks: pickCards(sources, choices, catalog, known.listing),
     classOptions: classOptionCards(sources, deps.fightingStyles ?? []),

@@ -4,6 +4,7 @@
 import { useMemo } from 'react'
 import { useActiveCharacter } from '../../character/store'
 import { loadFightingStyleOptions } from '../../data/classOptions'
+import { loadBookEditions } from '../../data/edition'
 import { loadItems } from '../../data/items'
 import { loadLanguages } from '../../data/languages'
 import { deriveSheet } from '../../derived'
@@ -16,6 +17,7 @@ export function useDerivedSheet() {
   const items = useAsyncData(loadItems)
   const languages = useAsyncData(loadLanguages)
   const styles = useAsyncData(loadFightingStyleOptions)
+  const editions = useAsyncData(loadBookEditions)
 
   const sheet = useMemo(
     () =>
@@ -28,6 +30,7 @@ export function useDerivedSheet() {
             items: items.data ?? undefined,
             languages: languages.data ?? undefined,
             fightingStyles: styles.data ?? undefined,
+            editionOf: editions.data ?? undefined,
           })
         : undefined,
     [
@@ -39,6 +42,7 @@ export function useDerivedSheet() {
       items.data,
       languages.data,
       styles.data,
+      editions.data,
     ],
   )
 

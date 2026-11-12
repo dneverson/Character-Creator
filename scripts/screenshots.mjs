@@ -185,6 +185,27 @@ async function sheetLeg() {
   await page.setViewportSize({ width: 390, height: 844 })
   await shot('23-sheet-phone')
   await page.setViewportSize({ width: 1280, height: 900 })
+  // The sheet's looks (templates), each in light and dark, a phone and the chooser.
+  const chooseLook = async (label) => {
+    await page.getByRole('button', { name: /^Look:/ }).click()
+    await page.getByRole('button', { name: new RegExp(`^${label}`) }).click()
+    await page.waitForTimeout(300)
+  }
+  for (const look of ['App', 'Parchment']) {
+    await chooseLook(look)
+    for (const theme of ['Light', 'Dark']) {
+      await setTheme(theme)
+      await shot(`25-sheet-look-${look.toLowerCase()}-${theme.toLowerCase()}`)
+    }
+  }
+  await setTheme('Light')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await shot('26-sheet-look-parchment-phone')
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.getByRole('button', { name: /^Look:/ }).click()
+  await shot('27-sheet-look-menu')
+  await page.keyboard.press('Escape')
+  await chooseLook('App')
   for (const tab of await page.getByRole('tab').allTextContents()) {
     await step(`tab ${tab}`, async () => {
       await page.getByRole('tab', { name: tab, exact: true }).click()

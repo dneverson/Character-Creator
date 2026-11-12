@@ -46,7 +46,11 @@ export function walkingSpeed(speed: Speed | undefined): number {
 }
 
 /** One way of moving written out, "fly 60 ft. (air only)"; empty for a way that is absent. */
-function modeText(mode: string, value: SpeedValue, walk: number | undefined): string {
+export function modeText(
+  mode: string,
+  value: SpeedValue,
+  walk: number | undefined,
+): string {
   if (value === false) return ''
   if (value === true) return walk === undefined ? mode : `${mode} ${feet(walk)}`
   if (typeof value === 'number') return value > 0 ? `${mode} ${feet(value)}` : ''

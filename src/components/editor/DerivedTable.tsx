@@ -20,6 +20,11 @@ interface Props {
   renderRow?: (line: Line) => ReactElement | undefined
   /** How the total reads; a bonus reads with its sign. Defaults to the plain number. */
   format?: (value: number) => string
+  /**
+   * Fixed column widths (source, how it adds up, amount) so every breakdown lines up the
+   * same; the sheet's detail pane uses it.
+   */
+  aligned?: boolean
 }
 
 /** A base amount reads as it is, an added one with its sign. */
@@ -71,9 +76,21 @@ export function DerivedTable({
   totalLabel,
   renderRow,
   format = String,
+  aligned = false,
 }: Props) {
   return (
-    <Table size="sm" className="mb-0 align-middle" aria-label={ariaLabel}>
+    <Table
+      size="sm"
+      className={`mb-0 align-middle${aligned ? ' derived-table--aligned' : ''}`}
+      aria-label={ariaLabel}
+    >
+      {aligned && (
+        <colgroup>
+          <col style={{ width: '40%' }} />
+          <col style={{ width: '44%' }} />
+          <col style={{ width: '16%' }} />
+        </colgroup>
+      )}
       <thead>
         <tr>
           <th>Source</th>

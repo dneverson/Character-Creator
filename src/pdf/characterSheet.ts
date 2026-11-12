@@ -12,9 +12,7 @@ import type { Item } from '../data/items'
 import { totalLevel } from '../character/derive'
 import { proficiencyBonus } from '../data/skills'
 import { hpBreakdown } from '../character/hp'
-import { characterCasters } from '../character/spellcasting'
 import { resolveFeats } from '../character/feats'
-import { spellSlots } from '../rules/spellcasting'
 import { checkMulticlass, checkLevelCap, type Deviation } from '../rules/compliance'
 import { multiclassRequirements, type MulticlassRequirements } from '../data/class'
 import { unassignedAbilities } from '../character/stats'
@@ -101,19 +99,13 @@ function summarize(character: Character, deps: SheetDeps) {
   const level = totalLevel(character)
   const prof = proficiencyBonus(level)
   const hp = hpBreakdown(character, deps.classByKey, feats)
-  const casters = characterCasters(character, deps.classByKey, feats.abilityBonus)
-  const slots = spellSlots(casters)
+  const { casters, ...slots } = derived.slots
 
   const rows = derived.skills
 
   const classLine = character.classes
     .map((c) => `${c.name}${c.subclass ? ` (${c.subclass.name})` : ''} ${c.level}`)
     .join(' / ')
-
-  const firstClass = character.classes[0]
-    ? deps.classByKey.get(`${character.classes[0].name}|${character.classes[0].source}`)
-    : undefined
-  const saveProfs = new Set(firstClass?.entry.proficiency ?? [])
 
   // Non-standard deviations to surface on the sheet.
   const reqBySource = new Map<string, MulticlassRequirements | undefined>()
@@ -135,7 +127,6 @@ function summarize(character: Character, deps: SheetDeps) {
     slots,
     casters,
     classLine,
-    saveProfs,
     deviations,
     derived,
   }
@@ -280,11 +271,11 @@ export async function buildCharacterSheet(
     drawText(p1, ctx, ABILITY_NAMES[key], MARGIN, ay - 9, 9, true)
     addField(p1, ctx, String(score), MARGIN + 80, ay - 12, 36, 18, 10)
     drawText(p1, ctx, `mod ${formatMod(mod)}`, MARGIN + 122, ay - 9, 9)
-    const saveMod = mod + (s.saveProfs.has(key) ? s.prof : 0)
+    const save = s.derived.saves[key]
     drawText(
       p1,
       ctx,
-      `save ${formatMod(saveMod)}${s.saveProfs.has(key) ? ' •' : ''}`,
+      `save ${formatMod(save.total.value)}${save.proficient ? ' •' : ''}`,
       MARGIN + 175,
       ay - 9,
       9,
@@ -322,7 +313,7 @@ export async function buildCharacterSheet(
     // Use WinAnsi-safe markers (Helvetica can't encode ●/○).
     const marker = row.proficient ? '•' : '  '
     drawText(p1, ctx, `${marker} ${row.label}`, x, rowY, 9)
-    drawText(p1, ctx, formatMod(row.modifier), x + colW - 40, rowY, 9, true)
+    drawText(p1, ctx, formatMod(row.total.value), x + colW - 40, rowY, 9, true)
   })
 
   // ---- Page 2: spells, equipment, story, deviations ----

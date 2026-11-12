@@ -15,6 +15,7 @@ const ICONS = {
   themeDark: 'bi-moon-stars-fill',
   themeSystem: 'bi-display',
   warning: 'bi-exclamation-triangle-fill',
+  info: 'bi-info-circle',
   remove: 'bi-x-lg',
   add: 'bi-plus-lg',
   minus: 'bi-dash-lg',

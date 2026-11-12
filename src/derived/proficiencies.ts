@@ -20,6 +20,8 @@ import {
   type ArmorKind,
   type WeaponGrant,
 } from '../rules/proficiencyGrants'
+import { ABILITY_NAMES } from '../dice/dice'
+import { SAVE_RULES } from '../rules/saveRules'
 import { MANUAL_TAG, picksOf } from '../character/picks'
 import {
   classGrantBlocks,
@@ -204,6 +206,12 @@ export function proficiencies(
       give({ kind: 'tool', key: tool.toLowerCase() }, held.source)
     for (const language of grant.languages ?? [])
       give({ kind: 'language', key: language.toLowerCase() }, held.source)
+  }
+  for (const rule of SAVE_RULES) {
+    const held = heldBy(sources, rule.holder)
+    if (!held || rule.effect.kind !== 'proficiency') continue
+    for (const ability of rule.effect.abilities)
+      entries.save.push({ value: ABILITY_NAMES[ability], source: held.source })
   }
   return {
     armor,

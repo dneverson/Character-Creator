@@ -2,7 +2,7 @@
 // sheet and the PDF show one number and the player can see where it comes from. The rules
 // that change them are the rows of rules/combatRules.
 
-import { abilityMod, formatMod } from '../dice/dice'
+import { abilityMod, formatMod, type AbilityKey } from '../dice/dice'
 import type { SkillRow } from '../character/skills'
 import {
   INITIATIVE_RULES,
@@ -44,21 +44,55 @@ function held<T extends { holder: InitiativeRule['holder'] }>(
   })
 }
 
+/** A half-proficiency bonus the character holds, before it is judged against the check. */
+export interface HalfRule {
+  id: string
+  label: string
+  text: string
+  source: Line['source']
+  amount: number
+}
+
 /**
- * The half-proficiency bonuses (Jack of All Trades, Remarkable Athlete) to a check the
- * character is not proficient in: only the larger counts, and none when the proficiency
- * bonus is already added.
+ * The half-proficiency bonuses (Jack of All Trades, Remarkable Athlete) the character
+ * holds that apply to a check of this ability (any ability when none is named): Jack of
+ * All Trades to every check, Remarkable Athlete to Strength, Dexterity and Constitution.
  */
-function halfLines(
-  rules: {
-    id: string
-    label: string
-    text: string
-    source: Line['source']
-    amount: number
-  }[],
-  proficient: boolean,
-): Line[] {
+export function halfRules(
+  sources: Sources,
+  prof: number,
+  idPrefix: string,
+  ability?: AbilityKey,
+): HalfRule[] {
+  return held(sources, INITIATIVE_RULES).flatMap(({ rule, source }) => {
+    const e = rule.effect
+    if (e.kind !== 'half') return []
+    if (
+      e.checks === 'strDexCon' &&
+      ability !== undefined &&
+      !PHYSICAL.includes(ability)
+    ) {
+      return []
+    }
+    return [
+      {
+        id: `${idPrefix}|${source.tag}|${rule.label}`,
+        label: rule.label,
+        text: rule.text,
+        source,
+        amount: half(prof, e.round),
+      },
+    ]
+  })
+}
+
+const PHYSICAL: readonly AbilityKey[] = ['str', 'dex', 'con']
+
+/**
+ * The half-proficiency bonuses to a check the character is not proficient in: only the
+ * larger counts, and none when the proficiency bonus is already added.
+ */
+export function halfLines(rules: HalfRule[], proficient: boolean): Line[] {
   const best = rules.reduce<number>((max, r) => Math.max(max, r.amount), 0)
   let used = false
   return rules.map((r): Line => {
@@ -141,9 +175,6 @@ export function initiative(
 
 export function passives(sources: Sources, rows: SkillRow[], prof: number): PassiveRow[] {
   const rules = held(sources, PASSIVE_RULES)
-  const jack = held(sources, INITIATIVE_RULES).filter(
-    ({ rule }) => rule.effect.kind === 'half' && rule.effect.checks === 'any',
-  )
   return PASSIVE_SKILLS.flatMap((key) => {
     const row = rows.find((r) => r.key === key)
     if (!row) return []
@@ -180,13 +211,7 @@ export function passives(sources: Sources, rows: SkillRow[], prof: number): Pass
     }
     lines.push(
       ...halfLines(
-        jack.map(({ rule, source }) => ({
-          id: `passive|${key}|${source.tag}|${rule.label}`,
-          label: rule.label,
-          text: rule.text,
-          source,
-          amount: rule.effect.kind === 'half' ? half(prof, rule.effect.round) : 0,
-        })),
+        halfRules(sources, prof, `passive|${key}`, row.ability),
         row.proficient,
       ),
     )
