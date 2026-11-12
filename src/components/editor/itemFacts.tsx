@@ -47,22 +47,30 @@ const rarityRank = (item: Item) => {
 
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
 const pounds = (n: number) => `${n} lb.`
-const lower = (text: string) => text.toLowerCase()
 
 // ---- Reading an item into words ---------------------------------------------
 
-/** "1d8 slashing, versatile 1d10": what a weapon deals, in one line. */
+/** "1d8, versatile 1d10": the dice a weapon rolls; its damage type is apart. */
 export function damageText(item: Item): string {
   const weapon = item.weapon
   if (!weapon?.damage) return ''
-  const types = weapon.damageTypes.map(lower).join(' or ')
   return [
-    [weapon.damage.text, types].filter(Boolean).join(' '),
+    weapon.damage.text,
     weapon.versatile ? `versatile ${weapon.versatile.text}` : '',
   ]
     .filter(Boolean)
     .join(', ')
 }
+
+/** "Slashing", "Piercing or Slashing": the kind of damage a weapon deals. */
+export const damageTypeText = (item: Item): string =>
+  (item.weapon?.damageTypes ?? []).join(' or ')
+
+/** The dice a weapon rolls, each its own value to filter by ("1d8", "1d10"). */
+const diceValues = (item: Item): string[] =>
+  [item.weapon?.damage?.text, item.weapon?.versatile?.text].filter(
+    (text): text is string => text !== undefined,
+  )
 
 /** The average of the best die the weapon can roll, to sort damage by. */
 const damageAverage = (item: Item) =>
@@ -251,6 +259,12 @@ const weaponCategory: Fact<Item> = {
 
 const damage: Fact<Item> = { key: 'damage', label: 'Damage', text: damageText }
 
+const damageType: Fact<Item> = {
+  key: 'damageType',
+  label: 'Damage type',
+  text: damageTypeText,
+}
+
 const range: Fact<Item> = {
   key: 'range',
   label: 'Range',
@@ -376,7 +390,7 @@ export const describeItems: Describe<Item> = () => [
   {
     key: 'weapon',
     title: 'Weapon',
-    facts: [weaponCategory, damage, range, properties, ammunition],
+    facts: [weaponCategory, damage, damageType, range, properties, ammunition],
   },
   { key: 'armor', title: 'Armor', facts: [armorClass, strength, stealth] },
   { key: 'magic', title: 'Magic', facts: [bonuses, charges, spells, traits] },
@@ -420,8 +434,8 @@ export const itemColumns: Column<Item>[] = [
   factColumn(type),
   factColumn(cost, { sortValue: (item) => item.value ?? -1 }),
   factColumn(weight, { sortValue: (item) => item.weight ?? -1 }),
-  factColumn(damage, {
-    sortValue: damageAverage,
+  factColumn(damage, { sortValue: damageAverage, filterValue: eachOf(diceValues) }),
+  factColumn(damageType, {
     filterValue: eachOf((item) => item.weapon?.damageTypes ?? []),
   }),
   factColumn(properties, { filterValue: propertyFilterValues }),
@@ -471,7 +485,16 @@ export const itemColumns: Column<Item>[] = [
   }),
 ]
 
-const SUMMARY_KEYS = ['name', 'type', 'damage', 'ac', 'properties', 'weight', 'cost']
+const SUMMARY_KEYS = [
+  'name',
+  'type',
+  'damage',
+  'damageType',
+  'ac',
+  'properties',
+  'weight',
+  'cost',
+]
 
 /** The short table of chosen items: the stats played with, nothing to hunt through. */
 export const itemSummaryColumns: Column<Item>[] = SUMMARY_KEYS.flatMap((key) =>

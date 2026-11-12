@@ -17,6 +17,7 @@ import {
 } from '../../character/spellGrants'
 import { refKey, refOf, without, withRef } from '../../character/spellRefs'
 import { editionYear } from '../../data/labels'
+import { GrantVariantChooser } from './GrantVariantChooser'
 import { MODE_CAST, pickTierId } from './grantedCast'
 import { SpellLines, type SpellLine } from './SpellLines'
 import { SpellPicker } from './SpellPicker'
@@ -122,26 +123,14 @@ export function GrantedSpells({
           <div key={block.sourceId} className="mb-3">
             <div className="fw-semibold mb-1">{block.from}</div>
             {block.variants && (
-              <Form.Group className="mb-2">
-                <Form.Label className="small me-2 mb-0">
-                  Take one set of spells:
-                </Form.Label>
-                {block.variants.names.map((name) => (
-                  <Form.Check
-                    inline
-                    type="radio"
-                    key={name}
-                    id={`${block.variants?.id}-${name}`}
-                    name={block.variants?.id}
-                    label={name}
-                    checked={block.variants?.selected === name}
-                    onChange={() =>
-                      block.variants &&
-                      editChoice(block.variants.id, (c) => ({ ...c, variant: name }))
-                    }
-                  />
-                ))}
-              </Form.Group>
+              <div className="mb-2">
+                <GrantVariantChooser
+                  set={block.variants}
+                  byName={byName}
+                  twins={twins}
+                  editChoice={editChoice}
+                />
+              </div>
             )}
             {[...abilities.entries()].map(([id, grant]) => (
               <AbilityChoice

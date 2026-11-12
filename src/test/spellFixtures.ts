@@ -30,6 +30,7 @@ export function makeSpell(overrides: Partial<Spell> & { name: string }): Spell {
     duration: 'Instantaneous',
     durationKind: 'Instantaneous',
     damage: '',
+    damageAverage: 0,
     damageTypes: [],
     healing: '',
     save: [],

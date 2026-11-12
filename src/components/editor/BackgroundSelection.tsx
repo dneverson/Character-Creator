@@ -30,8 +30,9 @@ import {
   backgroundSearchText,
   backgroundSummary,
   backgroundTags,
-  describeBackgrounds,
+  describeBackgroundsWith,
 } from './backgroundFacts'
+import { StoryTablePick } from './StoryTablePick'
 
 /** A character's record of a background, taking its increases the given way. */
 function backgroundRef(bg: PlayableBackground, abilityOption = 0): BackgroundRef {
@@ -67,9 +68,22 @@ export function BackgroundSelection() {
     return backgrounds.filter((b) => set.has(b.source))
   }, [backgrounds, selectedBooks])
 
-  if (!character) return null
-  const ref = character.background
+  const ref = character?.background
   const picked = findBackground(available, ref)
+  // The chosen background's story tables are taken from right in its details, the
+  // same rows as the Story section; any other background is only read.
+  const pickedKey = picked?.key
+  const describe = useMemo(
+    () =>
+      describeBackgroundsWith((bg, table) =>
+        bg.key === pickedKey ? (
+          <StoryTablePick table={table} idPrefix="details" showTaken />
+        ) : undefined,
+      ),
+    [pickedKey],
+  )
+
+  if (!character) return null
   const species2024 = findPlayableRace(races, character.race)?.edition === 'one'
 
   const placeIncreases = (abilityChoices: AbilityIncreases) => {
@@ -114,7 +128,7 @@ export function BackgroundSelection() {
           idOf={backgroundKey}
           nameOf={backgroundName}
           tagsOf={backgroundTags}
-          describe={describeBackgrounds}
+          describe={describe}
           searchText={backgroundSearchText}
           picked={picked}
           onPick={(bg) => updateActive({ background: backgroundRef(bg) })}

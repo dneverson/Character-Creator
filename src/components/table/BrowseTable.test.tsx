@@ -258,6 +258,62 @@ describe('BrowseTable', () => {
       expect(within(rowOf('Wolf')).getByRole('button', { name: 'Release' })).toBeEnabled()
     })
 
+    describe('showing the choices that are not available', () => {
+      const SHOW = 'Show choices that are not available'
+      const KEY = 'charcreator.table:pets:show-unavailable'
+
+      beforeEach(() => localStorage.removeItem(KEY))
+
+      it('lists them by default, and hides them with their count when switched off', async () => {
+        const user = userEvent.setup()
+        renderTable({ rowMeta, action })
+        const toggle = screen.getByLabelText(SHOW)
+        expect(toggle).toBeChecked()
+        expect(rowOf('Wolf')).toBeInTheDocument()
+
+        await user.click(toggle)
+        expect(screen.queryByText('Wolf')).not.toBeInTheDocument()
+        expect(rowOf('Cat')).toBeInTheDocument()
+        expect(screen.getByText('1 hidden')).toBeInTheDocument()
+        // The other switch keeps its meaning and its place.
+        expect(screen.getByLabelText(SWITCH)).not.toBeChecked()
+
+        await user.click(toggle)
+        expect(rowOf('Wolf')).toBeInTheDocument()
+        expect(screen.queryByText('1 hidden')).not.toBeInTheDocument()
+      })
+
+      it('remembers the choice for the table on this device', async () => {
+        const user = userEvent.setup()
+        const { unmount } = renderTable({ rowMeta, action })
+        await user.click(screen.getByLabelText(SHOW))
+        unmount()
+
+        renderTable({ rowMeta, action })
+        expect(screen.getByLabelText(SHOW)).not.toBeChecked()
+        expect(screen.queryByText('Wolf')).not.toBeInTheDocument()
+      })
+
+      it('never hides a row that can be taken away', async () => {
+        const user = userEvent.setup()
+        renderTable({
+          rowMeta,
+          action: {
+            header: 'Keep',
+            of: () => ({ label: 'Release', variant: 'danger', run() {} }),
+          },
+        })
+        await user.click(screen.getByLabelText(SHOW))
+        expect(rowOf('Wolf')).toBeInTheDocument()
+        expect(screen.queryByText(/hidden/)).not.toBeInTheDocument()
+      })
+
+      it('is not offered where no row is non-standard', () => {
+        renderTable({ rowMeta: () => ({ standard: true }) })
+        expect(screen.queryByLabelText(SHOW)).not.toBeInTheDocument()
+      })
+    })
+
     it('can be controlled by the section, which owns the switch', async () => {
       const user = userEvent.setup()
       const onChange = vi.fn()

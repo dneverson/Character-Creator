@@ -5,7 +5,9 @@ import Button from 'react-bootstrap/Button'
 import Spinner from 'react-bootstrap/Spinner'
 import Table from 'react-bootstrap/Table'
 import { formatMod } from '../../dice/dice'
-import { SKILLS, skillLabel } from '../../data/skills'
+import { loadItems } from '../../data/items'
+import { loadSkillTexts, SKILLS, skillLabel } from '../../data/skills'
+import { useAsyncData } from '../../hooks/useAsyncData'
 import { useActiveCharacter, useCharacterStore } from '../../character/store'
 import {
   buildSkillSources,
@@ -22,6 +24,7 @@ import { Abbr } from '../Abbr'
 import { NonStandardBadge } from '../NonStandardBadge'
 import { EditorSection } from './EditorSection'
 import { PickCard } from './PickCard'
+import { pickDetailOf } from './pickDetails'
 import { ToggleChip } from './ToggleChip'
 import { useFeatSummary } from './useFeatSummary'
 
@@ -31,6 +34,17 @@ export function SkillsSection() {
   const { classByKey, background, race, feats, summary, loading, error } =
     useFeatSummary()
   const [otherOpen, setOtherOpen] = useState(false)
+  const skillTexts = useAsyncData(loadSkillTexts)
+  const items = useAsyncData(loadItems)
+  const detailOf = useMemo(
+    () =>
+      pickDetailOf({
+        items: items.data ?? [],
+        languages: [],
+        skills: skillTexts.data ?? undefined,
+      }),
+    [items.data, skillTexts.data],
+  )
 
   const sources = useMemo(
     () =>
@@ -127,6 +141,7 @@ export function SkillsSection() {
                 key={card.tag}
                 card={card}
                 onPick={(chip) => pick(chip.value, card.tag)}
+                detailOf={detailOf}
               />
             ))}
             {table.expertise.cards.map((card) => (
@@ -134,6 +149,7 @@ export function SkillsSection() {
                 key={`expertise-${card.tag}`}
                 card={card}
                 onPick={(chip) => pickExpertise(chip.value, card.tag)}
+                detailOf={detailOf}
               />
             ))}
           </div>

@@ -2,7 +2,11 @@
 // the lowercase identifiers used throughout 5etools data (e.g. background
 // `skillProficiencies`), so they can be compared directly without translation.
 
+import { memoizeContent } from '../content/epoch'
 import type { AbilityKey } from '../dice/dice'
+import type { Entry } from '../text/Entries'
+import { fetchData } from './dataClient'
+import { loadBookEditions, type Edition } from './edition'
 
 export interface SkillDef {
   /** Lowercase key as used in 5etools data (e.g. "animal handling"). */
@@ -96,3 +100,27 @@ export function skillByKey(key: string): SkillDef | undefined {
 export function skillLabel(key: string): string {
   return SKILL_BY_KEY.get(key)?.label ?? key.replace(/\b\w/g, (c) => c.toUpperCase())
 }
+
+/** What the books say a skill covers, one block per rules edition that prints it. */
+export type SkillTexts = ReadonlyMap<string, { edition: Edition; entries: Entry[] }[]>
+
+interface SkillsFile {
+  skill: { name: string; source: string; entries?: Entry[] }[]
+}
+
+/** The text of every skill, by skill key. */
+export const loadSkillTexts = memoizeContent(async (): Promise<SkillTexts> => {
+  const [data, editionOf] = await Promise.all([
+    fetchData<SkillsFile>('skills.json'),
+    loadBookEditions(),
+  ])
+  const texts = new Map<string, { edition: Edition; entries: Entry[] }[]>()
+  for (const row of data.skill) {
+    const key = row.name.toLowerCase()
+    texts.set(key, [
+      ...(texts.get(key) ?? []),
+      { edition: editionOf(row.source), entries: row.entries ?? [] },
+    ])
+  }
+  return texts
+})

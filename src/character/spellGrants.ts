@@ -73,6 +73,8 @@ export interface SpellVariantSet {
   from: string
   names: string[]
   selected?: string
+  /** What each named set gives, taken or not, so the sets can be compared before one is taken. */
+  options: { name: string; grants: SpellGrant[] }[]
 }
 
 export interface ResolvedSpellGrants {
@@ -182,8 +184,15 @@ function grantsOf(
     const names = blocks.map((b) => String(b.name))
     taken = chosen[variantId]?.variant
     if (taken !== undefined && !names.includes(taken)) taken = undefined
-    variants.push({ id: variantId, from: source.from, names, selected: taken })
+    variants.push({
+      id: variantId,
+      from: source.from,
+      names,
+      selected: taken,
+      options: names.map((name) => ({ name, grants: [] })),
+    })
   }
+  const offered = named ? variants[variants.length - 1].options : []
 
   const out: SpellGrant[] = []
   blocks.forEach((block, b) => {
@@ -221,8 +230,10 @@ function grantsOf(
             const grant = spellItem(item)
             if (!grant) return
             knownIds.add(base.id)
+            const given = { ...base, ...grant }
+            offered.find((o) => o.name === variant)?.grants.push(given)
             if (named && variant !== taken) return
-            out.push({ ...base, ...grant })
+            out.push(given)
           })
         }
       }

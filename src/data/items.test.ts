@@ -357,6 +357,33 @@ describe('loadItems, reading an item', () => {
     })
     expect((await loadItems())[0].kind).toBe('coin')
   })
+
+  it('reads the text a later book adds to an item, as 2014 tools have it', async () => {
+    serve({
+      'items-base.json': {
+        baseitem: [
+          {
+            name: "Alchemist's Supplies",
+            source: 'PHB',
+            type: 'AT',
+            additionalEntries: ['Produce useful concoctions.'],
+          },
+          {
+            name: 'Disguise Kit',
+            source: 'PHB',
+            type: 'T',
+            entries: ['Change your look.'],
+            additionalEntries: ['Makeup and props.'],
+          },
+        ],
+      },
+    })
+    const items = await loadItems()
+    expect(items.map((i) => i.entries)).toEqual([
+      ['Produce useful concoctions.'],
+      ['Change your look.', 'Makeup and props.'],
+    ])
+  })
 })
 
 describe('loadItems, copies and base items', () => {

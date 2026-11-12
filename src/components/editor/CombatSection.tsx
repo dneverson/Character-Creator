@@ -14,6 +14,7 @@ import { INITIATIVE_MANUAL, type PassiveRow } from '../../derived/combat'
 import type { SpellStatRow } from '../../derived/spellStats'
 import type { Line } from '../../derived/types'
 import { Abbr } from '../Abbr'
+import { NO_VALUE } from '../table/facts'
 import { DerivedTable } from './DerivedTable'
 import { EditorSection } from './EditorSection'
 import { PickCard } from './PickCard'
@@ -21,13 +22,13 @@ import { SignedInput } from './SignedInput'
 import { useDerivedSheet } from './useDerivedSheet'
 
 /**
- * "1d8 + 3 slashing": the die, the bonus with its sign, the kind of damage. With no
- * die the bonus is the whole damage ("4 bludgeoning").
+ * "1d8 + 3": the die and the bonus with its sign; the kind of damage has its own
+ * column. With no die the bonus is the whole damage ("4").
  */
-function damageText(dice: string, bonus: number, types: string): string {
-  if (dice === '') return `${bonus}${types ? ` ${types}` : ''}`
+function damageText(dice: string, bonus: number): string {
+  if (dice === '') return String(bonus)
   const amount = bonus === 0 ? '' : ` ${bonus < 0 ? '-' : '+'} ${Math.abs(bonus)}`
-  return `${dice}${amount}${types ? ` ${types}` : ''}`
+  return `${dice}${amount}`
 }
 
 /** A button that opens the lines of a number under its row. */
@@ -148,6 +149,7 @@ function AttacksTable({ attacks }: { attacks: AttackRow[] }) {
           <th>Attack</th>
           <th className="text-end">To hit</th>
           <th>Damage</th>
+          <th>Damage type</th>
           <th>Notes</th>
           <th aria-label="Details" />
         </tr>
@@ -165,22 +167,15 @@ function AttacksTable({ attacks }: { attacks: AttackRow[] }) {
                 </td>
                 <td className="text-end">{formatMod(attack.toHit.value)}</td>
                 <td>
-                  {damageText(
-                    attack.damage.dice,
-                    attack.damage.bonus.value,
-                    attack.damage.types,
-                  )}
+                  {damageText(attack.damage.dice, attack.damage.bonus.value)}
                   {attack.twoHanded && (
                     <div className="small text-body-secondary">
-                      {damageText(
-                        attack.twoHanded.dice,
-                        attack.twoHanded.bonus.value,
-                        '',
-                      )}{' '}
+                      {damageText(attack.twoHanded.dice, attack.twoHanded.bonus.value)}{' '}
                       with two hands
                     </div>
                   )}
                 </td>
+                <td>{attack.damage.types || NO_VALUE}</td>
                 <td>
                   {attack.range && <Badge bg="secondary">Range {attack.range}</Badge>}{' '}
                   {attack.properties.map((p) => (
@@ -212,7 +207,7 @@ function AttacksTable({ attacks }: { attacks: AttackRow[] }) {
               </tr>
               {open && (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={6}>
                     <AttackDetails attack={attack} />
                   </td>
                 </tr>

@@ -138,6 +138,12 @@ beforeEach(() => {
   useCharacterStore.setState({ characters: {}, order: [], activeId: null, view: 'list' })
 })
 
+/** A row of a pick card's table, found by the option's name. */
+const findRow = async (name: string) => {
+  const cell = (await screen.findAllByText(name)).find((el) => el.closest('tbody tr'))
+  return cell?.closest('tr') as HTMLElement
+}
+
 describe('ProficienciesSection', () => {
   it('renders nothing without an active character', async () => {
     const { container } = renderSection()
@@ -170,16 +176,20 @@ describe('ProficienciesSection', () => {
     renderSection()
 
     // The card lists every standard language, not the exotic or secret ones.
-    expect(await screen.findByRole('button', { name: 'Dwarvish' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Abyssal' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Dwarvish' }))
+    expect(await findRow('Dwarvish')).toBeInTheDocument()
+    expect(screen.queryByText('Abyssal')).not.toBeInTheDocument()
+    await user.click(
+      within(await findRow('Dwarvish')).getByRole('button', { name: 'Choose' }),
+    )
     await waitFor(() => expect(active(c.id).grantPicks.language?.dwarvish).toBe('bg'))
     const languages = await screen.findByRole('table', { name: 'Languages' })
     expect(within(languages).getByText('Dwarvish')).toBeInTheDocument()
     expect(within(languages).getByText('Guild Artisan (background)')).toBeInTheDocument()
 
     // An artisan's tool is picked the same way, from the tools of the books.
-    await user.click(screen.getByRole('button', { name: "Mason's Tools" }))
+    await user.click(
+      within(await findRow("Mason's Tools")).getByRole('button', { name: 'Choose' }),
+    )
     await waitFor(() =>
       expect(active(c.id).grantPicks.tool?.["mason's tools"]).toBe('bg'),
     )

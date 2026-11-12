@@ -163,13 +163,15 @@ describe('ContentSettings with the full content in use', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Checking...')
 
     // The source has a newer commit: its files are downloaded, then it is updated.
-    useContentStatus.setState({
-      commit: 'abcdef0000000000000000000000000000000000',
-      activity: 'downloading',
-      done: 40,
-      total: 160,
+    await act(async () => {
+      useContentStatus.setState({
+        commit: 'abcdef0000000000000000000000000000000000',
+        activity: 'downloading',
+        done: 40,
+        total: 160,
+      })
+      answer(true)
     })
-    answer(true)
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent(
         'Downloading the update: 40 of 160 files',

@@ -76,6 +76,14 @@ describe('feat facts', () => {
     expect(container).toHaveTextContent('You gain a trick.')
   })
 
+  it('says what the app applies for a fighting style feat, and nothing for others', () => {
+    const defense = makeFeat({ name: 'Defense', source: 'XPHB', edition: 'one' })
+    expect(text('applied', defense)).toBe(
+      'Automatic: +1 to your armor class while you wear armor.',
+    )
+    expect(text('applied', full)).toBe('')
+  })
+
   it('states category, prerequisite and the lowest level asked', () => {
     expect(text('category', full)).toBe('Origin')
     expect(text('category', empty)).toBe('Uncategorized (2014 rules)')
@@ -140,6 +148,7 @@ describe('feat facts', () => {
   it('summarises a chosen feat with the facts a player weighs', () => {
     expect(featSummary.map((f) => f.key)).toEqual([
       'category',
+      'applied',
       'prerequisite',
       'skills',
       'tools',

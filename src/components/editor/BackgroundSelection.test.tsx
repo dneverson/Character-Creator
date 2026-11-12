@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BackgroundSelection } from './BackgroundSelection'
+import { BackgroundStory } from './BackgroundStory'
 import { ThemeProvider } from '../../theme/ThemeProvider'
 import { useCharacterStore } from '../../character/store'
 import { createCharacter, type RaceRef } from '../../character/model'
@@ -71,6 +72,27 @@ const plain: PlayableBackground = {
   abilityOptions: [],
 }
 
+// A background with a story table, to roll on in its details and in the Story section.
+const drifterWithTable: PlayableBackground = {
+  ...drifter,
+  key: 'Wanderer|XPHB',
+  name: 'Wanderer',
+  storyTables: [
+    {
+      key: 'personality trait',
+      title: 'Personality Trait',
+      label: 'Personality Trait',
+      field: 'personalityTraits',
+      count: 1,
+      die: 2,
+      rows: [
+        { min: 1, max: 1, text: 'I am polite.' },
+        { min: 2, max: 2, text: 'I am brave.' },
+      ],
+    },
+  ],
+}
+
 const elf: RaceRef = {
   name: 'Elf',
   baseName: 'Elf',
@@ -138,6 +160,57 @@ beforeEach(() => {
   mockBackgrounds.mockResolvedValue([acolyte])
   mockRaces.mockResolvedValue([human2024])
   useCharacterStore.setState({ characters: {}, order: [], activeId: null, view: 'list' })
+})
+
+describe('BackgroundSelection story tables', () => {
+  it('takes a row in the details of the chosen background, the same row as in Story', async () => {
+    const user = userEvent.setup()
+    mockBackgrounds.mockResolvedValue([drifterWithTable])
+    const c = seedActive((ch) => {
+      ch.background = {
+        name: 'Wanderer',
+        source: 'XPHB',
+        abilityOption: 0,
+        abilityChoices: {},
+      }
+    })
+    render(
+      <ThemeProvider>
+        <BackgroundSelection />
+        <BackgroundStory />
+      </ThemeProvider>,
+    )
+    await user.click(await screen.findByRole('button', { name: 'Show details' }))
+    // Both places offer the table to pick from, not only to read.
+    const rows = await screen.findAllByRole('button', { name: /I am brave\./ })
+    expect(rows).toHaveLength(2)
+    await user.click(rows[0])
+    await waitFor(() =>
+      expect(active(c.id).story.personalityTraits).toContain('I am brave.'),
+    )
+    // Taken in one, folded to a line in the other: the same state.
+    expect(await screen.findAllByText('1 of 1 from the table')).toHaveLength(2)
+    // The details list the row taken under its folded line; Story has its text box.
+    expect(screen.getByRole('listitem')).toHaveTextContent('I am brave.')
+  })
+
+  it('only reads the story tables of a background that is not the chosen one', async () => {
+    const user = userEvent.setup()
+    mockBackgrounds.mockResolvedValue([drifterWithTable, acolyte])
+    seedActive((ch) => {
+      ch.background = {
+        name: 'Acolyte',
+        source: 'XPHB',
+        abilityOption: 0,
+        abilityChoices: {},
+      }
+    })
+    renderSection()
+    await user.click(await screen.findByRole('button', { name: 'Change background' }))
+    await user.click(screen.getByText('Wanderer'))
+    expect((await screen.findAllByText('I am brave.')).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: /I am brave\./ })).not.toBeInTheDocument()
+  })
 })
 
 describe('BackgroundSelection', () => {

@@ -1,5 +1,5 @@
 // The "informational" side of the master-detail layout. Shows the full
-// detail for the focused row, or a placeholder prompt when nothing is focused.
+// detail for the focused row; the table mounts it only while a row is focused.
 //
 // Keyboard model (entered by pressing Right past the grid row's body). The pane
 // is one level below the grid; its elements are ordinary tab stops (Tab/Shift-Tab
@@ -23,7 +23,6 @@ import { focusables, firstInReadingOrder, nextInDirection, type Dir } from './sp
 interface Props<T> {
   focusedRow: T | null
   render?: (row: T) => ReactNode
-  placeholder?: ReactNode
   /** When set, the pane shows a close (X) control and closes on the Escape key. */
   onClose?: () => void
   /** Returns keyboard focus to the grid's cursor row (Left boundary / Escape). */
@@ -62,7 +61,6 @@ function arrowDir(key: string): Dir | null {
 export function DetailPane<T>({
   focusedRow,
   render,
-  placeholder = 'Select a row to see its details.',
   onClose,
   onReturnToGrid,
   containerRef,
@@ -142,13 +140,7 @@ export function DetailPane<T>({
           <Icon name="remove" />
         </Button>
       )}
-      {focusedRow && render ? (
-        render(focusedRow)
-      ) : (
-        <div className="text-body-secondary d-flex align-items-center justify-content-center h-100 p-3 text-center">
-          {placeholder}
-        </div>
-      )}
+      {focusedRow !== null && render?.(focusedRow)}
     </div>
   )
 }

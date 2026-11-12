@@ -15,6 +15,7 @@ import {
 } from '../../data/feats'
 import { grantSets, listedGrants, spellGrants } from '../../data/grants'
 import { editionYear, senseText } from '../../data/labels'
+import { styleAppliedFor } from '../../rules/fightingStyles'
 import { Entries } from '../../text/Entries'
 import { stripTags } from '../../text/tags'
 import { AbbrText } from '../Abbr'
@@ -42,6 +43,13 @@ const category: Fact<Feat> = {
       <span>{categoryText(feat)}</span>
     </OverlayTrigger>
   ),
+}
+
+/** What the app does with a fighting style feat, and what is left to play. */
+const appliedHere: Fact<Feat> = {
+  key: 'applied',
+  label: 'In this app',
+  text: (feat) => styleAppliedFor({ feat: `${feat.name}|${feat.source}` }) ?? '',
 }
 
 const prerequisite: Fact<Feat> = {
@@ -179,6 +187,7 @@ const repeatable: Fact<Feat> = {
 
 const basics: Fact<Feat>[] = [
   category,
+  appliedHere,
   prerequisite,
   minimumLevelFact,
   ability,
@@ -209,6 +218,7 @@ const basics: Fact<Feat>[] = [
  */
 export const featSummary: Fact<Feat>[] = [
   category,
+  appliedHere,
   prerequisite,
   skills,
   tools,

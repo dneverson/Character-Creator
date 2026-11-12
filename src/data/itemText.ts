@@ -42,13 +42,16 @@ export function diceText(text: string): string {
   return text.replace(/\{@(?:dice|damage)\s+([^|}]*)[^}]*\}/g, '$1').trim()
 }
 
-/** A roll such as "1d8" or "2d6 + 3", with its average; undefined when it is no roll. */
+/** A roll such as "1d8", "d6" or "2d6 + 3", with its average; undefined when it is no roll. */
 export function parseDice(raw: unknown): Dice | undefined {
   const text = isText(raw) ? diceText(raw) : isNumber(raw) ? String(raw) : ''
-  if (!/^\d+(d\d+)?(\s*[+-]\s*\d+(d\d+)?)*$/.test(text)) return undefined
+  if (!/^(\d*d\d+|\d+)(\s*[+-]\s*(\d*d\d+|\d+))*$/.test(text)) return undefined
   let average = 0
-  for (const [, sign, count, sides] of text.matchAll(/([+-]?)\s*(\d+)(?:d(\d+))?/g)) {
-    const amount = sides ? (Number(count) * (Number(sides) + 1)) / 2 : Number(count)
+  for (const [, sign, count, sides, flat] of text.matchAll(
+    /([+-]?)\s*(?:(\d*)d(\d+)|(\d+))/g,
+  )) {
+    // "d6" is one die.
+    const amount = sides ? (Number(count || 1) * (Number(sides) + 1)) / 2 : Number(flat)
     average += sign === '-' ? -amount : amount
   }
   return { text, average }

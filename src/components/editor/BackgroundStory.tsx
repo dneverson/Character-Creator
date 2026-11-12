@@ -4,22 +4,11 @@
 
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
 import type { StoryState } from '../../character/model'
-import { newRoll, rollAction } from '../../character/rollHistory'
-import {
-  ownTextFor,
-  tableRows,
-  unsetTables,
-  withStoryRows,
-  withTableRows,
-} from '../../character/storyTables'
-import { findBackground, loadBackgrounds, type StoryTable } from '../../data/background'
-import { rollOnTable } from '../../data/dieTables'
-import { useAsyncData } from '../../hooks/useAsyncData'
-import { PickOrRoll } from '../table/PickOrRoll'
 import { SubSection } from './SubSection'
 import { DraftInput } from './DraftInput'
+import { StoryTablePick } from './StoryTablePick'
+import { useBackgroundStory } from './useBackgroundStory'
 
 const ALIGNMENTS = [
   'Lawful Good',
@@ -61,58 +50,9 @@ const rowsFor = (text: string, least: number) =>
   )
 
 export function BackgroundStory() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
-  const { data: backgrounds } = useAsyncData(loadBackgrounds)
-  if (!character) return null
-  const story = character.story
-  // Every loaded background, so one outside the enabled books keeps its tables.
-  const background = findBackground(backgrounds, character.background)
-  const tables = background?.storyTables ?? []
-  const unset = unsetTables(story, tables)
-
-  function patch(field: keyof StoryState, value: string) {
-    if (!character) return
-    updateActive({ story: { ...character.story, [field]: value } })
-  }
-
-  /** The record of a roll on one of the background's tables. */
-  const tableRoll = (table: StoryTable, values: number[], rows: number[]) =>
-    rollAction(
-      newRoll({
-        stream: 'story',
-        kind: 'table',
-        background: background?.key ?? '',
-        table: table.key,
-        die: table.die,
-        values,
-        rows,
-      }),
-    )
-
-  function choose(table: StoryTable, rows: number[], roll?: { values: number[] }) {
-    const text = withTableRows(story[table.field], table, rows)
-    updateActive(
-      { story: { ...story, [table.field]: text } },
-      roll && tableRoll(table, roll.values, rows),
-    )
-  }
-
-  // One roll on every table still unset: the story is written once, and each
-  // table's roll is recorded as its own.
-  function rollAll() {
-    const taken = unset.map((table) => ({
-      table,
-      ...rollOnTable(table, table.count, []),
-    }))
-    const [first, ...rest] = taken
-    updateActive(
-      { story: withStoryRows(story, taken) },
-      tableRoll(first.table, first.values, first.rows),
-    )
-    for (const { table, values, rows } of rest)
-      updateActive({}, tableRoll(table, values, rows))
-  }
+  const { character, background, story, tables, unset, patch, rollAll } =
+    useBackgroundStory()
+  if (!character || !story) return null
 
   return (
     <SubSection
@@ -156,16 +96,7 @@ export function BackgroundStory() {
             {tables
               .filter((table) => table.field === field.key)
               .map((table) => (
-                <PickOrRoll
-                  key={table.key}
-                  id={`story-${table.key.replace(/\W+/g, '-')}`}
-                  table={table}
-                  count={table.count}
-                  chosen={tableRows(story[table.field], table)}
-                  ownText={ownTextFor(story, table, tables)}
-                  heading={table.from ? `${table.title} - from ${table.from}` : undefined}
-                  onChoose={(rows, roll) => choose(table, rows, roll)}
-                />
+                <StoryTablePick key={table.key} table={table} idPrefix="story" />
               ))}
             <DraftInput
               as="textarea"

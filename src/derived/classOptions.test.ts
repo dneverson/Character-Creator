@@ -10,6 +10,7 @@ const style = (name: string, ...types: string[]): ClassOption => ({
   name,
   source: 'PHB',
   types,
+  entries: [`${name} text.`],
 })
 
 const CATALOG = [
@@ -68,6 +69,19 @@ describe('class option cards', () => {
       'Archery',
       'Defense',
       'Dueling',
+    ])
+  })
+
+  it('describes each style with its rules text and what the app applies', () => {
+    const [card] = cardsOf(build('Fighter', 1, {}, []), [fighter()])
+    const defense = card.chips.find((chip) => chip.label === 'Defense')
+    expect(defense?.detail?.entries).toEqual(['Defense text.'])
+    expect(defense?.detail?.facts).toEqual([
+      { label: 'Source', value: 'PHB' },
+      {
+        label: 'In this app',
+        value: 'Automatic: +1 to your armor class while you wear armor.',
+      },
     ])
   })
 

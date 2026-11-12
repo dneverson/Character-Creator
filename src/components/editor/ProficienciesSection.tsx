@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
@@ -24,6 +24,7 @@ import type { Listing } from '../../derived/types'
 import { NonStandardBadge } from '../NonStandardBadge'
 import { EditorSection } from './EditorSection'
 import { PickCard } from './PickCard'
+import { pickDetailOf } from './pickDetails'
 import { sourceText } from './sourceText'
 import { ToggleChip } from './ToggleChip'
 import { useDerivedSheet } from './useDerivedSheet'
@@ -143,6 +144,7 @@ export function ProficienciesSection() {
   const updateActive = useCharacterStore((s) => s.updateActive)
   const { sheet, catalog, loading, error } = useDerivedSheet()
   const [otherOpen, setOtherOpen] = useState(false)
+  const detailOf = useMemo(() => pickDetailOf(catalog), [catalog])
   if (!character) return null
   const known = sheet?.proficiencies
 
@@ -215,6 +217,7 @@ export function ProficienciesSection() {
                   key={`${card.tag}|${card.kinds.join('-')}`}
                   card={card}
                   onPick={(chip) => pick(chip, card.tag)}
+                  detailOf={detailOf}
                 />
               ))}
             </div>

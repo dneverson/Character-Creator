@@ -15,6 +15,7 @@ import { NonStandardBadge } from '../NonStandardBadge'
 import { CompareModal } from './CompareModal'
 import { DataTable } from './DataTable'
 import { EntryDetail } from './EntryDetail'
+import { useShowUnavailable } from './useShowUnavailable'
 import type { Describe } from './facts'
 import type { Column, RowMeta } from './types'
 
@@ -94,12 +95,14 @@ const STANDARD = { standard: true }
 
 /** The label of the switch that allows choosing a non-standard row. */
 const ALLOW_LABEL = 'Allow non-standard choices (DM approval)'
+/** The label of the switch that lists the greyed rows that cannot be chosen. */
+const SHOW_LABEL = 'Show choices that are not available'
 const NON_STANDARD = 'Non-standard'
 const reasonOf = (meta: Omit<RowMeta, 'id'>) => meta.reason ?? 'Not a standard choice'
 
 export function BrowseTable<T>({
   tableId,
-  rows,
+  rows: allRows,
   columns,
   idOf,
   nameOf,
@@ -122,9 +125,21 @@ export function BrowseTable<T>({
   const allow = allowNonStandard ?? ownAllow
   const setAllow = onAllowNonStandardChange ?? setOwnAllow
 
+  const [showUnavailable, setShowUnavailable] = useShowUnavailable(tableId)
+
   const metaOf = (row: T) => rowMeta?.(row) ?? STANDARD
   const hasNonStandard =
-    rowMeta !== undefined && rows.some((row) => !metaOf(row).standard)
+    rowMeta !== undefined && allRows.some((row) => !metaOf(row).standard)
+  // With the switch off the greyed rows are left out, but never one that can be taken
+  // away (a pick the player made keeps its Remove).
+  const hidden =
+    hasNonStandard && !compact && !showUnavailable
+      ? allRows.filter(
+          (row) => !metaOf(row).standard && action?.of(row)?.variant !== 'danger',
+        )
+      : []
+  const rows =
+    hidden.length > 0 ? allRows.filter((row) => !hidden.includes(row)) : allRows
   // A non-standard row's action waits for the switch; taking something away never does.
   const canRun = (row: T, act: RowAction) =>
     act.variant === 'danger' || allow || metaOf(row).standard
@@ -268,14 +283,27 @@ export function BrowseTable<T>({
             )}
             {toolbar?.(selected)}
             {hasNonStandard && !compact && (
-              <Form.Check
-                type="switch"
-                id={`${tableId}-allow-non-standard`}
-                className="ms-auto"
-                label={ALLOW_LABEL}
-                checked={allow}
-                onChange={(e) => setAllow(e.target.checked)}
-              />
+              <div className="ms-auto d-flex flex-wrap align-items-center column-gap-3">
+                <Form.Check
+                  type="switch"
+                  id={`${tableId}-show-unavailable`}
+                  label={SHOW_LABEL}
+                  checked={showUnavailable}
+                  onChange={(e) => setShowUnavailable(e.target.checked)}
+                />
+                {hidden.length > 0 && (
+                  <span className="small text-body-secondary">
+                    {hidden.length} hidden
+                  </span>
+                )}
+                <Form.Check
+                  type="switch"
+                  id={`${tableId}-allow-non-standard`}
+                  label={ALLOW_LABEL}
+                  checked={allow}
+                  onChange={(e) => setAllow(e.target.checked)}
+                />
+              </div>
             )}
           </Stack>
         }

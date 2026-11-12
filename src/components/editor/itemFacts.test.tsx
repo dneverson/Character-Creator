@@ -9,6 +9,7 @@ import {
   armorText,
   attunementText,
   damageText,
+  damageTypeText,
   describeItems,
   itemColumns,
   itemKey,
@@ -181,10 +182,12 @@ describe('item keys', () => {
 })
 
 describe('what an item says of itself', () => {
-  it('writes weapon damage in one line, with the two-handed die', () => {
-    expect(damageText(longsword)).toBe('1d8 slashing, versatile 1d10')
-    expect(damageText(longbow)).toBe('1d8 piercing')
+  it('writes weapon damage dice with the two-handed die, and the damage type apart', () => {
+    expect(damageText(longsword)).toBe('1d8, versatile 1d10')
+    expect(damageText(longbow)).toBe('1d8')
     expect(damageText(chainMail)).toBe('')
+    expect(damageTypeText(longsword)).toBe('Slashing')
+    expect(damageTypeText(chainMail)).toBe('')
   })
 
   it('writes armor class by the kind of armor', () => {
@@ -222,7 +225,8 @@ describe('what an item says of itself', () => {
       page: 'p. 62',
       partOf: 'Swords',
       weaponCategory: 'Martial melee',
-      damage: '1d8 slashing, versatile 1d10',
+      damage: '1d8, versatile 1d10',
+      damageType: 'Slashing',
       properties: 'Versatile (1d10), Mastery: Sap',
       ac: '',
     })
@@ -298,6 +302,7 @@ describe('the item table', () => {
       'cost',
       'weight',
       'damage',
+      'damageType',
       'properties',
       'ac',
       'rarity',
@@ -353,8 +358,11 @@ describe('the item table', () => {
   })
 
   it('offers each kind of damage, armor, property and bonus to filter by', () => {
-    expect(filterOf('damage', longsword)).toEqual(['Slashing'])
+    // The dice and the kind of damage are filtered apart.
+    expect(filterOf('damage', longsword)).toEqual(['1d8', '1d10'])
     expect(filterOf('damage', chainMail)).toEqual(['-'])
+    expect(filterOf('damageType', longsword)).toEqual(['Slashing'])
+    expect(filterOf('damageType', chainMail)).toEqual(['-'])
     expect(filterOf('ac', chainMail)).toBe('Heavy armor')
     expect(filterOf('ac', halfPlate)).toBe('Medium armor')
     expect(filterOf('ac', leather)).toBe('Light armor')
@@ -429,6 +437,7 @@ describe('the item table', () => {
       'name',
       'type',
       'damage',
+      'damageType',
       'ac',
       'properties',
       'weight',

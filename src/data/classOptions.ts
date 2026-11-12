@@ -3,6 +3,7 @@
 // Fighter, "FS:P" for the Paladin).
 
 import { memoizeContent } from '../content/epoch'
+import type { Entry } from '../text/Entries'
 import { fetchData } from './dataClient'
 
 export interface ClassOption {
@@ -12,10 +13,17 @@ export interface ClassOption {
   source: string
   /** The feature types it is offered under: "FS:F", "FS:R". */
   types: string[]
+  /** The book's rules text for the option. */
+  entries: Entry[]
 }
 
 interface OptionalFeaturesFile {
-  optionalfeature: { name: string; source: string; featureType?: string[] }[]
+  optionalfeature: {
+    name: string
+    source: string
+    featureType?: string[]
+    entries?: Entry[]
+  }[]
 }
 
 export const FIGHTING_STYLE_TYPE = 'FS:'
@@ -30,6 +38,7 @@ export const loadFightingStyleOptions = memoizeContent(
         name: o.name,
         source: o.source,
         types: (o.featureType ?? []).filter((t) => t.startsWith(FIGHTING_STYLE_TYPE)),
+        entries: o.entries ?? [],
       }))
       .filter((o) => o.types.length > 0)
       .sort((a, b) => a.name.localeCompare(b.name))

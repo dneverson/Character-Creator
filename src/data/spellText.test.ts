@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { dataDir, records } from '../test/dataAudit'
+import { parseDice } from './itemText'
 import {
   areaOf,
   attackOf,
@@ -256,35 +258,42 @@ describe('duration', () => {
 })
 
 describe('damage', () => {
-  it('pairs the dice with the type written after them (Fireball)', () => {
+  it('reads the dice and, apart, the type written after them (Fireball)', () => {
     const entries = [
       'Each creature must make a Dexterity saving throw. A target takes {@damage 8d6} fire damage on a failed save, or half as much damage on a successful one.',
     ]
-    expect(damageOf(entries, ['fire'])).toEqual({ text: '8d6 Fire', types: ['Fire'] })
+    expect(damageOf(entries, ['fire'])).toEqual({
+      text: '8d6',
+      average: 28,
+      types: ['Fire'],
+    })
   })
 
-  it('pairs untyped dice with the only damage type the spell inflicts', () => {
+  it('takes the type of untyped dice from what the spell inflicts', () => {
     expect(damageOf(['takes {@damage 2d6} damage.'], ['cold'])).toEqual({
-      text: '2d6 Cold',
+      text: '2d6',
+      average: 7,
       types: ['Cold'],
     })
   })
 
   it("reads a capitalized 2024 type word, even with no damageInflict (Hunter's Mark)", () => {
     expect(damageOf(['an extra {@damage 1d6} Force damage'], undefined)).toEqual({
-      text: '1d6 Force',
+      text: '1d6',
+      average: 3.5,
       types: ['Force'],
     })
   })
 
-  it("shows dice alone when nothing names the type (Hunter's Mark, 2014)", () => {
+  it("gives dice and no type when nothing names the type (Hunter's Mark, 2014)", () => {
     expect(damageOf(['an extra {@damage 1d6} damage to the target'], undefined)).toEqual({
       text: '1d6',
+      average: 3.5,
       types: [],
     })
   })
 
-  it('lists the distinct damage of a spell that deals several, in reading order', () => {
+  it('lists the distinct dice of a spell that deals several, in reading order', () => {
     const entries = [
       'takes {@damage 3d10} lightning damage.',
       {
@@ -294,38 +303,88 @@ describe('damage', () => {
         ],
       },
     ]
-    expect(damageOf(entries, ['lightning']).text).toBe('3d10 Lightning; 1d10 Lightning')
+    const damage = damageOf(entries, ['lightning'])
+    expect(damage.text).toBe('3d10; 1d10')
+    // Sorted by its biggest roll.
+    expect(damage.average).toBe(16.5)
   })
 
-  it('does not take the dice of a word that is no damage type', () => {
+  it('does not take a word that is no damage type as one', () => {
     expect(
-      damageOf(['{@damage 1d4} piercing damage; {@damage 1d6} extra damage'], undefined)
-        .text,
-    ).toBe('1d4 Piercing; 1d6')
+      damageOf(['{@damage 1d4} piercing damage; {@damage 1d6} extra damage'], undefined),
+    ).toEqual({ text: '1d4; 1d6', average: 3.5, types: ['Piercing'] })
   })
 
-  it('shows the inflicted types when the text carries no damage tag (Armor of Agathys)', () => {
+  it('reads a roll with a flat part, or with no count, as the books write it', () => {
+    expect(damageOf(['takes {@damage 10d6 + 40} force damage'], ['force'])).toMatchObject(
+      {
+        text: '10d6 + 40',
+        average: 75,
+      },
+    )
+    expect(damageOf(['takes {@damage d8} damage'], undefined).average).toBe(4.5)
+  })
+
+  it('gives the inflicted types and no dice when the text has no damage tag (Armor of Agathys)', () => {
     expect(damageOf(['the creature takes 5 cold damage.'], ['cold'])).toEqual({
-      text: 'Cold',
+      text: '',
+      average: 0,
       types: ['Cold'],
     })
-    expect(damageOf([], ['cold', 'necrotic']).text).toBe('Cold, Necrotic')
-    expect(damageOf(undefined, undefined)).toEqual({ text: '', types: [] })
+    expect(damageOf([], ['cold', 'necrotic']).types).toEqual(['Cold', 'Necrotic'])
+    expect(damageOf(undefined, undefined)).toEqual({ text: '', average: 0, types: [] })
   })
 
-  it('shows only the first dice of a scaling cantrip (Acid Splash)', () => {
+  it('reads only the first dice of a scaling cantrip, and sorts by them (Acid Splash)', () => {
     const entries = [
       'take {@damage 1d6} acid damage.',
       "This spell's damage increases by {@damage 1d6} when you reach 5th level ({@damage 2d6}), 11th level ({@damage 3d6}).",
     ]
-    expect(damageOf(entries, ['acid'], true).text).toBe('1d6 Acid')
-    expect(damageOf(entries, ['acid']).text).toBe('1d6 Acid; 2d6 Acid; 3d6 Acid')
+    expect(damageOf(entries, ['acid'], true)).toEqual({
+      text: '1d6',
+      average: 3.5,
+      types: ['Acid'],
+    })
+    expect(damageOf(entries, ['acid']).text).toBe('1d6; 2d6; 3d6')
   })
 
   it('reads the dice of an eldritch blast beam', () => {
     expect(
       damageOf(['the target takes {@damage 1d10} force damage.'], ['force']).text,
-    ).toBe('1d10 Force')
+    ).toBe('1d10')
+  })
+})
+
+// Every spell of the books: each damage tag reads as dice with an average, so the
+// Damage column sorts every spell that rolls damage, and none shows a raw tag.
+describe.skipIf(!dataDir)('damage against the data', () => {
+  const spells = records(dataDir ?? '').filter(
+    ({ collection, record }) => collection === 'spell' && Array.isArray(record.entries),
+  )
+
+  it('finds the spells', () => {
+    expect(spells.length).toBeGreaterThan(500)
+  })
+
+  it('reads every damage tag of every spell as dice with an average', () => {
+    const unread: string[] = []
+    for (const { record } of spells) {
+      const inflict = Array.isArray(record.damageInflict)
+        ? record.damageInflict.filter((t): t is string => typeof t === 'string')
+        : undefined
+      const scales = record.level === 0 && record.scalingLevelDice !== undefined
+      const damage = damageOf(record.entries, inflict, scales)
+      const tagged = JSON.stringify(record.entries).includes('{@damage ')
+      if (
+        tagged &&
+        (damage.text === '' || damage.average <= 0 || damage.text.includes('{'))
+      )
+        unread.push(`${String(record.name)}|${String(record.source)}: ${damage.text}`)
+      for (const part of damage.text.split('; ').filter(Boolean))
+        if (parseDice(part) === undefined)
+          unread.push(`${String(record.name)}|${String(record.source)}: ${part}`)
+    }
+    expect(unread).toEqual([])
   })
 })
 

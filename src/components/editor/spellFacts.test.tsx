@@ -30,7 +30,8 @@ const fireball = makeSpell({
   material: { text: 'a ball of bat guano', costGp: 50, consumed: true },
   duration: 'Instantaneous',
   durationKind: 'Instantaneous',
-  damage: '8d6 Fire; 1d6 Cold; 2d4 Acid',
+  damage: '8d6; 1d6; 2d4',
+  damageAverage: 28,
   damageTypes: ['Fire', 'Cold', 'Acid'],
   save: ['Dexterity'],
   area: '20-ft. radius sphere',
@@ -52,7 +53,8 @@ const fireBolt = makeSpell({
   ritual: true,
   concentration: true,
   attack: 'Ranged',
-  damage: '1d10 Fire',
+  damage: '1d10',
+  damageAverage: 5.5,
   damageTypes: ['Fire'],
   cantripScaling: '1d10, 2d10 at 5',
   healing: 'Yes',
@@ -77,7 +79,8 @@ const royal = makeSpell({
 })
 const twoDamage = makeSpell({
   name: 'Two',
-  damage: '1d6 Fire; 2d6 Cold',
+  damage: '1d6; 2d6',
+  damageAverage: 7,
   damageTypes: ['Fire'],
 })
 
@@ -117,7 +120,7 @@ describe('spell facts', () => {
     expect(text('components')).toBe('V, S, M')
     expect(text('material')).toBe('a ball of bat guano (worth 50 gp, consumed)')
     expect(text('duration')).toBe('Instantaneous')
-    expect(text('damage')).toBe('8d6 Fire; 1d6 Cold; 2d4 Acid')
+    expect(text('damage')).toBe('8d6; 1d6; 2d4')
     expect(text('damageTypes')).toBe('Fire, Cold, Acid')
     expect(text('save')).toBe('Dexterity')
     expect(text('conditions')).toBe('Frightened')
@@ -208,6 +211,7 @@ describe('spell columns', () => {
       'duration',
       'components',
       'damage',
+      'damageTypes',
       'saveOrAttack',
       'source',
       'edition',
@@ -218,7 +222,6 @@ describe('spell columns', () => {
         'material',
         'concentration',
         'ritual',
-        'damageTypes',
         'healing',
         'save',
         'attack',
@@ -246,6 +249,17 @@ describe('spell columns', () => {
     expect(column('range').sortValue?.(fireball)).toBe(150)
   })
 
+  it('sorts damage by the average of its biggest roll, a spell with none first', () => {
+    const sort = (spell: Spell) => column('damage').sortValue?.(spell)
+    expect(sort(fireball)).toBe(28)
+    expect(sort(fireBolt)).toBe(5.5)
+    expect(sort(blank)).toBe(0)
+    const order = [fireball, blank, fireBolt].sort(
+      (a, b) => Number(sort(a)) - Number(sort(b)),
+    )
+    expect(order.map((spell) => spell.name)).toEqual(['Blank', 'Fire Bolt', 'Fireball'])
+  })
+
   it('filters by the words players use', () => {
     expect(filterOf('level', fireball)).toBe('3rd level')
     expect(filterOf('casting', fireball)).toBe('Action')
@@ -261,7 +275,8 @@ describe('spell columns', () => {
     expect(filterOf('material', fireball)).toEqual(['Costs gold', 'Consumed'])
     expect(filterOf('material', cheap)).toEqual(['Cheap and kept'])
     expect(filterOf('material', blank)).toEqual(['No material'])
-    expect(filterOf('damage', fireball)).toEqual(['Fire', 'Cold', 'Acid'])
+    // The dice and the kind of damage are filtered apart.
+    expect(filterOf('damage', fireball)).toEqual(['8d6', '1d6', '2d4'])
     expect(filterOf('damage', blank)).toEqual(['-'])
     expect(filterOf('damageTypes', fireball)).toEqual(['Fire', 'Cold', 'Acid'])
     expect(filterOf('damageTypes', blank)).toEqual(['-'])
@@ -298,8 +313,8 @@ describe('spell columns', () => {
         <div data-testid="none">{column('damage').render(blank)}</div>
       </>,
     )
-    expect(screen.getByTestId('three')).toHaveTextContent('8d6 Fire; 1d6 Cold +1 more')
-    expect(screen.getByTestId('two')).toHaveTextContent('1d6 Fire; 2d6 Cold')
+    expect(screen.getByTestId('three')).toHaveTextContent('8d6; 1d6 +1 more')
+    expect(screen.getByTestId('two')).toHaveTextContent('1d6; 2d6')
     expect(screen.getByTestId('none')).toHaveTextContent('-')
   })
 
@@ -312,6 +327,7 @@ describe('spell columns', () => {
       'duration',
       'components',
       'damage',
+      'damageTypes',
       'saveOrAttack',
     ])
   })

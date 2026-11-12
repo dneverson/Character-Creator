@@ -21,6 +21,8 @@ export interface PickOrRollProps {
   ownText: boolean
   /** The table's name; its title by default. */
   heading?: ReactNode
+  /** Whether the folded line lists the rows taken, where nothing beside it shows them. */
+  showTaken?: boolean
   /** The rows taken now, with the dice when they were rolled. */
   onChoose: (rows: number[], roll?: { values: number[] }) => void
 }
@@ -34,6 +36,7 @@ export function PickOrRoll({
   chosen,
   ownText,
   heading,
+  showTaken = false,
   onChoose,
 }: PickOrRollProps) {
   const [changing, setChanging] = useState(false)
@@ -89,6 +92,13 @@ export function PickOrRoll({
             </Button>
           </div>
         </div>
+        {showTaken && chosen.length > 0 && (
+          <ul className="small mb-1 mt-1">
+            {chosen.map((row) => (
+              <li key={row}>{table.rows[row].text}</li>
+            ))}
+          </ul>
+        )}
       </div>
     )
   }

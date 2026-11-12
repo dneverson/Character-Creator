@@ -293,11 +293,15 @@ export const spellColumns: Column<Spell>[] = [
   factColumn(components, { filterValue: componentValues }),
   {
     ...factColumn(damage, {
-      filterValue: (spell) =>
-        spell.damageTypes.length > 0 ? spell.damageTypes : [NO_VALUE],
+      sortValue: (spell) => spell.damageAverage,
+      filterValue: (spell) => (spell.damage ? spell.damage.split('; ') : [NO_VALUE]),
     }),
     render: (spell) => (spell.damage ? damageCell(spell) : NO_VALUE),
   },
+  factColumn(damageTypes, {
+    filterValue: (spell) =>
+      spell.damageTypes.length > 0 ? spell.damageTypes : [NO_VALUE],
+  }),
   factColumn(saveOrAttack, { filterValue: saveOrAttackValues }),
   factColumn(sourceFact),
   factColumn(editionFact),
@@ -309,11 +313,6 @@ export const spellColumns: Column<Spell>[] = [
   }),
   factColumn(ritual, {
     filterValue: (spell) => (spell.ritual ? YES : 'No'),
-    defaultHidden: true,
-  }),
-  factColumn(damageTypes, {
-    filterValue: (spell) =>
-      spell.damageTypes.length > 0 ? spell.damageTypes : [NO_VALUE],
     defaultHidden: true,
   }),
   factColumn(healing, {
@@ -371,6 +370,7 @@ const SUMMARY_KEYS = [
   'duration',
   'components',
   'damage',
+  'damageTypes',
   'saveOrAttack',
 ]
 

@@ -21,7 +21,7 @@ describe('loadLanguages', () => {
         { name: 'Signs', source: 'PHB' },
       ],
     })
-    expect(await loadLanguages()).toEqual([
+    expect(await loadLanguages()).toMatchObject([
       {
         name: 'Draconic',
         entries: [
@@ -32,6 +32,24 @@ describe('loadLanguages', () => {
       },
       { name: 'Elvish', entries: [{ source: 'PHB', type: 'standard' }] },
       { name: 'Signs', entries: [{ source: 'PHB', type: 'standard' }] },
+    ])
+  })
+
+  it('keeps the script and the typical speakers of a language', async () => {
+    mockFetch.mockResolvedValue({
+      language: [
+        {
+          name: 'Dwarvish',
+          source: 'PHB',
+          type: 'standard',
+          script: 'Dwarvish',
+          typicalSpeakers: ['Dwarves'],
+        },
+        { name: 'Dwarvish', source: 'XPHB', typicalSpeakers: ['Dwarves', 'Gnomes'] },
+      ],
+    })
+    expect(await loadLanguages()).toMatchObject([
+      { name: 'Dwarvish', script: 'Dwarvish', speakers: ['Dwarves', 'Gnomes'] },
     ])
   })
 })

@@ -48,11 +48,13 @@ function Harness({
   count = 2,
   initial = [],
   ownText = false,
+  showTaken = false,
 }: {
   table?: DieTable
   count?: number
   initial?: number[]
   ownText?: boolean
+  showTaken?: boolean
 }) {
   const [chosen, setChosen] = useState(initial)
   return (
@@ -62,6 +64,7 @@ function Harness({
       count={count}
       chosen={chosen}
       ownText={ownText}
+      showTaken={showTaken}
       onChoose={(rows, roll) => {
         onChoose(rows, roll)
         setChosen(rows)
@@ -112,6 +115,19 @@ describe('PickOrRoll', () => {
     await user.click(screen.getByRole('button', { name: 'Roll d4' }))
     expect(onChoose).toHaveBeenLastCalledWith([0, 2], { values: [1, 3] })
     expect(screen.getByText('2 of 2 from the table')).toBeInTheDocument()
+  })
+
+  it('lists the rows taken under the folded line when asked, where nothing else shows them', async () => {
+    const user = userEvent.setup()
+    render(<Harness initial={[1, 3]} showTaken />)
+    expect(screen.getByText('2 of 2 from the table')).toBeInTheDocument()
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      'I am brave.',
+      'I am calm.',
+    ])
+    // Open, the table itself marks them; the list is not drawn a second time.
+    await user.click(screen.getByRole('button', { name: 'Change' }))
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
   })
 
   it('rerolls every row taken afresh', async () => {

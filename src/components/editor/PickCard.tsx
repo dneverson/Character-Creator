@@ -3,16 +3,24 @@
 // so nothing needs a book. A card with all its picks collapses to one line; Change
 // reopens it.
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
-import type { PickCard as PickCardModel, PickChip } from '../../character/picks'
+import type {
+  PickCard as PickCardModel,
+  PickChip,
+  PickChipDetail,
+} from '../../character/picks'
+import { Entries } from '../../text/Entries'
 import { NonStandardBadge } from '../NonStandardBadge'
+import { PickChoiceTable } from './PickChoiceTable'
 import { ToggleChip } from './ToggleChip'
 
 interface Props {
   card: PickCardModel
   onPick: (chip: PickChip) => void
+  /** What an option is, from the data, for options whose chips carry no description. */
+  detailOf?: (chip: PickChip) => PickChipDetail | undefined
 }
 
 /** Why a chip cannot be clicked, in plain words (RAW: pick another). */
@@ -29,8 +37,22 @@ function whyDisabled(chip: PickChip, card: PickCardModel): string | undefined {
   return undefined
 }
 
-export function PickCard({ card, onPick }: Props) {
+export function PickCard({ card: given, onPick, detailOf }: Props) {
+  const card = useMemo(
+    () =>
+      detailOf
+        ? {
+            ...given,
+            chips: given.chips.map((chip) =>
+              chip.detail ? chip : { ...chip, detail: detailOf(chip) },
+            ),
+          }
+        : given,
+    [given, detailOf],
+  )
   const [changing, setChanging] = useState(false)
+  const [detailed, setDetailed] = useState(false)
+  const described = card.chips.some((c) => c.detail !== undefined)
   const full = card.left === 0
   const open = !full || card.over || changing
 
@@ -48,9 +70,33 @@ export function PickCard({ card, onPick }: Props) {
         <Badge bg="secondary">
           {card.used} of {card.count} done
         </Badge>
+        {described && (
+          <Button
+            size="sm"
+            variant="secondary"
+            aria-expanded={detailed}
+            onClick={() => setDetailed((shown) => !shown)}
+          >
+            {detailed ? 'Hide details' : 'Show details'}
+          </Button>
+        )}
         <Button size="sm" variant="primary" onClick={() => setChanging(true)}>
           Change
         </Button>
+        {detailed &&
+          card.chips
+            .filter((c) => c.state === 'picked' && c.detail)
+            .map((c) => (
+              <div className="w-100 small" key={c.value}>
+                <strong>{c.label}</strong>
+                {c.detail?.facts.map((f) => (
+                  <div key={f.label}>
+                    {f.label}: {f.value}
+                  </div>
+                ))}
+                <Entries entries={c.detail?.entries ?? []} />
+              </div>
+            ))}
       </div>
     )
   }
@@ -88,20 +134,30 @@ export function PickCard({ card, onPick }: Props) {
         )}
       </div>
       {card.note && <div className="small text-body-secondary mb-2">{card.note}</div>}
-      <div className="d-flex flex-wrap gap-1" role="group" aria-labelledby={labelId}>
-        {card.chips.map((chip) => (
-          <ToggleChip
-            key={chip.value}
-            pressed={chip.state === 'picked'}
-            disabled={chip.state === 'taken' || chip.state === 'full'}
-            title={whyDisabled(chip, card)}
-            onClick={() => onPick(chip)}
-          >
-            {chip.label}
-            {chip.hint && <span className="opacity-75"> {chip.hint}</span>}
-          </ToggleChip>
-        ))}
-      </div>
+      {described ? (
+        <PickChoiceTable
+          tableId={`pick-card-${card.kinds.join('-')}`}
+          noun={card.noun}
+          chips={card.chips}
+          whyDisabled={(chip) => whyDisabled(chip, card)}
+          onPick={onPick}
+        />
+      ) : (
+        <div className="d-flex flex-wrap gap-1" role="group" aria-labelledby={labelId}>
+          {card.chips.map((chip) => (
+            <ToggleChip
+              key={chip.value}
+              pressed={chip.state === 'picked'}
+              disabled={chip.state === 'taken' || chip.state === 'full'}
+              title={whyDisabled(chip, card)}
+              onClick={() => onPick(chip)}
+            >
+              {chip.label}
+              {chip.hint && <span className="opacity-75"> {chip.hint}</span>}
+            </ToggleChip>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

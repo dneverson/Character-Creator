@@ -6,6 +6,7 @@
 
 import { stripTags } from '../text/tags'
 import { titleCase } from '../text/titleCase'
+import { parseDice } from './itemText'
 import { AREA_TAG_LABELS, ROYALTY_LABEL, SPELL_TAG_LABELS } from './labels'
 
 export interface RawTime {
@@ -301,17 +302,19 @@ function textOf(entries: unknown): string {
 const damageTag = /\{@damage ([^}|]+)[^}]*\}(?:\s+([A-Za-z]+)\s+damage)?/g
 
 export interface SpellDamage {
-  /** "8d6 Fire", "1d6 Fire; 2d8"; "" when the spell does none. */
+  /** The dice alone, each once: "8d6", "1d6; 2d8"; "" when the spell rolls none. */
   text: string
+  /** The average of its biggest roll, to sort by; 0 when it rolls none. */
+  average: number
   types: string[]
 }
 
 /**
  * What a spell deals, read from the `{@damage}` tags of its own text (never the
- * higher-level text, whose dice are the upcast increment). Each is paired with
- * the damage type written after it, else with the spell's only `damageInflict`
- * type. A spell with damage types and no tag shows the types alone. A cantrip
- * that scales (`scales`) shows its first dice only; its growth is its own fact.
+ * higher-level text, whose dice are the upcast increment): the dice, and apart
+ * from them the damage types (the spell's `damageInflict`, and any type written
+ * after a tag). A cantrip that scales (`scales`) gives its first dice only; its
+ * growth is its own fact.
  */
 export function damageOf(
   entries: unknown,
@@ -319,20 +322,22 @@ export function damageOf(
   scales = false,
 ): SpellDamage {
   const inflict = (damageInflict ?? []).map(titleCase)
-  const only = inflict.length === 1 ? inflict[0] : undefined
-  const parts = new Map<string, string>()
+  const dice = new Set<string>()
+  const written: string[] = []
+  let average = 0
   for (const m of textOf(entries).matchAll(damageTag)) {
     const word = m[2]?.toLowerCase()
-    const written = word && DAMAGE_TYPES.has(word) ? titleCase(word) : undefined
-    const type = written ?? only
-    const dice = m[1].trim()
-    const text = type ? `${dice} ${type}` : dice
-    if (!parts.has(text)) parts.set(text, written ?? '')
+    if (word && DAMAGE_TYPES.has(word)) written.push(titleCase(word))
+    const roll = m[1].trim()
+    dice.add(roll)
+    average = Math.max(average, parseDice(roll)?.average ?? 0)
     if (scales) break
   }
-  const types = [...new Set([...inflict, ...[...parts.values()].filter(Boolean)])]
-  if (parts.size === 0) return { text: inflict.join(', '), types }
-  return { text: [...parts.keys()].join('; '), types }
+  return {
+    text: [...dice].join('; '),
+    average,
+    types: [...new Set([...inflict, ...written])],
+  }
 }
 
 /** The healing a spell gives: dice when its text states them, else "Yes", else "". */

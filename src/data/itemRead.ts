@@ -231,12 +231,16 @@ export function readItem(raw: RawItem, lookups: ItemLookups): Item {
     family: FAMILY.filter((flag) => raw[flag] === true),
     focus: isText(raw.scfType) ? raw.scfType : undefined,
     free: inFreeRules(raw),
+    // A 2014 tool's text is in `additionalEntries` (printed in a later book), often alone.
     entries: fillPlaceholders(
-      Array.isArray(raw.entries) ? (raw.entries as Entry[]) : [],
+      [...entryList(raw.entries), ...entryList(raw.additionalEntries)],
       raw,
     ),
   }
 }
+
+const entryList = (value: unknown): Entry[] =>
+  Array.isArray(value) ? (value as Entry[]) : []
 
 function readWeapon(
   raw: Fields,

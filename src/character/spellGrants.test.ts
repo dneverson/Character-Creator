@@ -152,7 +152,16 @@ describe('resolveSpellGrants', () => {
         from: 'Tiefling',
         names: ['Infernal', 'Abyssal'],
         selected: undefined,
+        // What each set gives is known before one is taken, so they can be compared.
+        options: [
+          { name: 'Infernal', grants: [expect.objectContaining({ gate: 1 })] },
+          { name: 'Abyssal', grants: [expect.objectContaining({ gate: 1 })] },
+        ],
       },
+    ])
+    expect(none.variants[0].options.map((o) => o.grants[0].spell?.name)).toEqual([
+      'thaumaturgy',
+      'poison spray',
     ])
     expect(none.grants.filter((g) => g.origin === 'race')).toEqual([])
     expect([...none.knownIds].filter((id) => id.startsWith('race:'))).toHaveLength(3)

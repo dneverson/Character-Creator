@@ -213,3 +213,41 @@ export const FIGHTING_STYLES: readonly FightingStyle[] = [
 ]
 
 export const fightingStyleId = (style: FightingStyle) => holderId(style.holder)
+
+/** What the app does with a style, and what is left to the player in play. */
+export function styleApplied(effect: StyleEffect): string {
+  switch (effect.kind) {
+    case 'attack':
+      return `Automatic: +${effect.amount} to the attack roll of your ranged weapon attacks, in your attack rows.`
+    case 'damage':
+      return effect.requires === 'oneHandedMelee'
+        ? `Automatic: +${effect.amount} to the damage of a melee weapon held in one hand with no other weapon, in your attack rows.`
+        : `Automatic: +${effect.amount} to the damage of a thrown weapon ranged attack, in your attack rows.`
+    case 'offhandDamage':
+      return 'Automatic: your ability modifier is added to the damage of the second weapon attack, in your attack rows.'
+    case 'unarmed':
+      return `Automatic: your unarmed strike attack row deals 1d${effect.faces} (1d${effect.emptyHandsFaces} with no weapon or shield) plus your Strength modifier.`
+    case 'note':
+      return `You apply it in play: the attack row shows the rule (${effect.text})`
+    case 'elsewhere':
+      return STYLE_ELSEWHERE[effect.reason] ?? `Handled in ${effect.reason}.`
+  }
+}
+
+const STYLE_ELSEWHERE: Record<string, string> = {
+  'armor class': 'Automatic: +1 to your armor class while you wear armor.',
+  'a reaction in play':
+    'You apply it in play: it is a reaction, so the sheet only lists it.',
+  'cantrips, in the spell grants':
+    'Automatic: the cantrips it gives are listed in your spell grants, where you choose them.',
+  senses: 'Automatic: the sense it gives is listed with your senses.',
+  'a maneuver and a superiority die, in play':
+    'You apply it in play: you learn a maneuver and gain a superiority die to spend at the table.',
+}
+
+/** The applied note of the style held as this holder id, when the table covers it. */
+export function styleAppliedFor(holder: Holder): string | undefined {
+  const id = holderId(holder)
+  const style = FIGHTING_STYLES.find((s) => fightingStyleId(s) === id)
+  return style ? styleApplied(style.effect) : undefined
+}

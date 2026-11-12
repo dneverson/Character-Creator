@@ -78,8 +78,10 @@ export interface Spell {
   duration: string
   /** Filter value: Instantaneous, Concentration, Timed, Permanent, Special. */
   durationKind: string
-  /** "8d6 Fire"; "" when none. */
+  /** The dice it rolls, "8d6", "1d6; 2d8"; "" when none. Its types are apart. */
   damage: string
+  /** The average of its biggest roll (a scaling cantrip's first), to sort by; 0 when none. */
+  damageAverage: number
   damageTypes: string[]
   /** "2d8 + spellcasting modifier", "Yes", or "". */
   healing: string
@@ -247,6 +249,7 @@ export const loadSpells = memoizeContent(async (): Promise<Spell[]> => {
         duration: durationText(raw.duration),
         durationKind: durationKindOf(raw.duration),
         damage: damage.text,
+        damageAverage: damage.average,
         damageTypes: damage.types,
         healing: healingOf(raw.entries, raw.miscTags),
         save: (raw.savingThrow ?? []).map(titleCase),

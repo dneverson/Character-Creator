@@ -177,7 +177,7 @@ describe('AbilityScores', () => {
     await user.selectOptions(screen.getByLabelText('Wisdom base score'), '13')
     unmount()
     renderSection()
-    expect(screen.getByLabelText('Wisdom base score')).toHaveValue('13')
+    expect(await screen.findByLabelText('Wisdom base score')).toHaveValue('13')
   })
 
   it('sets point-buy scores from the scale within budget and bounds', async () => {

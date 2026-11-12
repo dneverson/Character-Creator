@@ -288,6 +288,7 @@ export function EquipmentSection() {
       },
       { ...column('cost'), priority: 7 },
       { ...column('damage'), priority: 4 },
+      { ...column('damageType'), priority: 4 },
       { ...column('ac'), priority: 3 },
       { ...column('properties'), priority: 2 },
       {

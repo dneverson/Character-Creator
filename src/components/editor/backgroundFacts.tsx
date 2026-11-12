@@ -3,6 +3,7 @@
 // shared chooser, which draws the columns, the detail pane, the compare window and
 // the chosen background's summary from it - so they always say the same thing.
 
+import type { ReactNode } from 'react'
 import { ABILITIES, ABILITY_NAMES } from '../../dice/dice'
 import { summarizeAbilityOptions } from '../../data/abilityOptions'
 import {
@@ -272,7 +273,10 @@ function featureFacts(backgrounds: PlayableBackground[]): Fact<PlayableBackgroun
 }
 
 // One fact per story table, lined up by its key ("personality trait").
-function tableFacts(backgrounds: PlayableBackground[]): Fact<PlayableBackground>[] {
+function tableFacts(
+  backgrounds: PlayableBackground[],
+  editable: EditableTable | undefined,
+): Fact<PlayableBackground>[] {
   const tables = (bg: PlayableBackground) => bg.storyTables
   return namesAcross(backgrounds, tables, (t) => t.key).map((key) => {
     const find = (bg: PlayableBackground): StoryTable | undefined =>
@@ -287,8 +291,11 @@ function tableFacts(backgrounds: PlayableBackground[]): Fact<PlayableBackground>
       },
       render: (bg) => {
         const table = find(bg)
+        if (!table) return null
+        // The character's own background is picked or rolled here, as in Story.
+        const own = editable?.(bg, table)
         return (
-          table && (
+          own ?? (
             <>
               {table.from && (
                 <div className="text-body-secondary mb-1">
@@ -314,17 +321,32 @@ const aboutFact: Fact<PlayableBackground> = {
   render: (bg) => <Entries entries={partsOf(bg).about} />,
 }
 
-export const describeBackgrounds: Describe<PlayableBackground> = (backgrounds) => [
-  { key: 'basics', title: 'Basics', facts: basics },
-  { key: 'feature', title: 'Feature', facts: featureFacts(backgrounds) },
-  {
-    key: 'storyTables',
-    title: 'Story tables',
-    facts: tableFacts(backgrounds),
-    empty: 'No tables.',
-  },
-  { key: 'about', title: 'About', facts: [aboutFact] },
-]
+/**
+ * What draws a story table in place of the read-only one, when it can be taken from
+ * (the character's chosen background), or nothing for a background only browsed.
+ */
+export type EditableTable = (
+  background: PlayableBackground,
+  table: StoryTable,
+) => ReactNode | undefined
+
+/** The description of backgrounds, whose story tables `editable` can make pickable. */
+export const describeBackgroundsWith =
+  (editable?: EditableTable): Describe<PlayableBackground> =>
+  (backgrounds) => [
+    { key: 'basics', title: 'Basics', facts: basics },
+    { key: 'feature', title: 'Feature', facts: featureFacts(backgrounds) },
+    {
+      key: 'storyTables',
+      title: 'Story tables',
+      // Side by side in the compare window the tables are read, not taken from.
+      facts: tableFacts(backgrounds, backgrounds.length === 1 ? editable : undefined),
+      empty: 'No tables.',
+    },
+    { key: 'about', title: 'About', facts: [aboutFact] },
+  ]
+
+export const describeBackgrounds: Describe<PlayableBackground> = describeBackgroundsWith()
 
 // ---- Table ------------------------------------------------------------------
 

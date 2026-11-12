@@ -3,6 +3,8 @@
 // that granted it, the way skills always were. One shape for every kind of pick, so one
 // card, one budget rule and one migration serve them all.
 
+import type { Entry } from '../text/Entries'
+
 /** What a pick can be of. */
 export type PickKind =
   | 'skill'
@@ -89,6 +91,14 @@ export interface PickChip {
   takenBy?: string
   /** What goes beside the label: a skill's modifier with proficiency. */
   hint?: string
+  /** What the option is and does, from the data, so it can be read before it is picked. */
+  detail?: PickChipDetail
+}
+
+/** What a pick is, in the data's own words: labelled facts, then its rules text. */
+export interface PickChipDetail {
+  facts: { label: string; value: string }[]
+  entries: Entry[]
 }
 
 /** A source of picks as a card: its whole list, the picks it allows and the ones made. */

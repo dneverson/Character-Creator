@@ -124,8 +124,16 @@ describe('CombatSection', () => {
     const attacks = await screen.findByRole('table', { name: 'Attacks' })
     expect(await within(attacks).findByText('Longsword')).toBeInTheDocument()
     expect(within(attacks).getByText('Unarmed strike')).toBeInTheDocument()
-    expect(within(attacks).getByText('1d8 + 3 slashing')).toBeInTheDocument()
-    expect(within(attacks).getByText('4 bludgeoning')).toBeInTheDocument()
+    // The dice and the kind of damage are columns of their own.
+    const sword = within(attacks).getByText('Longsword').closest('tr') as HTMLElement
+    expect(within(sword).getByText('1d8 + 3')).toBeInTheDocument()
+    expect(within(sword).getByText('slashing')).toBeInTheDocument()
+    const fist = within(attacks).getByText('Unarmed strike').closest('tr') as HTMLElement
+    expect(within(fist).getByText('4')).toBeInTheDocument()
+    expect(within(fist).getByText('bludgeoning')).toBeInTheDocument()
+    expect(
+      within(attacks).getByRole('columnheader', { name: 'Damage type' }),
+    ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Show how Longsword adds up' }))
     expect(
       screen.getByRole('table', { name: 'Longsword attack bonus' }),
@@ -226,8 +234,20 @@ describe('CombatSection', () => {
     }
     vi.mocked(loadClasses).mockResolvedValue([fighter])
     vi.mocked(loadFightingStyleOptions).mockResolvedValue([
-      { key: 'Defense|PHB', name: 'Defense', source: 'PHB', types: ['FS:F'] },
-      { key: 'Archery|PHB', name: 'Archery', source: 'PHB', types: ['FS:F'] },
+      {
+        key: 'Defense|PHB',
+        name: 'Defense',
+        source: 'PHB',
+        types: ['FS:F'],
+        entries: ['While you are wearing armor, you gain a +1 bonus to AC.'],
+      },
+      {
+        key: 'Archery|PHB',
+        name: 'Archery',
+        source: 'PHB',
+        types: ['FS:F'],
+        entries: ['You gain a +2 bonus to attack rolls you make with ranged weapons.'],
+      },
     ])
     const c = seed((ch) => {
       ch.equipment.items = [stack('Chain Mail')]
@@ -235,7 +255,13 @@ describe('CombatSection', () => {
     renderSection()
 
     expect(await screen.findByText('Class - Fighter fighting style')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Defense' }))
+    // The styles are rows with their rules text, so they can be told apart before picking.
+    expect(
+      screen.getByText(/\+2 bonus to attack rolls you make with ranged/),
+    ).toBeInTheDocument()
+    const row = screen.getByText('Defense').closest('tr')
+    expect(row).not.toBeNull()
+    await user.click(within(row as HTMLElement).getByRole('button', { name: 'Choose' }))
     expect(useCharacterStore.getState().characters[c.id].classOptions).toEqual({
       'class:Fighter|PHB|FS:F': ['Defense|PHB'],
     })

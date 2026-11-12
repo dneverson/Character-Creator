@@ -7,6 +7,7 @@
 import type { PickCard, PickChip } from '../character/picks'
 import { subclassesFor } from '../data/class'
 import { FIGHTING_STYLE_TYPE, type ClassOption } from '../data/classOptions'
+import { styleAppliedFor } from '../rules/fightingStyles'
 import type { Sources } from './sources'
 
 /** One feature type of one class: "class:Fighter|PHB|FS:F" and how many it gives. */
@@ -65,7 +66,19 @@ export function classOptionCards(
     const chips = catalog
       .filter((o) => o.types.includes(slot.type) || picks.includes(o.key))
       .map((o): PickChip => {
-        const base = { kind: 'option' as const, value: o.key, label: o.name }
+        const applied = styleAppliedFor({ option: o.key })
+        const base = {
+          kind: 'option' as const,
+          value: o.key,
+          label: o.name,
+          detail: {
+            facts: [
+              { label: 'Source', value: o.source },
+              ...(applied ? [{ label: 'In this app', value: applied }] : []),
+            ],
+            entries: o.entries,
+          },
+        }
         if (picks.includes(o.key)) return { ...base, state: 'picked' }
         const by = takenBy.get(o.key)
         if (by) return { ...base, state: 'taken', takenBy: by }

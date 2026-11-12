@@ -895,10 +895,17 @@ describe('Granted spells', () => {
     })
     renderSection()
 
-    // Nothing is shown until a set is taken.
-    expect(await screen.findByText('Take one set of spells:')).toBeInTheDocument()
-    expect(screen.queryByText('Poison Spray')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('radio', { name: 'Abyssal' }))
+    // Each set shows the spells it gives, by level, before one is taken; none is in force yet.
+    const sets = within(await screen.findByRole('table', { name: 'Tiefling spell sets' }))
+    expect(sets.getByText(/Level 1: Thaumaturgy/)).toBeInTheDocument()
+    expect(
+      sets.getByText(/Level 1: Poison Spray; At level 3: Misty Step/),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('table', { name: 'Tiefling spells' }),
+    ).not.toBeInTheDocument()
+    const abyssal = sets.getByText('Abyssal').closest('tr') as HTMLElement
+    await user.click(within(abyssal).getByRole('button', { name: 'Choose' }))
     await waitFor(() =>
       expect(active(c.id).spellGrants['race:variant']?.variant).toBe('Abyssal'),
     )

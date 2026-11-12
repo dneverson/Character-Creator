@@ -290,7 +290,8 @@ describe('loadSpells', () => {
       rangeFeet: 150,
       duration: 'Instantaneous',
       durationKind: 'Instantaneous',
-      damage: '8d6 Fire',
+      damage: '8d6',
+      damageAverage: 28,
       damageTypes: ['Fire'],
       save: ['Dexterity'],
       area: 'Sphere',
@@ -300,7 +301,9 @@ describe('loadSpells', () => {
     })
     const acid = byName.get('Acid Splash')!
     expect(acid).toMatchObject({
-      damage: '1d6 Acid',
+      damage: '1d6',
+      damageAverage: 3.5,
+      damageTypes: ['Acid'],
       aliases: ['Acid Spit'],
       cantripScaling: '1d6, 2d6 at 5, 3d6 at 11, 4d6 at 17',
     })
@@ -314,11 +317,14 @@ describe('loadSpells', () => {
       casting: '1 minute',
       duration: '8 hours',
       durationKind: 'Timed',
-      damage: 'Psychic',
+      damage: '',
+      damageAverage: 0,
+      damageTypes: ['Psychic'],
     })
     expect(byName.get('Eldritch Blast')).toMatchObject({
       attack: 'Ranged',
-      damage: '1d10 Force',
+      damage: '1d10',
+      damageTypes: ['Force'],
     })
     expect(byName.get('Burning Hands')).toMatchObject({
       range: 'Self (15-ft. cone)',

@@ -1,11 +1,42 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fetchData } from './dataClient'
 import {
   parseSkillGrants,
   proficiencyBonus,
   skillByKey,
   skillLabel,
   SKILL_KEYS,
+  loadSkillTexts,
 } from './skills'
+
+vi.mock('./dataClient', () => ({ fetchData: vi.fn() }))
+vi.mock('./edition', () => ({
+  loadBookEditions: async () => (source: string) =>
+    source === 'XPHB' ? 'one' : 'classic',
+}))
+const mockFetch = vi.mocked(fetchData)
+
+beforeEach(() => {
+  loadSkillTexts.clear()
+})
+
+describe('loadSkillTexts', () => {
+  it('keeps the text of each skill per rules edition', async () => {
+    mockFetch.mockResolvedValue({
+      skill: [
+        { name: 'Stealth', source: 'PHB', entries: ['Hide.'] },
+        { name: 'Stealth', source: 'XPHB', entries: ['Hide, 2024.'] },
+        { name: 'Odd', source: 'PHB' },
+      ],
+    })
+    const texts = await loadSkillTexts()
+    expect(texts.get('stealth')).toEqual([
+      { edition: 'classic', entries: ['Hide.'] },
+      { edition: 'one', entries: ['Hide, 2024.'] },
+    ])
+    expect(texts.get('odd')).toEqual([{ edition: 'classic', entries: [] }])
+  })
+})
 
 describe('parseSkillGrants', () => {
   it('returns empty grants for undefined or non-object blocks', () => {
