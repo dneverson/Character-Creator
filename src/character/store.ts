@@ -13,7 +13,7 @@ import {
   type HistoryAction,
 } from './model'
 
-type View = 'list' | 'editor'
+type View = 'list' | 'editor' | 'sheet'
 
 interface CCState {
   characters: Record<string, Character>
@@ -34,6 +34,11 @@ interface CCState {
    */
   replaceCharacter: (character: Character) => void
   backToList: () => void
+  /**
+   * Switch the open character between its editor and its sheet. Nothing happens
+   * while no character is open.
+   */
+  setView: (view: 'editor' | 'sheet') => void
   /**
    * Merge a patch into the active character, bump `updatedAt` and record the edit
    * in its history. `action` says what the edit was when it was more than an
@@ -123,6 +128,11 @@ export const useCharacterStore = create<CCState>()((set, get) => ({
   },
 
   backToList: () => set({ view: 'list', activeId: null }),
+
+  setView: (view) => {
+    if (!get().activeId) return
+    set({ view })
+  },
 
   updateActive: (patch, action) => {
     set((s) => {

@@ -74,6 +74,18 @@ describe('App flow', () => {
     })
   })
 
+  it('shows the sheet of the open character and switches back to the editor', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await user.click(screen.getByRole('button', { name: /New Character/i }))
+    await user.click(screen.getByRole('button', { name: 'Sheet' }))
+    expect(useCharacterStore.getState().view).toBe('sheet')
+    expect(screen.getByRole('heading', { name: 'New Character', level: 1 })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(useCharacterStore.getState().view).toBe('editor')
+    expect(await screen.findByText("Player's Handbook (2014)")).toBeInTheDocument()
+  })
+
   it('offers a way back to the list when the editor fails to render', async () => {
     const user = userEvent.setup()
     // React reports the caught render error to the console; that report is expected here.

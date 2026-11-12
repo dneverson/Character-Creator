@@ -102,7 +102,52 @@ export interface ClassEntry extends SpellcastingFields {
   optionalfeatureProgression?: OptionalFeatureProgression[]
   classTableGroups?: ClassTableGroup[]
   multiclassing?: Multiclassing
+  /** 2024: the abilities the class relies on most. The options are alternatives
+   * (Fighter: `[{ str: true }, { dex: true }]`); one option's abilities are all
+   * needed (Monk: `[{ dex: true, wis: true }]`). */
+  primaryAbility?: Partial<Record<AbilityKey, true>>[]
   subclassTitle?: string
+}
+
+/** The score a 2024 multiclass needs in each primary ability. */
+const PRIMARY_ABILITY_MIN = 13
+
+/**
+ * The ability scores multiclassing into or out of a class needs, in the form
+ * `meetsRequirements` reads ("or" lists the alternatives). 2014: the class's
+ * `multiclassing.requirements`, where the abilities of one "or" group are
+ * alternatives (Fighter: Strength 13 or Dexterity 13). 2024: 13 in the primary
+ * ability (Fighter: Strength or Dexterity; Monk: Dexterity and Wisdom).
+ */
+export function multiclassRequirements(
+  entry: ClassEntry,
+): MulticlassRequirements | undefined {
+  const req = entry.multiclassing?.requirements
+  if (req) {
+    const { or, ...direct } = req
+    if (!or?.length) return req
+    // Each group is met by any one of its abilities, and every group is needed.
+    const options = or.reduce<Partial<Record<AbilityKey, number>>[]>(
+      (acc, group) =>
+        acc.flatMap((option) =>
+          (Object.entries(group) as [AbilityKey, number][]).map(([ability, min]) => ({
+            ...option,
+            [ability]: min,
+          })),
+        ),
+      [{}],
+    )
+    return { ...direct, or: options }
+  }
+  if (entry.edition !== 'one' || !entry.primaryAbility?.length) return undefined
+  const options = entry.primaryAbility.map((primary) => {
+    const option: Partial<Record<AbilityKey, number>> = {}
+    for (const ability of Object.keys(primary) as AbilityKey[]) {
+      option[ability] = PRIMARY_ABILITY_MIN
+    }
+    return option
+  })
+  return options.length === 1 ? options[0] : { or: options }
 }
 
 /** Display label for a class hit die, e.g. "d10". Entries without a hit die

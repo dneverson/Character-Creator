@@ -7,10 +7,22 @@ import {
   matchesFilter,
   parseSpellFilter,
   spellGrants,
+  type FilterLists,
   type GrantKind,
 } from './grants'
 import { SKILLS } from './skills'
 import { listsOf, makeSpell } from '../test/spellFixtures'
+
+// The classes a filter reads its class against, both editions, every book selected.
+const LISTS: FilterLists = {
+  classes: [
+    { classKey: 'Cleric|PHB', edition: 'classic' },
+    { classKey: 'Cleric|XPHB', edition: 'one' },
+    { classKey: 'Wizard|PHB', edition: 'classic' },
+    { classKey: 'Wizard|XPHB', edition: 'one' },
+  ],
+  selectedBooks: ['PHB', 'XPHB', 'TCE'],
+}
 
 describe('parseSpellFilter and matchesFilter', () => {
   it('reads each key of the data language, in any case', () => {
@@ -50,36 +62,87 @@ describe('parseSpellFilter and matchesFilter', () => {
       lists: listsOf('Wizard|PHB'),
     })
     const owl = makeSpell({ name: 'Find Familiar', ritual: true, school: 'C' })
-    expect(matchesFilter(cure, parseSpellFilter('level=1|class=cleric'))).toBe(true)
-    expect(matchesFilter(cure, parseSpellFilter('level=0|class=Cleric'))).toBe(false)
-    expect(matchesFilter(cure, parseSpellFilter('level=1|class=Wizard'))).toBe(false)
-    expect(matchesFilter(cure, parseSpellFilter('school=V;E'))).toBe(true)
-    expect(matchesFilter(cure, parseSpellFilter('school=A'))).toBe(false)
-    expect(matchesFilter(bolt, parseSpellFilter('spell attack=m;r;o'))).toBe(true)
-    expect(matchesFilter(cure, parseSpellFilter('spell attack=m;r;o'))).toBe(false)
     expect(
-      matchesFilter(owl, parseSpellFilter('components & miscellaneous=ritual')),
+      matchesFilter(cure, parseSpellFilter('level=1|class=cleric'), undefined, LISTS),
     ).toBe(true)
     expect(
-      matchesFilter(cure, parseSpellFilter('components & miscellaneous=ritual')),
+      matchesFilter(cure, parseSpellFilter('level=0|class=Cleric'), undefined, LISTS),
     ).toBe(false)
-    expect(matchesFilter(cure, parseSpellFilter('source=PHB'))).toBe(true)
-    expect(matchesFilter(cure, parseSpellFilter('source=XPHB'))).toBe(false)
-    expect(matchesFilter(cure, parseSpellFilter(''))).toBe(true)
+    expect(
+      matchesFilter(cure, parseSpellFilter('level=1|class=Wizard'), undefined, LISTS),
+    ).toBe(false)
+    expect(matchesFilter(cure, parseSpellFilter('school=V;E'), undefined, LISTS)).toBe(
+      true,
+    )
+    expect(matchesFilter(cure, parseSpellFilter('school=A'), undefined, LISTS)).toBe(
+      false,
+    )
+    expect(
+      matchesFilter(bolt, parseSpellFilter('spell attack=m;r;o'), undefined, LISTS),
+    ).toBe(true)
+    expect(
+      matchesFilter(cure, parseSpellFilter('spell attack=m;r;o'), undefined, LISTS),
+    ).toBe(false)
+    expect(
+      matchesFilter(
+        owl,
+        parseSpellFilter('components & miscellaneous=ritual'),
+        undefined,
+        LISTS,
+      ),
+    ).toBe(true)
+    expect(
+      matchesFilter(
+        cure,
+        parseSpellFilter('components & miscellaneous=ritual'),
+        undefined,
+        LISTS,
+      ),
+    ).toBe(false)
+    expect(matchesFilter(cure, parseSpellFilter('source=PHB'), undefined, LISTS)).toBe(
+      true,
+    )
+    expect(matchesFilter(cure, parseSpellFilter('source=XPHB'), undefined, LISTS)).toBe(
+      false,
+    )
+    expect(matchesFilter(cure, parseSpellFilter(''), undefined, LISTS)).toBe(true)
   })
 
   it('reads a class list from the edition of the grant', () => {
     const only2014 = makeSpell({ name: 'Acid Splash', lists: listsOf('Wizard|PHB') })
     const filter = parseSpellFilter('class=Wizard')
-    expect(matchesFilter(only2014, filter, 'classic')).toBe(true)
-    expect(matchesFilter(only2014, filter, 'one')).toBe(false)
-    expect(matchesFilter(only2014, filter)).toBe(true)
+    expect(matchesFilter(only2014, filter, 'classic', LISTS)).toBe(true)
+    expect(matchesFilter(only2014, filter, 'one', LISTS)).toBe(false)
+    expect(matchesFilter(only2014, filter, undefined, LISTS)).toBe(true)
     const optional = makeSpell({
       name: 'Booming Blade',
       source: 'TCE',
       lists: { classes: [], variants: { 'Wizard|PHB': ['TCE'] }, subclasses: [] },
     })
-    expect(matchesFilter(optional, filter, 'classic')).toBe(true)
+    expect(matchesFilter(optional, filter, 'classic', LISTS)).toBe(true)
+  })
+
+  it('reads the edition from the class, not from a fixed list of books', () => {
+    // A homebrew class book of the 2024 rules: its list is a 2024 list.
+    const homebrew = makeSpell({ name: 'Frost Nova', lists: listsOf('Wizard|HB') })
+    const lists: FilterLists = {
+      classes: [...LISTS.classes, { classKey: 'Wizard|HB', edition: 'one' }],
+      selectedBooks: LISTS.selectedBooks,
+    }
+    const filter = parseSpellFilter('class=Wizard')
+    expect(matchesFilter(homebrew, filter, 'one', lists)).toBe(true)
+    expect(matchesFilter(homebrew, filter, 'classic', lists)).toBe(false)
+  })
+
+  it('counts an optional list only while its book is selected', () => {
+    const optional = makeSpell({
+      name: 'Booming Blade',
+      source: 'TCE',
+      lists: { classes: [], variants: { 'Wizard|PHB': ['TCE'] }, subclasses: [] },
+    })
+    const filter = parseSpellFilter('class=Wizard')
+    const withoutTasha = { ...LISTS, selectedBooks: ['PHB', 'XPHB'] }
+    expect(matchesFilter(optional, filter, 'classic', withoutTasha)).toBe(false)
   })
 })
 

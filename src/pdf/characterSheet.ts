@@ -9,14 +9,15 @@ import type { Character } from '../character/model'
 import { indexItems, resolveInventoryItem, unlistedItem } from '../character/inventory'
 import { carriedWeight, carryingCapacity } from '../rules/equipment'
 import type { Item } from '../data/items'
-import { characterAbilityTotals, totalLevel } from '../character/derive'
+import { totalLevel } from '../character/derive'
 import { proficiencyBonus } from '../data/skills'
 import { hpBreakdown } from '../character/hp'
 import { characterCasters } from '../character/spellcasting'
 import { resolveFeats } from '../character/feats'
 import { spellSlots } from '../rules/spellcasting'
 import { checkMulticlass, checkLevelCap, type Deviation } from '../rules/compliance'
-import type { MulticlassRequirements } from '../data/class'
+import { multiclassRequirements, type MulticlassRequirements } from '../data/class'
+import { unassignedAbilities } from '../character/stats'
 import { deriveSheet, type DerivedSheet } from '../derived'
 import type { DeriveDeps } from '../derived/sources'
 import type { Listing } from '../derived/types'
@@ -95,14 +96,14 @@ function summarize(character: Character, deps: SheetDeps) {
     race: deps.race,
     background: deps.background,
   })
-  const totals = characterAbilityTotals(character, feats.abilityBonus)
+  const derived = deriveSheet(character, deps)
+  const totals = derived.totals
   const level = totalLevel(character)
   const prof = proficiencyBonus(level)
   const hp = hpBreakdown(character, deps.classByKey, feats)
   const casters = characterCasters(character, deps.classByKey, feats.abilityBonus)
   const slots = spellSlots(casters)
 
-  const derived = deriveSheet(character, deps)
   const rows = derived.skills
 
   const classLine = character.classes
@@ -117,13 +118,11 @@ function summarize(character: Character, deps: SheetDeps) {
   // Non-standard deviations to surface on the sheet.
   const reqBySource = new Map<string, MulticlassRequirements | undefined>()
   for (const l of deps.classByKey.values()) {
-    reqBySource.set(
-      `${l.entry.name}|${l.entry.source}`,
-      l.entry.multiclassing?.requirements,
-    )
+    reqBySource.set(`${l.entry.name}|${l.entry.source}`, multiclassRequirements(l.entry))
   }
+  const unset = unassignedAbilities(character.abilities, character.statMethod)
   const deviations: Deviation[] = [
-    ...checkMulticlass(character.classes, reqBySource, totals),
+    ...checkMulticlass(character.classes, reqBySource, totals, unset),
     ...checkLevelCap(level),
   ]
 

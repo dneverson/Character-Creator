@@ -17,9 +17,15 @@ import Button from 'react-bootstrap/Button'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Spinner from 'react-bootstrap/Spinner'
 import Tooltip from 'react-bootstrap/Tooltip'
-import { isOnClassList, loadSpells, spellLevelLabel, type Spell } from '../../data/spells'
-import { matchesFilter } from '../../data/grants'
-import { editionYear } from '../../data/labels'
+import {
+  listStanding,
+  loadSpells,
+  spellLevelLabel,
+  standingProblem,
+  type GrantedAccess,
+  type Spell,
+} from '../../data/spells'
+import { matchesFilter, type FilterLists } from '../../data/grants'
 import { useActiveCharacter, useCharacterStore } from '../../character/store'
 import { characterCasters } from '../../character/spellcasting'
 import {
@@ -218,6 +224,17 @@ export function SpellsSection() {
     () => grants.filter((g) => g.mode !== 'expanded' && !isPlaced(g, casters)),
     [grants, casters],
   )
+  // What a filter's class is read against: every class, in the selected books.
+  const filterLists = useMemo<FilterLists>(
+    () => ({
+      classes: [...classByKey.values()].map((l) => ({
+        classKey: `${l.entry.name}|${l.entry.source}`,
+        edition: l.entry.edition,
+      })),
+      selectedBooks: selectedBooks ?? [],
+    }),
+    [classByKey, selectedBooks],
+  )
 
   if (!character || !resolved) return null
   const cardAndPlaced = grants.filter((g) => g.mode !== 'expanded')
@@ -328,7 +345,7 @@ export function SpellsSection() {
               selection={character.spells[caster.classKey] ?? EMPTY_SELECTION}
               inBooks={inBooks}
               byKey={byKey}
-              twins={twins}
+              byName={byName}
               fixed={fixedByClass.get(caster.classKey) ?? []}
               expanded={grants.filter(
                 (g) =>
@@ -337,6 +354,7 @@ export function SpellsSection() {
                   (g.classKey === undefined || g.classKey === caster.classKey),
               )}
               selectedBooks={character.selectedBooks}
+              filterLists={filterLists}
               open={open}
               onBrowsingChange={onBrowsingChange}
               allowNonStandard={allowNonStandard}
@@ -352,6 +370,7 @@ export function SpellsSection() {
             byKey={byKey}
             rows={inBooks}
             twins={twins}
+            filterLists={filterLists}
             open={open}
             onBrowsingChange={onBrowsingChange}
             allowNonStandard={allowNonStandard}
@@ -511,13 +530,15 @@ interface CasterCardProps {
   edition: Spell['edition'] | undefined
   /** Every loaded spell, to turn a saved pick back into its stats. */
   byKey: Map<string, Spell>
-  /** Spells with a namesake of the other edition, to say which version a row is. */
-  twins: Set<string>
+  /** Every loaded spell by lower case name, to find the other edition's printing. */
+  byName: Map<string, Spell[]>
   /** The spells the class always has: they head the tier and cost no pick. */
   fixed: Fixed[]
   /** What sources add to the class's list (a patron's spells, a background's). */
   expanded: SpellGrant[]
   selectedBooks: string[]
+  /** What a source's list filter reads its class against. */
+  filterLists: FilterLists
   open: string | null
   onBrowsingChange: (tierId: string, browsing: boolean) => void
   allowNonStandard: boolean
@@ -525,12 +546,15 @@ interface CasterCardProps {
   edit: (change: (s: ClassSpellSelection) => ClassSpellSelection) => void
 }
 
-const alwaysWord = (grant: SpellGrant) =>
+const alwaysWord = (grant: SpellGrant): GrantedAccess =>
   grant.mode === 'known' ? 'always known' : 'always prepared'
 
+/** Whether a spell the class always has is in force yet: the one lock check. */
+const isUnlocked = (entry: Fixed) => !entry.grant.locked
+
 /** Whether a source's added spell is this one. */
-function addsSpell(grant: SpellGrant, spell: Spell): boolean {
-  if (grant.all) return matchesFilter(spell, grant.all, grant.edition)
+function addsSpell(grant: SpellGrant, spell: Spell, lists: FilterLists): boolean {
+  if (grant.all) return matchesFilter(spell, grant.all, grant.edition, lists)
   if (!grant.spell || grant.spell.name.toLowerCase() !== spell.name.toLowerCase())
     return false
   return grant.spell.source
@@ -544,10 +568,11 @@ function CasterCard({
   selection,
   inBooks,
   byKey,
-  twins,
+  byName,
   fixed,
   expanded,
   selectedBooks,
+  filterLists,
   open,
   onBrowsingChange,
   allowNonStandard,
@@ -557,10 +582,20 @@ function CasterCard({
   const maxLevel = classMaxSpellLevel(caster)
   const book = selection.spellbook ?? selection.spells
   const spellsOf = (refs: SpellRef[]) => refs.flatMap((r) => byKey.get(refKey(r)) ?? [])
-  const className = caster.classKey.split('|')[0]
   const fixedByKey = new Map(fixed.map((f) => [f.spell.key, f]))
-  const version = (spell: Spell) =>
-    twins.has(spell.key) ? ` (${editionYear(spell.edition)} version)` : ''
+  /** A spell the class always has and that is in force now. */
+  const activeFixed = (spell: Spell) => {
+    const entry = fixedByKey.get(spell.key)
+    return entry && isUnlocked(entry) ? entry : undefined
+  }
+  /** What the class's sources give it: a spell always had, or one added to its list. */
+  const granted = (spell: Spell): GrantedAccess | undefined => {
+    const entry = activeFixed(spell)
+    if (entry) return alwaysWord(entry.grant)
+    return expanded.some((grant) => addsSpell(grant, spell, filterLists))
+      ? 'expanded list'
+      : undefined
+  }
 
   // Spells saved from a book that is no longer selected stay, and say so.
   const strays = [...selection.cantrips, ...book, ...selection.spells]
@@ -569,25 +604,16 @@ function CasterCard({
 
   /** The class's own rules for a spell: its list and its level. */
   const problemsOf = (spell: Spell): string[] => {
-    const problems: string[] = []
-    const listed =
-      isOnClassList(spell, { ...caster, edition }, selectedBooks) ||
-      expanded.some((grant) => addsSpell(grant, spell))
-    if (!listed) {
-      // The same list of the other edition holds it: say which edition this is.
-      const elsewhere = caster.subclassKey
-        ? spell.lists.subclasses.some(
-            (k) => k.split('|')[2] === caster.subclassKey?.split('|')[2],
-          )
-        : spell.lists.classes.some((k) => k.split('|')[0] === className)
-      problems.push(
-        elsewhere
-          ? `${editionYear(spell.edition)} version`
-          : `Not on the ${caster.name} list${version(spell)}`,
-      )
-    }
-    if (spell.level > maxLevel) problems.push(`Needs level ${spell.level} slots`)
-    return problems
+    const standing = listStanding(
+      spell,
+      { ...caster, edition },
+      { selectedBooks, byName, granted },
+    )
+    const problem = standingProblem(standing, spell, { name: caster.name, edition })
+    return [
+      ...(problem ? [problem] : []),
+      ...(spell.level > maxLevel ? [`Needs level ${spell.level} slots`] : []),
+    ]
   }
   const metaOf = (problems: string[]) => ({
     standard: problems.length === 0,
@@ -595,9 +621,9 @@ function CasterCard({
   })
   /** A spell the class always has is no pick and no deviation; before its level it is greyed. */
   const fixedMeta = (entry: Fixed) =>
-    entry.grant.locked
-      ? { standard: true, gated: { reason: `Unlocks at level ${entry.grant.gate}` } }
-      : { standard: true }
+    isUnlocked(entry)
+      ? { standard: true }
+      : { standard: true, gated: { reason: `Unlocks at level ${entry.grant.gate}` } }
 
   const cantripRows = inBooks.filter((s) => s.level === 0)
   const leveledRows = inBooks.filter((s) => s.level > 0)
@@ -714,7 +740,7 @@ function CasterCard({
         const pickedKeys = new Set(body.picked.map((s) => s.key))
         const full = t.max !== undefined && t.count >= t.max
         const given = fixedIn(t)
-        const active = given.filter((f) => !f.grant.locked)
+        const active = given.filter(isUnlocked)
         const words = new Set(active.map((f) => alwaysWord(f.grant)))
         return (
           <div key={t.id} className="mb-3">
@@ -753,7 +779,7 @@ function CasterCard({
               }
               cantrips={t.kind === 'cantrips'}
               rowMeta={(spell) => {
-                const given = fixedByKey.get(spell.key)
+                const given = activeFixed(spell)
                 return metaOf([
                   ...(given
                     ? [`Already ${alwaysWord(given.grant)} (${given.grant.from})`]

@@ -100,6 +100,41 @@ describe('character store', () => {
     expect(useCharacterStore.getState().characters['missing']).toBeUndefined()
   })
 
+  it('switches the open character between its editor and its sheet', () => {
+    useCharacterStore.getState().newCharacter()
+    const id = useCharacterStore.getState().activeId
+    useCharacterStore.getState().setView('sheet')
+    expect(useCharacterStore.getState().view).toBe('sheet')
+    useCharacterStore.getState().setView('editor')
+    expect(useCharacterStore.getState().view).toBe('editor')
+    // The sheet is the same character, and the way back to the list still works.
+    expect(useCharacterStore.getState().activeId).toBe(id)
+    useCharacterStore.getState().setView('sheet')
+    useCharacterStore.getState().backToList()
+    expect(useCharacterStore.getState().view).toBe('list')
+  })
+
+  it('has no sheet to show while no character is open', () => {
+    useCharacterStore.getState().setView('sheet')
+    expect(useCharacterStore.getState().view).toBe('list')
+  })
+
+  it('deleting the character on the sheet returns to the list', () => {
+    useCharacterStore.getState().newCharacter()
+    const id = useCharacterStore.getState().activeId!
+    useCharacterStore.getState().setView('sheet')
+    useCharacterStore.getState().deleteCharacter(id)
+    expect(useCharacterStore.getState().view).toBe('list')
+  })
+
+  it('opening a character shows its editor, also from the sheet', () => {
+    useCharacterStore.getState().newCharacter()
+    const id = useCharacterStore.getState().activeId!
+    useCharacterStore.getState().setView('sheet')
+    useCharacterStore.getState().openCharacter(id)
+    expect(useCharacterStore.getState().view).toBe('editor')
+  })
+
   it('duplicating an unknown id is a no-op', () => {
     useCharacterStore.getState().duplicateCharacter('missing')
     expect(useCharacterStore.getState().order).toHaveLength(0)

@@ -7,7 +7,7 @@ import {
   poolGroupTotals,
   poolScores,
   remainingPool,
-  totalScore,
+  unassignedAbilities,
   usesPool,
 } from './stats'
 import type { Abilities, GauntletSlot } from './model'
@@ -49,13 +49,6 @@ describe('remainingPool', () => {
   })
 })
 
-describe('totalScore', () => {
-  it('sums base + racial + other, treating a null base as 0', () => {
-    expect(totalScore(15, 2, 1)).toBe(18)
-    expect(totalScore(null, 2, 0)).toBe(2)
-  })
-})
-
 describe('point-buy helpers', () => {
   it('baseline sets every base to 8', () => {
     const b = pointBuyBaseline()
@@ -65,6 +58,15 @@ describe('point-buy helpers', () => {
     expect(usesPool('pointbuy')).toBe(false)
     expect(usesPool('array')).toBe(true)
     expect(usesPool('roll')).toBe(true)
+  })
+})
+
+describe('unassignedAbilities', () => {
+  it('names the pool abilities with no score yet, and none under point buy', () => {
+    const abilities = abilitiesWith([15, null, 13, 12, 10, null])
+    expect([...unassignedAbilities(abilities, 'array')]).toEqual(['dex', 'cha'])
+    // Point buy reads a missing base as its floor, so nothing is unassigned.
+    expect(unassignedAbilities(abilities, 'pointbuy').size).toBe(0)
   })
 })
 

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { racialBonus, backgroundBonus, originBonus, totalLevel } from './derive'
+import {
+  racialBonus,
+  backgroundBonus,
+  characterAbilityBreakdown,
+  characterAbilityTotals,
+  originBonus,
+  totalLevel,
+} from './derive'
+import { POINT_BUY_MIN } from '../dice/dice'
 import { createCharacter, type Character } from './model'
 
 function withRace(overrides: Partial<Character['race']> = {}): Character {
@@ -51,6 +59,35 @@ describe('originBonus', () => {
     const c = withRace({ abilityFixed: { con: 1 }, abilityChoices: {} })
     c.background = { name: 'Soldier', source: 'XPHB', abilityChoices: { con: 2 } }
     expect(originBonus(c, 'con')).toBe(3)
+  })
+})
+
+describe('characterAbilityBreakdown', () => {
+  it('sums base + origin + feats + other, treating an unassigned pool base as 0', () => {
+    const c = withRace()
+    c.statMethod = 'array'
+    c.abilities.cha = { base: 15, other: 1 }
+    c.abilities.dex = { base: null, other: 0 }
+    const breakdown = characterAbilityBreakdown(c, { cha: 1, dex: 1 })
+    expect(breakdown.cha).toEqual({ base: 15, origin: 2, feats: 1, other: 1, total: 19 })
+    expect(breakdown.dex).toEqual({ base: null, origin: 1, feats: 1, other: 0, total: 2 })
+    // The totals are the breakdown's.
+    const totals = characterAbilityTotals(c, { cha: 1, dex: 1 })
+    expect(totals.cha).toBe(19)
+    expect(totals.dex).toBe(2)
+  })
+
+  it('reads a missing point-buy base as the point-buy floor', () => {
+    const c = createCharacter()
+    c.statMethod = 'pointbuy'
+    c.abilities.str = { base: null, other: 0 }
+    expect(characterAbilityBreakdown(c).str).toEqual({
+      base: POINT_BUY_MIN,
+      origin: 0,
+      feats: 0,
+      other: 0,
+      total: POINT_BUY_MIN,
+    })
   })
 })
 

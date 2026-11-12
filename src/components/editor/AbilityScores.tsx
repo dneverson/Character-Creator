@@ -15,9 +15,9 @@ import {
   type AbilityKey,
 } from '../../dice/dice'
 import type { AbilityEntry, Character } from '../../character/model'
-import { originBonus } from '../../character/derive'
+import { characterAbilityBreakdown } from '../../character/derive'
 import { useActiveCharacter, useCharacterStore } from '../../character/store'
-import { remainingPool, totalScore, usesPool } from '../../character/stats'
+import { remainingPool, usesPool } from '../../character/stats'
 import { scoreColorClass } from '../../ui/scoreColor'
 import { PointBuyScale } from './PointBuyScale'
 import { SubSection } from './SubSection'
@@ -42,6 +42,7 @@ function Assignment({
   const { abilities, statMethod, statPool } = character
   const pool = usesPool(statMethod)
   const remaining = remainingPool(statPool, abilities)
+  const breakdown = characterAbilityBreakdown(character, featBonus)
   const pointBuyBases = ABILITIES.map((k) => abilities[k].base ?? POINT_BUY_MIN)
   const pointsSpent = pointBuyTotal(pointBuyBases)
   const pointsLeft = POINT_BUY_BUDGET - pointsSpent
@@ -116,13 +117,7 @@ function Assignment({
             <tbody>
               {ABILITIES.map((key) => {
                 const entry = abilities[key]
-                const origin = originBonus(character, key)
-                const feat = featBonus[key] ?? 0
-                const total = totalScore(
-                  pool ? entry.base : (entry.base ?? POINT_BUY_MIN),
-                  origin + feat,
-                  entry.other,
-                )
+                const { origin, feats: feat, total } = breakdown[key]
                 return (
                   <tr key={key}>
                     <td>

@@ -44,7 +44,7 @@ const OTHER_TITLES: Record<OtherKind, string> = {
   armor: 'Armor',
 }
 
-function ListingTable({ title, rows }: { title: string; rows: Listing[] }) {
+export function ListingTable({ title, rows }: { title: string; rows: Listing[] }) {
   return (
     <div>
       <h3 className="h6">{title}</h3>

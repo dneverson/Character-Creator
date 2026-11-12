@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   isOnClassList,
+  listStanding,
   loadSpells,
   _clearSpellCache,
   schoolName,
   spellLevelLabel,
+  standingProblem,
+  type Spell,
 } from './spells'
-import { makeSpell } from '../test/spellFixtures'
+import { listsOf, makeSpell } from '../test/spellFixtures'
 import { fetchData } from './dataClient'
 
 vi.mock('./dataClient', () => ({ fetchData: vi.fn() }))
@@ -125,6 +128,9 @@ describe('loadSpells', () => {
     expect(fireball.lists.variants).toEqual({ 'Ranger|PHB': ['FTD'] })
     expect(fireball.lists.subclasses).toEqual(['Fighter|PHB|Eldritch Knight'])
     expect(fireball.key).toBe('fireball|phb')
+    // A class list the lookup holds only where a book defines it keeps that book.
+    expect(acid.lists.definedIn).toEqual({ 'Mage|WoW': ['WoW'] })
+    expect(fireball.lists.definedIn).toEqual({})
   })
 
   it('takes the edition from the date the book was published', async () => {
@@ -431,6 +437,23 @@ describe('isOnClassList', () => {
     expect(isOnClassList(spell, ranger, ['PHB', 'TCE'])).toBe(true)
   })
 
+  it('counts a class list a book defines only while that book is selected', () => {
+    const blade = makeSpell({
+      name: 'Booming Blade',
+      source: 'TCE',
+      lists: {
+        classes: ['Artificer|TCE', 'Wizard|PHB'],
+        definedIn: { 'Wizard|PHB': ['SCAG'] },
+        variants: {},
+        subclasses: [],
+      },
+    })
+    const wizard = { classKey: 'Wizard|PHB' }
+    expect(isOnClassList(blade, wizard, ['PHB', 'TCE'])).toBe(false)
+    expect(isOnClassList(blade, wizard, ['PHB', 'TCE', 'SCAG'])).toBe(true)
+    expect(isOnClassList(blade, { classKey: 'Artificer|TCE' }, ['TCE'])).toBe(true)
+  })
+
   it('reads a third caster from its subclass list alone', () => {
     const knight = { classKey: 'Fighter|PHB', subclassKey: 'Fighter|PHB|Eldritch Knight' }
     expect(isOnClassList(spell, knight, [])).toBe(true)
@@ -447,5 +470,168 @@ describe('isOnClassList', () => {
     }
     expect(isOnClassList(spell, knight, [])).toBe(false)
     expect(isOnClassList(makeSpell({ ...spell, edition: 'one' }), knight, [])).toBe(true)
+  })
+})
+
+describe('listStanding', () => {
+  // The 2014 and 2024 printings of spells a Druid of each edition may or may not have.
+  const bolt14 = makeSpell({ name: 'Guiding Bolt', lists: listsOf('Cleric|PHB') })
+  const bolt24 = makeSpell({
+    name: 'Guiding Bolt',
+    source: 'XPHB',
+    edition: 'one',
+    lists: listsOf('Cleric|XPHB'),
+  })
+  const knife14 = makeSpell({
+    name: 'Ice Knife',
+    source: 'XGE',
+    lists: { classes: [], variants: { 'Druid|PHB': ['XGE'] }, subclasses: [] },
+  })
+  const knife24 = makeSpell({
+    name: 'Ice Knife',
+    source: 'XPHB',
+    edition: 'one',
+    lists: listsOf('Druid|XPHB'),
+  })
+  const cure14 = makeSpell({ name: 'Cure Wounds', lists: listsOf('Druid|PHB') })
+  const cure24 = makeSpell({
+    name: 'Cure Wounds',
+    source: 'XPHB',
+    edition: 'one',
+    lists: listsOf('Druid|XPHB'),
+  })
+  const byName = new Map<string, Spell[]>()
+  for (const s of [bolt14, bolt24, knife14, knife24, cure14, cure24])
+    byName.set(s.name.toLowerCase(), [...(byName.get(s.name.toLowerCase()) ?? []), s])
+  const all = ['PHB', 'XPHB', 'XGE', 'TCE']
+  const druid14 = { classKey: 'Druid|PHB', edition: 'classic' as const }
+  const druid24 = { classKey: 'Druid|XPHB', edition: 'one' as const }
+
+  it('finds a spell on the class list, and the printing of a twin on it', () => {
+    const ctx = { selectedBooks: all, byName }
+    expect(listStanding(cure14, druid14, ctx)).toEqual({
+      kind: 'listed',
+      access: 'class list',
+    })
+    expect(listStanding(cure24, druid14, ctx)).toEqual({
+      kind: 'printing',
+      twin: cure14,
+      access: 'class list',
+    })
+    expect(listStanding(cure14, druid24, ctx)).toEqual({
+      kind: 'printing',
+      twin: cure24,
+      access: 'class list',
+    })
+  })
+
+  it('counts a twin on an optional list only while its book is selected', () => {
+    expect(listStanding(knife24, druid14, { selectedBooks: all, byName })).toEqual({
+      kind: 'printing',
+      twin: knife14,
+      access: 'optional list',
+    })
+    expect(listStanding(knife14, druid14, { selectedBooks: all, byName }).kind).toBe(
+      'listed',
+    )
+    // Without Xanathar's the 2014 Ice Knife is not on the list, and is not a row either.
+    expect(
+      listStanding(knife24, druid14, { selectedBooks: ['PHB', 'XPHB'], byName }),
+    ).toEqual({ kind: 'off' })
+    expect(listStanding(knife14, druid24, { selectedBooks: all, byName })).toEqual({
+      kind: 'printing',
+      twin: knife24,
+      access: 'class list',
+    })
+  })
+
+  it('reads a Circle spell always prepared as had, and its twin as that printing', () => {
+    const granted = (s: Spell) => (s.key === bolt14.key ? 'always prepared' : undefined)
+    const ctx = { selectedBooks: all, byName, granted } as const
+    expect(listStanding(bolt14, druid14, ctx)).toEqual({
+      kind: 'granted',
+      access: 'always prepared',
+    })
+    expect(listStanding(bolt24, druid14, ctx)).toEqual({
+      kind: 'printing',
+      twin: bolt14,
+      access: 'always prepared',
+    })
+  })
+
+  it('reads a spell a source adds to the list as listed', () => {
+    const granted = (s: Spell) => (s.key === bolt24.key ? 'expanded list' : undefined)
+    expect(
+      listStanding(bolt24, druid24, { selectedBooks: all, byName, granted }),
+    ).toEqual({ kind: 'listed', access: 'expanded list' })
+  })
+
+  it('leaves a terrain spell off while no terrain is chosen', () => {
+    // Circle of the Land: no terrain taken, so its source gives nothing yet.
+    const granted = () => undefined
+    const ctx = { selectedBooks: all, byName, granted }
+    expect(listStanding(bolt14, druid14, ctx)).toEqual({ kind: 'off' })
+    expect(listStanding(bolt24, druid14, ctx)).toEqual({ kind: 'off' })
+  })
+
+  it('reads a third caster from the twin on its subclass list', () => {
+    const shield14 = makeSpell({
+      name: 'Shield',
+      lists: {
+        classes: ['Wizard|PHB'],
+        variants: {},
+        subclasses: ['Fighter|PHB|Eldritch Knight'],
+      },
+    })
+    const shield24 = makeSpell({
+      name: 'Shield',
+      source: 'XPHB',
+      edition: 'one',
+      lists: {
+        classes: ['Wizard|XPHB'],
+        variants: {},
+        subclasses: ['Fighter|PHB|Eldritch Knight'],
+      },
+    })
+    const knight = {
+      classKey: 'Fighter|PHB',
+      subclassKey: 'Fighter|PHB|Eldritch Knight',
+      edition: 'classic' as const,
+    }
+    const shields = new Map([['shield', [shield14, shield24]]])
+    expect(
+      listStanding(shield24, knight, { selectedBooks: all, byName: shields }),
+    ).toEqual({ kind: 'printing', twin: shield14, access: 'subclass list' })
+  })
+})
+
+describe('standingProblem', () => {
+  const bolt24 = makeSpell({ name: 'Guiding Bolt', source: 'XPHB', edition: 'one' })
+  const bolt14 = makeSpell({ name: 'Guiding Bolt' })
+  const druid = { name: 'Druid', edition: 'classic' as const }
+
+  it('names the printing, the class edition and how the class has the twin', () => {
+    expect(
+      standingProblem(
+        { kind: 'printing', twin: bolt14, access: 'always prepared' },
+        bolt24,
+        druid,
+      ),
+    ).toBe('2024 printing - your 2014 Druid has the 2014 one (always prepared)')
+    expect(standingProblem({ kind: 'off' }, bolt24, druid)).toBe(
+      'Not on the 2014 Druid list',
+    )
+    expect(
+      standingProblem({ kind: 'off' }, bolt14, { name: 'Druid', edition: 'one' }),
+    ).toBe('Not on the 2024 Druid list')
+  })
+
+  it('says nothing for a spell the class has', () => {
+    expect(
+      standingProblem({ kind: 'listed', access: 'class list' }, bolt14, druid),
+    ).toBeUndefined()
+    expect(
+      standingProblem({ kind: 'granted', access: 'always known' }, bolt14, druid),
+    ).toBeUndefined()
   })
 })

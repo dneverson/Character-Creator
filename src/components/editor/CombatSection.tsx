@@ -140,7 +140,7 @@ function AttackDetails({ attack }: { attack: AttackRow }) {
   )
 }
 
-function AttacksTable({ attacks }: { attacks: AttackRow[] }) {
+export function AttacksTable({ attacks }: { attacks: AttackRow[] }) {
   const [openId, setOpenId] = useState<string | null>(null)
   return (
     <Table responsive size="sm" className="mb-0 align-middle" aria-label="Attacks">

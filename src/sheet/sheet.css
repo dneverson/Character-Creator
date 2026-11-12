@@ -1,0 +1,213 @@
+/*
+ * The character sheet's structure: where each box goes and how it is spaced. The look
+ * (colours, fonts, borders) is read from variables so a template can change it.
+ */
+.sheet {
+  max-width: 1680px;
+  font-size: 0.875rem;
+}
+
+.sheet-header__who {
+  min-width: 0;
+}
+.sheet-header__name {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.sheet-header__line {
+  color: var(--bs-secondary-color);
+}
+
+/* The fixed part: the six abilities, then the numbers that go with them. */
+.sheet-top {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.sheet-abilities,
+.sheet-vitals {
+  display: grid;
+  gap: 0.5rem;
+}
+.sheet-abilities {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.sheet-vitals {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (min-width: 1200px) {
+  .sheet-top {
+    grid-template-columns: 6fr 4fr;
+  }
+}
+
+.sheet-stat {
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-body-bg);
+  padding: 0.3rem 0.4rem;
+  text-align: center;
+  min-width: 0;
+}
+.sheet-stat__label {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+}
+.sheet-stat__value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.sheet-stat__sub {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
+/* Left column beside the switching box. */
+.sheet-main {
+  display: grid;
+  gap: 0.5rem;
+  align-items: start;
+}
+@media (min-width: 768px) {
+  .sheet-main {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+}
+@media (min-width: 1600px) {
+  .sheet-main {
+    grid-template-columns: 620px minmax(0, 1fr);
+  }
+}
+.sheet-side {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'saves' 'skills' 'senses' 'profs';
+}
+@media (min-width: 1600px) {
+  .sheet-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: 'saves skills' 'senses skills' 'profs skills';
+  }
+}
+
+.sheet-panel {
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-body-bg);
+  padding: 0.4rem 0.5rem;
+  min-width: 0;
+}
+.sheet-panel__title {
+  margin: 0 0 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+}
+
+.sheet-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sheet-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.1rem 0;
+  border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+.sheet-row:last-child {
+  border-bottom: 0;
+}
+.sheet-row__name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.sheet-row__ability {
+  flex: 0 0 auto;
+  width: 2.5rem;
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+.sheet-row__value {
+  flex: 0 0 auto;
+  width: 3.5ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.sheet-mark {
+  flex: 0 0 auto;
+  width: 1rem;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* The switching box. */
+.sheet-tabs {
+  min-width: 0;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-body-bg);
+}
+.sheet-tabs__strip {
+  overflow-x: auto;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+.sheet-tabs__tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--bs-body-color);
+  padding: 0.45rem 0.8rem;
+  white-space: nowrap;
+}
+.sheet-tabs__tab.active {
+  border-bottom-color: var(--bs-primary);
+  font-weight: 600;
+}
+.sheet-tabs__panel {
+  padding: 0.5rem;
+  min-width: 0;
+}
+
+/* A phone: the numbers that matter in play stay pinned under the navbar, and the left
+   column is two of the tabs instead. */
+@media (max-width: 767.98px) {
+  .sheet {
+    display: flex;
+    flex-direction: column;
+  }
+  .sheet-top {
+    display: contents;
+  }
+  .sheet-vitals {
+    order: 1;
+    position: sticky;
+    top: var(--app-navbar-height, 3.5rem);
+    z-index: 5;
+    padding: 0.25rem 0;
+    margin-bottom: 0.5rem;
+    background: var(--bs-body-bg);
+  }
+  .sheet-abilities {
+    order: 2;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 0.5rem;
+  }
+  .sheet-main {
+    order: 3;
+  }
+}

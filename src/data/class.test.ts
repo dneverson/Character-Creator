@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   featuresForClass,
   loadClasses,
+  multiclassRequirements,
   resolveClassFeatures,
   resolveSubclassFeatures,
   subclassesFor,
   subclassUnlockLevel,
+  type ClassEntry,
   type ClassFile,
   type LoadedClass,
   type SubclassEntry,
@@ -273,6 +275,69 @@ describe('subclassUnlockLevel', () => {
       file: {},
     }
     expect(subclassUnlockLevel(noMarker)).toBe(1)
+  })
+})
+
+describe('multiclassRequirements', () => {
+  const entry = (over: Partial<ClassEntry>): ClassEntry => ({
+    name: 'Test',
+    source: 'PHB',
+    ...over,
+  })
+
+  it('reads a 2014 class from its multiclassing requirements', () => {
+    expect(
+      multiclassRequirements(entry({ multiclassing: { requirements: { wis: 13 } } })),
+    ).toEqual({ wis: 13 })
+    expect(
+      multiclassRequirements(
+        entry({ multiclassing: { requirements: { dex: 13, wis: 13 } } }),
+      ),
+    ).toEqual({ dex: 13, wis: 13 })
+  })
+
+  it('reads the abilities of one 2014 "or" group as alternatives', () => {
+    // The 2014 Fighter: Strength 13 or Dexterity 13.
+    const fighter = entry({
+      edition: 'classic',
+      multiclassing: { requirements: { or: [{ str: 13, dex: 13 }] } },
+    })
+    expect(multiclassRequirements(fighter)).toEqual({ or: [{ str: 13 }, { dex: 13 }] })
+    // Two groups both apply: one ability of each.
+    const both = entry({
+      multiclassing: {
+        requirements: { cha: 13, or: [{ str: 13, dex: 13 }, { int: 13 }] },
+      },
+    })
+    expect(multiclassRequirements(both)).toEqual({
+      cha: 13,
+      or: [
+        { str: 13, int: 13 },
+        { dex: 13, int: 13 },
+      ],
+    })
+  })
+
+  it('needs 13 in the primary ability of a 2024 class', () => {
+    const one = (primaryAbility: ClassEntry['primaryAbility']) =>
+      multiclassRequirements(entry({ source: 'XPHB', edition: 'one', primaryAbility }))
+    expect(one([{ wis: true }])).toEqual({ wis: 13 })
+    // Fighter: Strength or Dexterity. Monk: Dexterity and Wisdom.
+    expect(one([{ str: true }, { dex: true }])).toEqual({
+      or: [{ str: 13 }, { dex: 13 }],
+    })
+    expect(one([{ dex: true, wis: true }])).toEqual({ dex: 13, wis: 13 })
+    expect(one([])).toBeUndefined()
+  })
+
+  it('has none for a class with neither', () => {
+    expect(multiclassRequirements(entry({ edition: 'classic' }))).toBeUndefined()
+    // A primary ability alone does not apply the 2024 rule to a 2014 class.
+    expect(
+      multiclassRequirements(
+        entry({ edition: 'classic', primaryAbility: [{ int: true }] }),
+      ),
+    ).toBeUndefined()
   })
 })
 

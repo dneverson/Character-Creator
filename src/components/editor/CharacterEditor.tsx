@@ -2,12 +2,11 @@ import { useState, type ComponentType } from 'react'
 import Button from 'react-bootstrap/Button'
 import Container from 'react-bootstrap/Container'
 import Spinner from 'react-bootstrap/Spinner'
-import Stack from 'react-bootstrap/Stack'
 import { ErrorBoundary } from '../ErrorBoundary'
-import { Icon } from '../Icon'
+import { CharacterHeader } from '../sheet/CharacterHeader'
 import { downloadCharacter } from '../../character/io'
 import { exportCharacterPdf } from '../../pdf/exportPdf'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useActiveCharacter } from '../../character/store'
 import { useContentNames } from '../../hooks/useContentNames'
 import { SectionCollapseContext, type SectionCommand } from './sectionCollapse'
 import { AbilityScoresSection } from './AbilityScoresSection'
@@ -22,7 +21,6 @@ import { RaceSelection } from './RaceSelection'
 import { ProficienciesSection } from './ProficienciesSection'
 import { SkillsSection } from './SkillsSection'
 import { SpellsSection } from './SpellsSection'
-import { DraftInput } from './DraftInput'
 import { WildShapeSection } from './WildShapeSection'
 
 /**
@@ -60,8 +58,6 @@ const SECTIONS: { title: string; Section: ComponentType }[] = [
 
 export function CharacterEditor() {
   const character = useActiveCharacter()
-  const backToList = useCharacterStore((s) => s.backToList)
-  const updateActive = useCharacterStore((s) => s.updateActive)
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfError, setPdfError] = useState<string | null>(null)
   const [sectionCommand, setSectionCommand] = useState<SectionCommand | null>(null)
@@ -88,36 +84,26 @@ export function CharacterEditor() {
 
   return (
     <Container as="main" className="py-4">
-      <Stack direction="horizontal" gap={2} className="mb-4">
-        <Button variant="secondary" onClick={backToList}>
-          <Icon name="back" className="me-1" />
-          Characters
-        </Button>
-        <DraftInput
-          value={character.name}
-          onCommit={(name) => updateActive({ name })}
-          aria-label="Character name"
-          className="fw-semibold"
-          style={{ maxWidth: 360 }}
-        />
-        <Button
-          variant="secondary"
-          className="ms-auto"
-          onClick={() => downloadCharacter(character)}
-        >
-          Export JSON
-        </Button>
-        <Button variant="primary" onClick={exportPdf} disabled={pdfBusy}>
-          {pdfBusy ? (
-            <>
-              <Spinner size="sm" animation="border" className="me-2" />
-              Building…
-            </>
-          ) : (
-            'Export PDF'
-          )}
-        </Button>
-      </Stack>
+      <CharacterHeader
+        mode="edit"
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => downloadCharacter(character)}>
+              Export JSON
+            </Button>
+            <Button variant="primary" onClick={exportPdf} disabled={pdfBusy}>
+              {pdfBusy ? (
+                <>
+                  <Spinner size="sm" animation="border" className="me-2" />
+                  Building…
+                </>
+              ) : (
+                'Export PDF'
+              )}
+            </Button>
+          </>
+        }
+      />
       {pdfError && (
         <div className="text-danger small mb-3" role="alert">
           {pdfError}

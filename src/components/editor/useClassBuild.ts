@@ -17,6 +17,7 @@
 import { useCallback, useMemo } from 'react'
 import {
   loadClasses,
+  multiclassRequirements,
   subclassesFor,
   subclassUnlockLevel,
   type LoadedClass,
@@ -26,6 +27,7 @@ import {
 import type { ClassRef } from '../../character/model'
 import { useActiveCharacter, useCharacterStore } from '../../character/store'
 import { characterAbilityTotals } from '../../character/derive'
+import { unassignedAbilities } from '../../character/stats'
 import { checkLevelCap, checkMulticlass, type Deviation } from '../../rules/compliance'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import type { ClassRow } from './classRows'
@@ -85,7 +87,7 @@ export function useClassBuild(): ClassBuild {
   const requirementsBySource = useMemo(() => {
     const m = new Map<string, MulticlassRequirements | undefined>()
     for (const l of available) {
-      m.set(classKey(l.entry.name, l.entry.source), l.entry.multiclassing?.requirements)
+      m.set(classKey(l.entry.name, l.entry.source), multiclassRequirements(l.entry))
     }
     return m
   }, [available])
@@ -179,7 +181,8 @@ export function useClassBuild(): ClassBuild {
       return { deviationByKey: new Map<string, Deviation>(), levelDeviations: [] }
     }
     const totals = characterAbilityTotals(character, featBonus)
-    const mc = checkMulticlass(classes, requirementsBySource, totals)
+    const unset = unassignedAbilities(character.abilities, character.statMethod)
+    const mc = checkMulticlass(classes, requirementsBySource, totals, unset)
     return {
       deviationByKey: new Map(mc.map((d) => [d.id, d])),
       levelDeviations: checkLevelCap(totalLevel),

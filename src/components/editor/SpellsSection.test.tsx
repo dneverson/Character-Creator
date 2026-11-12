@@ -342,10 +342,10 @@ describe('SpellsSection', () => {
 
     // The reasons are short and sit in the row; Add waits for the switch.
     expect(
-      rowOf(table, 'Magic Missile').getByText('Not on the Cleric list'),
+      rowOf(table, 'Magic Missile').getByText('Not on the 2014 Cleric list'),
     ).toBeVisible()
     expect(
-      rowOf(table, 'Wish').getByText('Not on the Cleric list; Needs level 9 slots'),
+      rowOf(table, 'Wish').getByText('Not on the 2014 Cleric list; Needs level 9 slots'),
     ).toBeVisible()
     expect(
       rowOf(table, 'Magic Missile').getByRole('button', { name: 'Add' }),
@@ -363,7 +363,7 @@ describe('SpellsSection', () => {
     await user.click(screen.getByRole('button', { name: 'Done' }))
     expect(screen.getAllByRole('note').length).toBeGreaterThan(0)
     expect(
-      rowOf(table, 'Wish').getByText('Not on the Cleric list; Needs level 9 slots'),
+      rowOf(table, 'Wish').getByText('Not on the 2014 Cleric list; Needs level 9 slots'),
     ).toBeVisible()
   })
 
@@ -466,7 +466,7 @@ describe('SpellsSection', () => {
     expect(rowOf(table, 'Shield').getByRole('button', { name: 'Add' })).toBeEnabled()
     expect(
       rowOf(table, 'Magic Missile').getByText(
-        /Not on the Fighter \(Eldritch Knight\) list/,
+        /Not on the 2014 Fighter \(Eldritch Knight\) list/,
       ),
     ).toBeVisible()
   })
@@ -613,7 +613,9 @@ describe('SpellsSection', () => {
 
     expect(await screen.findByText(/Spells prepared 0 of 4/)).toBeInTheDocument()
     await choose(user, 'spellbook spells')
-    expect(screen.getByText('2014 version')).toBeVisible()
+    expect(
+      screen.getByText('2014 printing - your 2024 Wizard has the 2024 one (class list)'),
+    ).toBeVisible()
     expect(
       screen
         .getAllByRole('button', { name: 'Add' })
@@ -692,7 +694,9 @@ describe('Wizard tiers', () => {
     await choose(user, 'spellbook spells')
     const table = 'Wizard spellbook spells'
     // Off-list Cure Wounds is greyed with its reason until the switch allows it.
-    expect(rowOf(table, 'Cure Wounds').getByText('Not on the Wizard list')).toBeVisible()
+    expect(
+      rowOf(table, 'Cure Wounds').getByText('Not on the 2014 Wizard list'),
+    ).toBeVisible()
     expect(
       rowOf(table, 'Cure Wounds').getByRole('button', { name: 'Add' }),
     ).toBeDisabled()
@@ -935,6 +939,8 @@ describe('Granted spells', () => {
         },
       ]),
     ])
+    // The filter's class is read from the classes there are: the Cleric is one.
+    mockClasses.mockResolvedValue([wizard, cleric])
     mockSpells.mockResolvedValue([guidance, resistance, sacredFlame, fireBolt, bless])
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Wizard', source: 'PHB', level: 1 }]
@@ -1006,7 +1012,7 @@ describe('Granted spells', () => {
     expect(rowOf(fey, 'Fireball').getByRole('button', { name: 'Add' })).toBeDisabled()
   })
 
-  it('says which version each row of a spell printed in both editions is', async () => {
+  it('names the class edition on both printings of a spell it does not have', async () => {
     mockClasses.mockResolvedValue([cleric])
     mockSpells.mockResolvedValue([
       makeSpell({ name: 'Acid Splash', source: 'XPHB', edition: 'one', level: 0 }),
@@ -1020,9 +1026,130 @@ describe('Granted spells', () => {
     renderSection()
 
     await screen.findByText('Cleric')
-    expect(screen.getByText('Not on the Cleric list (2014 version)')).toBeVisible()
-    expect(screen.getByText('Not on the Cleric list (2024 version)')).toBeVisible()
+    // The edition column says which printing a row is; the reason names the class's list.
+    expect(screen.getAllByText('Not on the 2014 Cleric list')).toHaveLength(2)
   })
+
+  it('reads the 2024 printing of a Circle spell as a printing a 2014 Druid has', async () => {
+    const user = userEvent.setup()
+    mockClasses.mockResolvedValue([starsDruid])
+    mockSpells.mockResolvedValue([guidingBolt2014, guidingBolt2024])
+    seedActive((ch) => {
+      ch.classes = [{ name: 'Druid', source: 'PHB', level: 2, subclass: stars }]
+      ch.abilities.wis = { base: 14, other: 0 }
+      ch.selectedBooks = ['PHB', 'XPHB', 'TCE']
+    })
+    renderSection()
+
+    await screen.findByText('Druid')
+    // The Circle spell already sits in the tier, so it opens with Change.
+    await user.click(screen.getByRole('button', { name: 'Change' }))
+    expect(
+      screen.getByText(
+        '2024 printing - your 2014 Druid has the 2014 one (always prepared)',
+      ),
+    ).toBeVisible()
+    expect(screen.getByText(/Already always prepared \(Circle of Stars\)/)).toBeVisible()
+    expect(screen.queryByText(/Not on the/)).not.toBeInTheDocument()
+  })
+
+  it('does not count a Circle spell before its level, in the table or for its twin', async () => {
+    const user = userEvent.setup()
+    mockClasses.mockResolvedValue([starsDruid])
+    mockSpells.mockResolvedValue([guidingBolt2014, guidingBolt2024])
+    seedActive((ch) => {
+      ch.classes = [{ name: 'Druid', source: 'PHB', level: 1, subclass: stars }]
+      ch.abilities.wis = { base: 14, other: 0 }
+      ch.selectedBooks = ['PHB', 'XPHB', 'TCE']
+    })
+    renderSection()
+
+    await screen.findByText('Druid')
+    await user.click(screen.getByRole('button', { name: 'Change' }))
+    // Locked until level 2: neither printing is had yet, and neither reads as prepared.
+    expect(screen.queryByText(/Already always prepared/)).not.toBeInTheDocument()
+    expect(screen.getAllByText('Not on the 2014 Druid list')).toHaveLength(2)
+  })
+
+  it('reads an optional-list spell as the 2014 printing for a 2024 Druid', async () => {
+    const user = userEvent.setup()
+    mockClasses.mockResolvedValue([druid2024])
+    mockSpells.mockResolvedValue([
+      makeSpell({
+        name: 'Ice Knife',
+        source: 'XGE',
+        lists: { classes: [], variants: { 'Druid|PHB': ['XGE'] }, subclasses: [] },
+      }),
+      makeSpell({
+        name: 'Ice Knife',
+        source: 'XPHB',
+        edition: 'one',
+        lists: listsOf('Druid|XPHB'),
+      }),
+    ])
+    seedActive((ch) => {
+      ch.classes = [{ name: 'Druid', source: 'XPHB', level: 1 }]
+      ch.selectedBooks = ['XPHB', 'XGE']
+    })
+    renderSection()
+
+    await screen.findByText('Druid')
+    await choose(user, 'spells prepared')
+    expect(
+      screen.getByText('2014 printing - your 2024 Druid has the 2024 one (class list)'),
+    ).toBeVisible()
+  })
+})
+
+// ---- Druids of both editions --------------------------------------------------
+
+const druidEntry = {
+  name: 'Druid',
+  hd: { number: 1, faces: 8 },
+  spellcastingAbility: 'wis',
+  casterProgression: 'full',
+  cantripProgression: [2, 2, 2],
+  classFeatures: [],
+}
+const stars = { name: 'Circle of Stars', shortName: 'Stars', source: 'TCE' }
+const starsDruid: LoadedClass = {
+  entry: {
+    ...druidEntry,
+    source: 'PHB',
+    edition: 'classic',
+    preparedSpells: '<$level$> + <$wis_mod$>',
+  },
+  file: {
+    subclass: [
+      {
+        ...stars,
+        className: 'Druid',
+        classSource: 'PHB',
+        edition: 'classic',
+        subclassFeatures: [],
+        additionalSpells: [{ prepared: { '2': ['guiding bolt'] } }],
+      },
+    ],
+  },
+}
+const druid2024: LoadedClass = {
+  entry: {
+    ...druidEntry,
+    source: 'XPHB',
+    edition: 'one',
+    preparedSpellsProgression: [4, 5, 6],
+  },
+  file: {},
+}
+const guidingBolt2014 = makeSpell({
+  name: 'Guiding Bolt',
+  lists: listsOf('Cleric|PHB'),
+})
+const guidingBolt2024 = makeSpell({
+  name: 'Guiding Bolt',
+  source: 'XPHB',
+  edition: 'one',
+  lists: listsOf('Cleric|XPHB'),
 })
 
 describe('Your spells', () => {
@@ -1078,6 +1205,8 @@ describe('Your spells', () => {
         { ability: 'wis', known: { _: [{ choose: 'level=0|class=Cleric', count: 1 }] } },
       ]),
     ])
+    // The filter's class is read from the classes there are: the Cleric is one.
+    mockClasses.mockResolvedValue([wizard, cleric])
     mockSpells.mockResolvedValue([guidance])
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Wizard', source: 'PHB', level: 1 }]

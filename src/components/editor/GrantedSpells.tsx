@@ -7,7 +7,7 @@
 
 import Form from 'react-bootstrap/Form'
 import { ABILITY_NAMES } from '../../dice/dice'
-import { matchesFilter, spellKindText } from '../../data/grants'
+import { matchesFilter, spellKindText, type FilterLists } from '../../data/grants'
 import type { Spell } from '../../data/spells'
 import type { GrantedSpellChoice, SpellGrantChoices } from '../../character/model'
 import {
@@ -34,6 +34,8 @@ interface Props {
   rows: Spell[]
   /** Spells with a namesake of the other edition, to say which version a row is. */
   twins: Set<string>
+  /** What a choice's list filter reads its class against. */
+  filterLists: FilterLists
   open: string | null
   onBrowsingChange: (tierId: string, browsing: boolean) => void
   allowNonStandard: boolean
@@ -83,6 +85,7 @@ export function GrantedSpells({
   byKey,
   rows,
   twins,
+  filterLists,
   open,
   onBrowsingChange,
   allowNonStandard,
@@ -158,6 +161,7 @@ export function GrantedSpells({
                 )}
                 rows={rows}
                 twins={twins}
+                filterLists={filterLists}
                 open={open === pickTierId(grant)}
                 onBrowsingChange={(browsing) =>
                   onBrowsingChange(pickTierId(grant), browsing)
@@ -223,6 +227,7 @@ function PickBlock({
   picked,
   rows,
   twins,
+  filterLists,
   open,
   onBrowsingChange,
   allowNonStandard,
@@ -233,6 +238,7 @@ function PickBlock({
   picked: Spell[]
   rows: Spell[]
   twins: Set<string>
+  filterLists: FilterLists
   open: boolean
   onBrowsingChange: (browsing: boolean) => void
   allowNonStandard: boolean
@@ -254,7 +260,7 @@ function PickBlock({
   const pickedKeys = new Set(picked.map((s) => s.key))
   const full = picked.length >= pick.count
   const allowed = (spell: Spell) =>
-    matchesFilter(spell, pick.filter, grant.edition)
+    matchesFilter(spell, pick.filter, grant.edition, filterLists)
       ? []
       : [
           `Not on this list (${single})${

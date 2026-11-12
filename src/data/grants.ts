@@ -10,7 +10,7 @@ import { ABILITY_NAMES, ABILITIES } from '../dice/dice'
 import { lookup } from './glossary'
 import { SKILLS, skillLabel } from './skills'
 import { titleCase } from '../text/titleCase'
-import type { Spell } from './spells'
+import { isOnClassList, type ListCaster, type Spell } from './spells'
 
 export type GrantKind =
   'language' | 'tool' | 'weapon' | 'armor' | 'skill' | 'expertise' | 'save' | 'mixed'
@@ -507,34 +507,39 @@ export function parseSpellFilter(filter: string): SpellFilter {
   }
 }
 
-/** The class books of the 2024 rules; a class list belongs to its book's edition. */
-const ONE_CLASS_SOURCES = new Set(['XPHB', 'EFA'])
-
 /** The spell facts a filter reads. */
 export type FilterSpell = Pick<
   Spell,
-  'level' | 'school' | 'ritual' | 'attack' | 'source' | 'lists'
+  'level' | 'school' | 'ritual' | 'attack' | 'source' | 'lists' | 'edition'
 >
 
+/** What a filter's class is read against: the classes there are, and the books selected. */
+export interface FilterLists {
+  /** Every class there is, by key ("Wizard|PHB"), with its rules edition. */
+  classes: ListCaster[]
+  /** An optional list counts only while its book is. */
+  selectedBooks: string[]
+}
+
 /**
- * Whether a spell is one the filter offers. A class is read from the class list of
- * the grant's own edition (a 2014 feat offers the 2014 Cleric list), every
- * edition when it is not given.
+ * Whether a spell is one the filter offers. A class is read from the list of each
+ * class of that name of the grant's own edition (a 2014 feat offers the 2014 Cleric
+ * list), of every edition when it is not given, as `isOnClassList` decides it.
  */
 export function matchesFilter(
   spell: FilterSpell,
   filter: SpellFilter,
-  edition?: Spell['edition'],
+  edition: Spell['edition'] | undefined,
+  lists: FilterLists,
 ): boolean {
   const onList = (name: string) =>
-    [...spell.lists.classes, ...Object.keys(spell.lists.variants)].some((key) => {
-      const [className, classSource = ''] = key.split('|')
-      return (
-        className.toLowerCase() === name.toLowerCase() &&
-        (edition === undefined ||
-          ONE_CLASS_SOURCES.has(classSource) === (edition === 'one'))
-      )
-    })
+    lists.classes.some(
+      (caster) =>
+        caster.classKey.split('|')[0].toLowerCase() === name.toLowerCase() &&
+        // A class whose data names no edition is read as a 2014 one, as its label is.
+        (edition === undefined || (caster.edition ?? 'classic') === edition) &&
+        isOnClassList(spell, { classKey: caster.classKey }, lists.selectedBooks),
+    )
   return (
     (filter.levels.length === 0 || filter.levels.includes(spell.level)) &&
     (filter.classes.length === 0 || filter.classes.some(onList)) &&

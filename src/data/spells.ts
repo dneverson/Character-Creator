@@ -8,6 +8,7 @@ import { titleCase } from '../text/titleCase'
 import type { Entry } from '../text/Entries'
 import { fetchData } from './dataClient'
 import { loadBookEditions, type Edition } from './edition'
+import { editionYear } from './labels'
 import {
   areaOf,
   attackOf,
@@ -40,6 +41,11 @@ import { srdNameOf } from './srd'
 export interface SpellLists {
   /** Classes whose own list holds the spell: "Wizard|PHB", "Wizard|XPHB". */
   classes: string[]
+  /**
+   * Of those, the lists that hold it only where a book defines it (Booming Blade on
+   * the Wizard list, from SCAG): class key -> those books.
+   */
+  definedIn?: Record<string, string[]>
   /** Optional additions (Tasha's and later): class key -> the books that add it. */
   variants: Record<string, string[]>
   /** Subclass lists (the third casters): "Fighter|XPHB|Eldritch Knight". */
@@ -132,12 +138,12 @@ interface RawSpell {
 
 /**
  * spell-source lookup: source -> spellName -> where the spell is listed:
- * `class: {classSource: {ClassName: true}}`, `classVariant: {classSource:
+ * `class: {classSource: {ClassName: true | {definedInSources}}}`, `classVariant: {classSource:
  * {ClassName: {definedInSources}}}`, `subclass: {classSource: {ClassName:
  * {subclassSource: {shortName: {...}}}}}`.
  */
 interface LookupEntry {
-  class?: Record<string, Record<string, unknown>>
+  class?: Record<string, Record<string, true | { definedInSources?: string[] }>>
   classVariant?: Record<string, Record<string, { definedInSources?: string[] }>>
   subclass?: Record<string, Record<string, Record<string, Record<string, unknown>>>>
 }
@@ -164,37 +170,136 @@ export function spellLevelLabel(level: number): string {
   return level === 0 ? 'Cantrip' : `${ordinal(level)} level`
 }
 
-/**
- * Whether the spell is on the caster's own list: the list of the class's own source
- * (never another edition's), an optional list (Tasha's and later) while the book
- * that defines it is selected, or the subclass's list for a third caster (of the class's
- * edition). The one
- * place "on the list" is decided.
- */
-export function isOnClassList(
-  spell: Spell,
-  caster: { classKey: string; subclassKey?: string; edition?: Spell['edition'] },
+/** A caster as the lists see it: its class, its casting subclass, its edition. */
+export interface ListCaster {
+  classKey: string
+  subclassKey?: string
+  edition?: Spell['edition']
+}
+
+/** How a caster has a spell: from one of its lists, or always prepared or known. */
+export type SpellAccess =
+  | 'class list'
+  | 'optional list'
+  | 'subclass list'
+  | 'expanded list'
+  | 'always prepared'
+  | 'always known'
+
+/** What a source gives a class beyond its lists: a spell added to it, or one it always has. */
+export type GrantedAccess = Extract<
+  SpellAccess,
+  'expanded list' | 'always prepared' | 'always known'
+>
+
+/** Which of the caster's own lists holds the spell, if any. */
+function listAccess(
+  spell: Pick<Spell, 'lists' | 'edition'>,
+  caster: ListCaster,
   selectedBooks: string[],
-): boolean {
+): SpellAccess | undefined {
+  const selected = (books: string[] | undefined) =>
+    (books ?? []).some((book) => selectedBooks.includes(book))
   // The lookup puts a spell of either edition on both editions' subclass lists, so a
   // subclass list also asks that the spell is of the class's own edition.
   if (caster.subclassKey)
-    return (
-      spell.lists.subclasses.includes(caster.subclassKey) &&
+    return spell.lists.subclasses.includes(caster.subclassKey) &&
       (caster.edition === undefined || spell.edition === caster.edition)
-    )
-  if (spell.lists.classes.includes(caster.classKey)) return true
-  return (spell.lists.variants[caster.classKey] ?? []).some((book) =>
-    selectedBooks.includes(book),
+      ? 'subclass list'
+      : undefined
+  const definedIn = spell.lists.definedIn?.[caster.classKey]
+  if (
+    spell.lists.classes.includes(caster.classKey) &&
+    (!definedIn || selected(definedIn))
   )
+    return 'class list'
+  return selected(spell.lists.variants[caster.classKey]) ? 'optional list' : undefined
+}
+
+/**
+ * Whether the spell is on the caster's own list: the list of the class's own source
+ * (never another edition's) where no book conditions it or that book is selected, an
+ * optional list (Tasha's and later) while the book that defines it is selected, or the
+ * subclass's list for a third caster (of the class's edition). The one place "on the
+ * list" is decided.
+ */
+export function isOnClassList(
+  spell: Pick<Spell, 'lists' | 'edition'>,
+  caster: ListCaster,
+  selectedBooks: string[],
+): boolean {
+  return listAccess(spell, caster, selectedBooks) !== undefined
+}
+
+/** Where a spell stands for a caster. */
+export type ListStanding =
+  /** On one of its lists, or added to it by a source. */
+  | { kind: 'listed'; access: SpellAccess }
+  /** Always prepared or known through a source. */
+  | { kind: 'granted'; access: GrantedAccess }
+  /** Not this printing, but the caster has the other edition's, in this way. */
+  | { kind: 'printing'; twin: Spell; access: SpellAccess }
+  | { kind: 'off' }
+
+export interface StandingContext {
+  selectedBooks: string[]
+  /** Every spell by lower case name, to find the other edition's printing. */
+  byName: Map<string, Spell[]>
+  /** What the character's sources give this class: a spell added to its list, or one it always has. */
+  granted?: (spell: Spell) => GrantedAccess | undefined
+}
+
+/**
+ * Where a spell stands for a caster: on its list, always had, the other edition's
+ * printing of one it has (a 2014 Druid's Circle gives the 2014 Guiding Bolt), or off
+ * its list. A caster has a spell when one of its lists holds it or a source gives it.
+ */
+export function listStanding(
+  spell: Spell,
+  caster: ListCaster,
+  { selectedBooks, byName, granted }: StandingContext,
+): ListStanding {
+  const accessOf = (s: Spell) => listAccess(s, caster, selectedBooks) ?? granted?.(s)
+  const own = granted?.(spell)
+  if (own && own !== 'expanded list') return { kind: 'granted', access: own }
+  const access = accessOf(spell)
+  if (access) return { kind: 'listed', access }
+  for (const twin of byName.get(spell.name.toLowerCase()) ?? []) {
+    if (twin.edition === spell.edition || !selectedBooks.includes(twin.source)) continue
+    const had = accessOf(twin)
+    if (had) return { kind: 'printing', twin, access: had }
+  }
+  return { kind: 'off' }
+}
+
+/**
+ * What is wrong with a spell's standing, in words naming the class's edition, or
+ * undefined when the caster has it: "2024 printing - your 2014 Druid has the 2014 one
+ * (always prepared)", "Not on the 2014 Druid list".
+ */
+export function standingProblem(
+  standing: ListStanding,
+  spell: Spell,
+  caster: { name: string; edition?: Spell['edition'] },
+): string | undefined {
+  const yours = `${editionYear(caster.edition)} ${caster.name}`
+  if (standing.kind === 'printing')
+    return `${editionYear(spell.edition)} printing - your ${yours} has the ${editionYear(standing.twin.edition)} one (${standing.access})`
+  if (standing.kind === 'off') return `Not on the ${yours} list`
+  return undefined
 }
 
 /** The lists the lookup puts a spell on, per class source. */
 function listsFor(entry: LookupEntry | undefined): SpellLists {
   const classes: string[] = []
+  const definedIn: Record<string, string[]> = {}
   for (const [classSource, byClass] of Object.entries(entry?.class ?? {}))
-    for (const className of Object.keys(byClass))
-      classes.push(`${className}|${classSource}`)
+    for (const [className, listed] of Object.entries(byClass)) {
+      const key = `${className}|${classSource}`
+      classes.push(key)
+      if (listed !== true && listed.definedInSources)
+        definedIn[key] = listed.definedInSources
+    }
 
   const variants: Record<string, string[]> = {}
   for (const [classSource, byClass] of Object.entries(entry?.classVariant ?? {}))
@@ -208,7 +313,7 @@ function listsFor(entry: LookupEntry | undefined): SpellLists {
         for (const shortName of Object.keys(byShortName))
           subclasses.push(`${className}|${classSource}|${shortName}`)
 
-  return { classes: classes.sort(), variants, subclasses: subclasses.sort() }
+  return { classes: classes.sort(), definedIn, variants, subclasses: subclasses.sort() }
 }
 
 /** Load every spell with its facts read and its class lists attached. */

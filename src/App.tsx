@@ -7,6 +7,7 @@ import { ContentNotice } from './components/content/ContentNotice'
 import { ContentPrompt } from './components/content/ContentPrompt'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { CharacterEditor } from './components/editor/CharacterEditor'
+import { SheetView } from './components/sheet/SheetView'
 import { StorageNotice } from './components/StorageNotice'
 import { useCharacterStore } from './character/store'
 import { appConfig } from './config/app'
@@ -31,14 +32,16 @@ export default function App() {
         title="This page"
         page
         actions={
-          view === 'editor' && (
+          view !== 'list' && (
             <Button variant="secondary" onClick={backToList}>
               Back to characters
             </Button>
           )
         }
       >
-        {view === 'editor' ? <CharacterEditor /> : <CharacterList />}
+        {view === 'editor' && <CharacterEditor />}
+        {view === 'sheet' && <SheetView />}
+        {view === 'list' && <CharacterList />}
       </ErrorBoundary>
       <AppFooter />
     </>

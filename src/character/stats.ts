@@ -118,27 +118,14 @@ export function remainingPool(pool: number[], abilities: Abilities): number[] {
   return out.sort((a, b) => b - a)
 }
 
-/** Total ability score = base + racial + other. */
-export function totalScore(base: number | null, racial: number, other: number): number {
-  return (base ?? 0) + racial + other
-}
-
-/**
- * Effective ability totals for rules checks. The per-ability origin bonus
- * (race + background) is supplied by the caller via `racial`.
- */
-export function abilityTotals(
+/** The abilities whose score is still to be assigned from the pool. */
+export function unassignedAbilities(
   abilities: Abilities,
   method: StatMethod,
-  racial: (key: AbilityKey) => number = () => 0,
-): Record<AbilityKey, number> {
-  const floor = method === 'pointbuy' ? POINT_BUY_MIN : 0
-  return Object.fromEntries(
-    ABILITIES.map((k) => [
-      k,
-      (abilities[k].base ?? floor) + racial(k) + abilities[k].other,
-    ]),
-  ) as Record<AbilityKey, number>
+): Set<AbilityKey> {
+  return new Set(
+    usesPool(method) ? ABILITIES.filter((k) => abilities[k].base === null) : [],
+  )
 }
 
 /** Fresh abilities set to the point-buy floor (used when switching to point buy). */
