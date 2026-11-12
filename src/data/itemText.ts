@@ -20,6 +20,7 @@ import type {
   ItemArmor,
   ItemContainer,
   ItemKind,
+  ItemSpeedChange,
   ItemVehicle,
 } from './itemTypes'
 
@@ -272,6 +273,24 @@ export function categoryOf(
 }
 
 const SIGNED = (n: number) => (n < 0 ? String(n) : `+${n}`)
+
+/** The data's `modifySpeed` read into its four parts; undefined when it changes nothing. */
+export function speedChangeOf(raw: unknown): ItemSpeedChange | undefined {
+  if (!isRecord(raw)) return undefined
+  const part = <T>(field: string, is: (v: unknown) => v is T): Record<string, T> =>
+    isRecord(raw[field])
+      ? Object.fromEntries(
+          Object.entries(raw[field]).filter((e): e is [string, T] => is(e[1])),
+        )
+      : {}
+  const change: ItemSpeedChange = {
+    static: part('static', isNumber),
+    equal: part('equal', isText),
+    bonus: part('bonus', isNumber),
+    multiply: part('multiply', isNumber),
+  }
+  return Object.values(change).some((p) => Object.keys(p).length > 0) ? change : undefined
+}
 
 function speedChangeText(raw: unknown): string[] {
   if (!isRecord(raw)) return []

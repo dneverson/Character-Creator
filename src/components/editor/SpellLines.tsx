@@ -4,7 +4,7 @@
 // around a spell line instead of a bare spell.
 
 import type { Spell } from '../../data/spells'
-import { BrowseTable } from '../table/BrowseTable'
+import { BrowseTable, type BrowseTableProps } from '../table/BrowseTable'
 import { factColumn, type Describe, type Fact, type FactGroup } from '../table/facts'
 import type { Column, DetailTarget } from '../table/types'
 import {
@@ -79,12 +79,15 @@ export function SpellLines({
   lines,
   label,
   detailTarget,
+  action,
 }: {
   tableId: string
   lines: SpellLine[]
   label: string
   /** Where a row's full text opens, when not beside the table. */
   detailTarget?: DetailTarget
+  /** The action column, when it is not the removal of a spell (the sheet's concentration). */
+  action?: BrowseTableProps<SpellLine>['action']
 }) {
   return (
     <BrowseTable<SpellLine>
@@ -102,7 +105,8 @@ export function SpellLines({
           : { standard: true }
       }
       action={
-        lines.some((line) => line.remove)
+        action ??
+        (lines.some((line) => line.remove)
           ? {
               key: 'remove',
               header: 'Remove',
@@ -111,7 +115,7 @@ export function SpellLines({
                   ? { label: 'Remove', variant: 'danger', run: line.remove }
                   : undefined,
             }
-          : undefined
+          : undefined)
       }
       compact
       tableShare={70}

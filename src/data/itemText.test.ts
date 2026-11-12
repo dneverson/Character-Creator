@@ -16,6 +16,7 @@ import {
   rangeLabel,
   rechargeText,
   signed,
+  speedChangeOf,
   strengthOf,
   traitsOf,
   vehicleOf,
@@ -287,6 +288,25 @@ describe('traitsOf', () => {
       'walking speed multiplied by 2',
       'fly speed 60 ft.',
     ])
+  })
+
+  it('reads how an item changes speed, keeping only well formed parts', () => {
+    expect(
+      speedChangeOf({
+        static: { walk: 30, fly: 'x' },
+        equal: { climb: 'walk', swim: 5 },
+        bonus: { '*': 5 },
+        multiply: { walk: 2 },
+        other: 1,
+      }),
+    ).toEqual({
+      static: { walk: 30 },
+      equal: { climb: 'walk' },
+      bonus: { '*': 5 },
+      multiply: { walk: 2 },
+    })
+    expect(speedChangeOf({ static: { fly: 'x' }, bonus: 3 })).toBeUndefined()
+    expect(speedChangeOf(undefined)).toBeUndefined()
   })
 
   it('says how an item changes ability scores', () => {

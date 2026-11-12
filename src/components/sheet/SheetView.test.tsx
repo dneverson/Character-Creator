@@ -173,7 +173,9 @@ describe('SheetView', () => {
       within(screen.getByRole('group', { name: 'Armor class' })).getByText('12'),
     ).toBeInTheDocument()
     expect(
-      within(screen.getByRole('group', { name: 'Hit points' })).getByText('maximum'),
+      within(screen.getByRole('group', { name: 'Hit points' })).getByRole('button', {
+        name: /^Hit points: \d+$/,
+      }),
     ).toBeInTheDocument()
   })
 

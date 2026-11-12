@@ -12,6 +12,8 @@ import { CharacterHeader } from './CharacterHeader'
 import { SheetDetailProvider } from './SheetDetail'
 import { NO_VALUE } from '../table/facts'
 import { StatBox } from './FixedPanel'
+import { HpBox } from './HpBox'
+import { PlayStrip } from './PlayStrip'
 import { SheetRoot } from './SheetRoot'
 import { SheetTabs } from './SheetTabs'
 import { ProficienciesPanel, SavesPanel, SensesPanel, SkillsPanel } from './SidePanels'
@@ -19,10 +21,13 @@ import { TemplateMenu } from './TemplateMenu'
 import { useSheetTemplate } from '../../sheet/useSheetTemplate'
 import '../../sheet/sheet.css'
 
-/** Under the speed: the other ways of moving ("fly 30 ft."), or the unit when there are none. */
+/**
+ * Under the speed: the other ways of moving in force ("fly 30 ft."), or the unit when there
+ * are none. One that holds only after an action (a potion of flying) is in the breakdown.
+ */
 const speedSub = (speed: Quantity) =>
   speed.lines
-    .filter((l) => l.op === 'note')
+    .filter((l) => l.op === 'note' && l.status === 'applied')
     .map((l) => l.label.toLowerCase())
     .join(', ') || 'feet'
 
@@ -120,18 +125,9 @@ export function SheetView() {
                     value={sheet.ac.value}
                     breakdown={{ id: 'ac', label: 'Armor class', quantity: sheet.ac }}
                   />
-                  <StatBox
-                    label="Hit points"
-                    value={sheet.hp.value}
-                    sub="maximum"
-                    breakdown={{
-                      id: 'hp',
-                      label: 'Hit points',
-                      totalLabel: 'Maximum hit points',
-                      quantity: sheet.hp,
-                    }}
-                  />
                 </div>
+                <PlayStrip sheet={sheet} />
+                <HpBox sheet={sheet} />
               </div>
               <div className="sheet-main">
                 {!phone && (

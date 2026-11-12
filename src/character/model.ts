@@ -172,6 +172,15 @@ export type HistoryAction =
   | { type: 'roll'; roll: RollRecord }
   /** The player pressed Done: the build counts as finished (open choices or not). */
   | { type: 'completed' }
+  /** A short or long rest taken; a short rest lists the hit dice rolled for hit points. */
+  | { type: 'rest'; rest: 'short' | 'long'; rolls?: HitDieSpend[] }
+
+/** One hit die spent on a short rest: its size ("d8"), the roll, the hit points it gave. */
+export interface HitDieSpend {
+  die: string
+  roll: number
+  hp: number
+}
 
 export interface HistoryEntry {
   id: string
@@ -218,7 +227,24 @@ export interface PlayState {
   conditions: string[]
   /** Exhaustion level, 0 when rested. */
   exhaustion: number
+  /** Inspiration in the 2014 rules, Heroic Inspiration in the 2024 rules. */
   inspiration: boolean
+  /**
+   * Hit dice spent, by die ("d8": 2). What is left is the dice the build gives less this, so
+   * a change of level carries it over.
+   */
+  hitDiceSpent: Record<string, number>
+  /** Spell slots spent per spell level; index 0 is the 1st level. Missing levels are 0. */
+  slotsSpent: number[]
+  /** Pact Magic slots spent. */
+  pactSpent: number
+  /**
+   * Charges spent by resource id, for the features that have limited uses. Nothing writes
+   * it yet; it is here so that adding them needs no new version of the document.
+   */
+  uses: Record<string, number>
+  /** The spell the character is concentrating on, or null. */
+  concentration: { name: string; source: string } | null
 }
 
 export function defaultPlayState(): PlayState {
@@ -229,6 +255,11 @@ export function defaultPlayState(): PlayState {
     conditions: [],
     exhaustion: 0,
     inspiration: false,
+    hitDiceSpent: {},
+    slotsSpent: [],
+    pactSpent: 0,
+    uses: {},
+    concentration: null,
   }
 }
 
@@ -810,13 +841,50 @@ function storedBackground(raw: StoredBackground | undefined): BackgroundRef | un
   return background
 }
 
+/** A whole number of at least 0, or `fallback` for anything else a file might hold. */
+function count(value: unknown, fallback = 0): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? Math.trunc(value)
+    : fallback
+}
+
+/** The counts of a record (`{ d8: 2 }`), leaving out every entry that is not one. */
+function counts(value: unknown): Record<string, number> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([key, spent]): [string, number][] => {
+      const n = count(spent, -1)
+      return n >= 0 ? [[key, n]] : []
+    }),
+  )
+}
+
+/** The play state of a stored document: every field checked, every missing one defaulted. */
 function normalizePlay(raw: Partial<PlayState> | undefined): PlayState {
   const base = defaultPlayState()
+  const saves = raw?.deathSaves
+  const concentration = raw?.concentration
   return {
-    ...base,
-    ...raw,
-    deathSaves: { ...base.deathSaves, ...raw?.deathSaves },
-    conditions: Array.isArray(raw?.conditions) ? raw.conditions : base.conditions,
+    damage: count(raw?.damage),
+    tempHp: count(raw?.tempHp),
+    deathSaves: { successes: count(saves?.successes), failures: count(saves?.failures) },
+    conditions: Array.isArray(raw?.conditions)
+      ? raw.conditions.filter((name) => typeof name === 'string')
+      : base.conditions,
+    exhaustion: count(raw?.exhaustion),
+    inspiration: raw?.inspiration === true,
+    hitDiceSpent: counts(raw?.hitDiceSpent),
+    slotsSpent: Array.isArray(raw?.slotsSpent)
+      ? raw.slotsSpent.map((spent) => count(spent))
+      : base.slotsSpent,
+    pactSpent: count(raw?.pactSpent),
+    uses: counts(raw?.uses),
+    concentration:
+      concentration &&
+      typeof concentration.name === 'string' &&
+      typeof concentration.source === 'string'
+        ? { name: concentration.name, source: concentration.source }
+        : null,
   }
 }
 

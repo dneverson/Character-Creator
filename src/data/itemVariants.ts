@@ -252,6 +252,7 @@ export function applyVariant(template: Item, base: Item): Item {
     armor,
     attunement: template.attunement,
     bonuses: [...base.bonuses, ...template.bonuses],
+    speed: template.speed ?? base.speed,
     charges: template.charges,
     spells: [...base.spells, ...template.spells],
     traits: [...base.traits, ...template.traits],

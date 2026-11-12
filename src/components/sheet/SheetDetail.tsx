@@ -96,34 +96,40 @@ export function useSheetRowDetail(scope: string): DetailTarget {
   }
 }
 
-/** The heading and the tables of a breakdown, in whichever detail pane style is set. */
-function BreakdownDetail({ breakdown }: { breakdown: Breakdown }) {
+/** A heading and its body, drawn in whichever detail pane style is set. */
+export function PaneFrame({ title, children }: { title: string; children: ReactNode }) {
   const style = useDetailStyle()
-  // A row's detail brings its own heading, drawn in the same style.
-  if (breakdown.content) return <>{breakdown.content}</>
-  const tables = (
-    <div className="d-flex flex-column gap-3">
-      {breakdown.tables.map((table) => (
-        <DerivedTable key={table.ariaLabel} {...table} aligned />
-      ))}
-    </div>
-  )
   if (style === 'standard') {
     return (
       <div className="p-3">
-        <EntryHeading name={breakdown.title} tags={[]} className="mb-3" />
-        {tables}
+        <EntryHeading name={title} tags={[]} className="mb-3" />
+        {children}
       </div>
     )
   }
   return (
     <div className="entry-book p-3">
       <div className="entry-book__head">
-        <h5 className="entry-book__title">{breakdown.title}</h5>
+        <h5 className="entry-book__title">{title}</h5>
       </div>
       <hr className="entry-book__rule" />
-      {tables}
+      {children}
     </div>
+  )
+}
+
+/** The heading and the tables of a breakdown, in whichever detail pane style is set. */
+function BreakdownDetail({ breakdown }: { breakdown: Breakdown }) {
+  // A row's detail brings its own heading, drawn in the same style.
+  if (breakdown.content) return <>{breakdown.content}</>
+  return (
+    <PaneFrame title={breakdown.title}>
+      <div className="d-flex flex-column gap-3">
+        {breakdown.tables.map((table) => (
+          <DerivedTable key={table.ariaLabel} {...table} aligned />
+        ))}
+      </div>
+    </PaneFrame>
   )
 }
 

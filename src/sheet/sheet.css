@@ -48,11 +48,28 @@
   grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 .sheet-vitals {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.sheet-top {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'abilities' 'vitals' 'hp' 'play';
+}
+.sheet-abilities {
+  grid-area: abilities;
+}
+.sheet-vitals {
+  grid-area: vitals;
+}
+.sheet-hp {
+  grid-area: hp;
+}
+.sheet-play {
+  grid-area: play;
 }
 @media (min-width: 1200px) {
   .sheet-top {
-    grid-template-columns: 6fr 4fr;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
+    grid-template-areas: 'abilities vitals' 'play hp';
   }
 }
 
@@ -222,22 +239,28 @@
   .sheet-top {
     display: contents;
   }
-  .sheet-vitals {
+  .sheet-hp {
     order: 1;
     position: sticky;
     top: var(--app-navbar-height, 3.5rem);
     z-index: 5;
-    padding: 0.25rem 0;
     margin-bottom: 0.5rem;
-    background: var(--sheet-page-bg);
+  }
+  .sheet-vitals {
+    order: 2;
+    margin-bottom: 0.5rem;
   }
   .sheet-abilities {
-    order: 2;
+    order: 3;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     margin-bottom: 0.5rem;
   }
+  .sheet-play {
+    order: 4;
+    margin-bottom: 0.5rem;
+  }
   .sheet-main {
-    order: 3;
+    order: 5;
   }
 }
 
@@ -335,4 +358,136 @@
 /* Over the sheet on a tablet or a phone: 420px wide, the whole screen when that is less. */
 .sheet-detail-overlay.offcanvas {
   --bs-offcanvas-width: min(420px, 100vw);
+}
+
+/* The hit points box: the numbers, the temporary hit points, and one amount with its buttons. */
+.sheet-hp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  text-align: left;
+}
+.sheet-hp__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.sheet-hp__temp {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+}
+.sheet-hp__temp input {
+  width: 4.5rem;
+}
+.sheet-hp__numbers {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.25rem;
+  font-family: var(--sheet-number-font);
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+.sheet-hp__numbers .derived-number__value {
+  min-width: 2ch;
+}
+.sheet-hp__numbers .derived-number__info {
+  flex-basis: 1.5rem;
+  width: 1.5rem;
+  font-size: 0.85rem;
+}
+.sheet-hp__controls {
+  display: flex;
+  gap: 0.35rem;
+}
+.sheet-hp__controls input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.sheet-hp__state {
+  color: var(--sheet-accent-ink);
+}
+
+/* The play strip: rows of small groups that wrap. */
+.sheet-play {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.sheet-play__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+}
+.sheet-play__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.sheet-play__level {
+  min-width: 1.2ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.sheet-icon-btn {
+  padding: 0.1rem 0.4rem;
+  line-height: 1.2;
+}
+.sheet-play .form-check {
+  margin: 0;
+}
+
+/* Slot and death save pips: real buttons, solid when there (a slot left, a save marked). */
+.sheet-slots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
+}
+.sheet-slots__level {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sheet-slots__name {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: var(--sheet-label-transform);
+  font-variant: var(--sheet-label-variant);
+  color: var(--sheet-muted-ink);
+}
+.sheet-pips {
+  display: inline-flex;
+  gap: 0.45rem;
+}
+.sheet-pip {
+  position: relative;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  border: 2px solid var(--sheet-ink);
+  border-radius: 50%;
+  background: transparent;
+}
+.sheet-pip::after {
+  content: '';
+  position: absolute;
+  inset: -0.3rem;
+}
+.sheet-pip--filled {
+  border-color: var(--sheet-accent);
+  background: var(--sheet-accent);
+}
+.sheet-pip:focus-visible {
+  outline: 2px solid var(--sheet-accent);
+  outline-offset: 2px;
+}
+
+/* The number field of a hit die roll in the short rest window. */
+.sheet-rest__roll {
+  width: 6rem;
 }

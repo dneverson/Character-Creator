@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { deriveSheet } from '.'
+import type { Item } from '../data/items'
 import type { PlayableRace } from '../data/race'
 import { build, deps, featOf, loadedClass, stack } from '../test/derivedFixtures'
+import { makeItem } from '../test/itemFixtures'
 import { characterEdition } from './edition'
 import { hitDice } from './hitDice'
 import { senseRows } from './senses'
@@ -96,6 +98,151 @@ describe('speed', () => {
     const c = build('Barbarian', 1, {}, [])
     expect(speedQuantity(sourcesOf(c, [barbarian], elf, ['Mobile|PHB'])).value).toBe(45)
     expect(speedQuantity(sourcesOf(c, [barbarian], elf, ['Speedy|XPHB'])).value).toBe(45)
+  })
+})
+
+describe('speed from items', () => {
+  const attune = { required: true, optional: false, classes: [] }
+  const speedItem = (
+    name: string,
+    source: string,
+    speed: Partial<NonNullable<Item['speed']>>,
+    extra: Partial<Item> = {},
+  ) =>
+    makeItem({
+      name,
+      source,
+      kind: 'wondrous',
+      speed: { static: {}, equal: {}, bonus: {}, multiply: {}, ...speed },
+      ...extra,
+    })
+  const striding = speedItem(
+    'Boots of Striding and Springing',
+    'DMG',
+    { static: { walk: 30 } },
+    { attunement: attune },
+  )
+  const bootsOfSpeed = speedItem(
+    'Boots of Speed',
+    'XDMG',
+    { multiply: { walk: 2 } },
+    { attunement: attune },
+  )
+  const slippers = speedItem(
+    'Slippers of Spider Climbing',
+    'DMG',
+    { equal: { climb: 'walk' } },
+    { attunement: attune },
+  )
+  const ring = speedItem('Ring of Swimming', 'XDMG', { static: { swim: 40 } })
+  const wings = speedItem(
+    'Wings of Flying',
+    'XDMG',
+    { static: { fly: 60 } },
+    { attunement: attune },
+  )
+  const pennant = speedItem('Pennant of the Vind Rune', 'SKT', { bonus: { '*': 5 } })
+  const whistle = speedItem('Eagle Whistle', 'TftYP', {
+    equal: { fly: 'walk' },
+    multiply: { fly: 2 },
+  })
+  const catalog = [striding, bootsOfSpeed, slippers, ring, wings, pennant, whistle]
+  const dwarf: PlayableRace = { ...elf, name: 'Dwarf', speed: 25 }
+  const held = (name: string, source: string, attuned = true) =>
+    stack(name, { source, attuned })
+  const speedOf = (race: PlayableRace, ...stacks: ReturnType<typeof stack>[]) => {
+    const c = build('Barbarian', 1, {}, stacks)
+    return speedQuantity(collectSources(c, { ...deps([barbarian], catalog), race }))
+  }
+
+  it('raises a walking speed below 30 to 30 with Boots of Striding and Springing', () => {
+    const speed = speedOf(dwarf, held('Boots of Striding and Springing', 'DMG'))
+    expect(speed.value).toBe(30)
+    expect(speed.lines.at(-1)).toMatchObject({
+      label: 'Boots of Striding and Springing',
+      source: { kind: 'item' },
+      amount: 5,
+      status: 'applied',
+    })
+  })
+
+  it('leaves a walking speed of 30 or more alone, and says why', () => {
+    const speed = speedOf(elf, held('Boots of Striding and Springing', 'DMG'))
+    expect(speed.value).toBe(35)
+    expect(speed.lines.at(-1)).toMatchObject({
+      status: 'inactive',
+      why: 'Your walking speed is already 30 ft. or more.',
+    })
+  })
+
+  it('needs the attunement the item asks for', () => {
+    const speed = speedOf(dwarf, held('Boots of Striding and Springing', 'DMG', false))
+    expect(speed.value).toBe(25)
+    expect(speed.lines.at(-1)).toMatchObject({
+      status: 'inactive',
+      why: 'Needs attunement, and you are not attuned.',
+    })
+  })
+
+  it('shows the doubling of Boots of Speed as holding only while the heels are clicked', () => {
+    const speed = speedOf(elf, held('Boots of Speed', 'XDMG'))
+    expect(speed.value).toBe(35)
+    expect(speed.lines.at(-1)).toMatchObject({
+      amount: 35,
+      status: 'conditional',
+      when: "while the boots' heels are clicked together (a Bonus Action)",
+    })
+  })
+
+  it('gives a climb speed equal to the walking speed and a swim speed of its own', () => {
+    const speed = speedOf(
+      dwarf,
+      held('Boots of Striding and Springing', 'DMG'),
+      held('Slippers of Spider Climbing', 'DMG'),
+      stack('Ring of Swimming', { source: 'XDMG' }),
+    )
+    const notes = speed.lines.filter((l) => l.source.kind === 'item' && l.op === 'note')
+    expect(notes.map((l) => [l.label, l.status, l.how])).toEqual([
+      ['Climb 30 ft.', 'applied', 'Equal to your walking speed'],
+      ['Swim 40 ft.', 'applied', undefined],
+    ])
+  })
+
+  it('shows a fly speed that needs an action as holding only after it', () => {
+    const speed = speedOf(elf, held('Wings of Flying', 'XDMG'))
+    expect(speed.lines.at(-1)).toMatchObject({
+      label: 'Fly 60 ft.',
+      op: 'note',
+      status: 'conditional',
+    })
+  })
+
+  it('adds a bonus to every speed, and multiplies a speed equal to walking', () => {
+    const bonus = speedOf(elf, stack('Pennant of the Vind Rune', { source: 'SKT' }))
+    expect(bonus.lines.at(-1)).toMatchObject({
+      amount: 5,
+      how: '5 ft. to every speed',
+      status: 'conditional',
+    })
+    const whistled = speedOf(elf, stack('Eagle Whistle', { source: 'TftYP' }))
+    expect(whistled.lines.at(-1)).toMatchObject({
+      label: 'Fly 70 ft.',
+      how: 'Walking speed times 2',
+    })
+  })
+
+  it('names a multiplied speed the character may not have', () => {
+    const odd = speedItem('Odd Charm', 'PHB', { multiply: { swim: 2 } })
+    const c = build('Barbarian', 1, {}, [stack('Odd Charm')])
+    const speed = speedQuantity(
+      collectSources(c, { ...deps([barbarian], [odd]), race: elf }),
+    )
+    expect(speed.lines.at(-1)?.label).toBe('Swim speed times 2')
+  })
+
+  it('needs a species to move at all', () => {
+    const c = build('Barbarian', 1, {}, [held('Boots of Striding and Springing', 'DMG')])
+    expect(speedQuantity(collectSources(c, deps([barbarian], catalog))).lines).toEqual([])
   })
 })
 

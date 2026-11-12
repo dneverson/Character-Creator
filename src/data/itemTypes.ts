@@ -62,6 +62,21 @@ export interface Bonus {
   value: string
 }
 
+/**
+ * How an item changes the ways its bearer moves, as the data states it (`modifySpeed`),
+ * each by way of moving ("walk", "fly", or "*" for every one).
+ */
+export interface ItemSpeedChange {
+  /** The speed becomes this many feet, unless it is already higher. */
+  static: Record<string, number>
+  /** The speed equals another of the bearer's speeds: { climb: "walk" }. */
+  equal: Record<string, string>
+  /** Feet added. */
+  bonus: Record<string, number>
+  /** The speed is multiplied. */
+  multiply: Record<string, number>
+}
+
 /** A spell an item holds, and how it can be cast. */
 export interface AttachedSpell {
   name: string
@@ -193,6 +208,8 @@ export interface Item {
   /** A firearm, for the proficiency with firearms. */
   firearm?: true
   bonuses: Bonus[]
+  /** What the item does to the bearer's speeds, when it does anything. */
+  speed?: ItemSpeedChange
   charges?: ItemCharges
   spells: AttachedSpell[]
   container?: ItemContainer
