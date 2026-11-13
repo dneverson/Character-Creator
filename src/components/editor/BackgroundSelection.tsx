@@ -21,6 +21,7 @@ import { useAsyncData } from '../../hooks/useAsyncData'
 import { NonStandardBadge } from '../NonStandardBadge'
 import { PickOne } from '../table/PickOne'
 import { AbilityOptionPicker } from './AbilityOptionPicker'
+import { OriginIncreaseFlags } from './OriginIncreaseFlags'
 import { NotInBooksAlert } from './NotInBooksAlert'
 import { SubSection } from './SubSection'
 import {
@@ -149,6 +150,7 @@ export function BackgroundSelection() {
                 {editionMix(character) && (
                   <NonStandardBadge reason={EDITION_MIX_REASON} />
                 )}
+                <OriginIncreaseFlags character={character} background={picked} />
               </div>
               {picked.abilityOptions.length > 0 ? (
                 <AbilityOptionPicker

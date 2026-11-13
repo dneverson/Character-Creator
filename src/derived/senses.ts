@@ -1,6 +1,7 @@
-// The senses a character has, each a Quantity of its range in feet. A species and a feat
-// give a sense outright (the largest range is used; the others show as not used); a bonus
-// sense (Keenness of the Stone Giant) adds to it.
+// The senses a character has, each a Quantity of its range in feet. A species, a feat, a
+// feature or an option gives a sense outright (the largest range is used; the others show
+// as not used); a bonus sense (Keenness of the Stone Giant) adds to it, and so does a
+// feature that grows a sense the character already has (Umbral Sight).
 
 import { SENSE_RULES } from '../rules/senseRules'
 import { titleCase } from '../text/titleCase'
@@ -20,6 +21,7 @@ interface Given {
   bonus: boolean
   label: string
   text?: string
+  how?: string
 }
 
 /** The sense blocks of the data ({ darkvision: 60 }) as ranges. */
@@ -53,13 +55,27 @@ function givenSenses(sources: Sources): Given[] {
   for (const rule of SENSE_RULES) {
     const held = heldBy(sources, rule.holder)
     if (!held) continue
+    const increase = rule.increase
+    const had =
+      increase &&
+      given.some(
+        (g) =>
+          g.sense === rule.sense &&
+          !g.bonus &&
+          (!increase.fromRace || g.source.kind === 'race'),
+      )
     given.push({
       sense: rule.sense,
-      range: rule.range,
+      range: had ? increase.range : rule.range,
       source: held.source,
-      bonus: false,
+      bonus: had === true,
       label: rule.label,
       text: rule.text,
+      ...(had
+        ? {
+            how: `${increase.range} ft. more, as you already have ${rule.sense}${increase.fromRace ? ' from your species' : ''}`,
+          }
+        : {}),
     })
   }
   return given
@@ -78,6 +94,7 @@ export function senseRows(sources: Sources): SenseRow[] {
         source: g.source,
         amount: g.range,
         ...(g.text ? { text: g.text } : {}),
+        ...(g.how ? { how: g.how } : {}),
       }
       if (g.bonus) return { ...base, op: 'add', status: 'applied' }
       if (g.range === best && !used) {

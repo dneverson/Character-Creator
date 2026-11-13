@@ -21,6 +21,7 @@ import {
 import { sharedKinds } from '../data/grants'
 import type { PlayableBackground } from '../data/background'
 import type { PlayableRace } from '../data/race'
+import type { ClassEntryScores } from '../rules/compliance'
 import type { Entry } from '../text/Entries'
 import type { Character, FeatChoice } from './model'
 import type { SkillSource } from './skills'
@@ -42,6 +43,8 @@ export interface FeatSlot {
   preferred: string[]
   /** Class level the slot is gained at (1 for race/background, 0 for bonus). */
   level: number
+  /** For a class slot: the index of its class in the build. */
+  classIndex?: number
 }
 
 export type FeatFlagKind =
@@ -168,6 +171,7 @@ function classSlots(character: Character, classByKey: Map<string, LoadedClass>) 
           label: `${c.name} level ${f.level} - ${f.name}`,
           origin: 'class',
           level: f.level,
+          classIndex,
           ...kind,
         },
       })
@@ -451,4 +455,29 @@ export function resolveFeats(character: Character, ctx: FeatContext): FeatSummar
   })
 
   return { slots, abilityBonus, hp, skillSources }
+}
+
+/** Whether a slot is gained before the class at `classIndex` is taken. */
+const gainedBefore = (slot: FeatSlot, classIndex: number) =>
+  slot.origin === 'race' ||
+  slot.origin === 'background' ||
+  (slot.origin === 'class' && slot.level === 1 && (slot.classIndex ?? 0) < classIndex)
+
+/**
+ * The scores each class was taken with, by class index. The build keeps no record of
+ * the order its levels were gained in, so this follows the order the slots are gained
+ * in: every class's level 1, in class order, before any class's level 2. Class `k` is
+ * then taken at character level k + 1, after the race and background slots and the
+ * level 1 slots of the classes before it. Bonus slots, which have no level, never count.
+ */
+export function classEntryScores(
+  character: Character,
+  summary: FeatSummary,
+): ClassEntryScores[] {
+  return character.classes.map((_, k) => {
+    const bonus: Partial<Record<AbilityKey, number>> = {}
+    for (const r of summary.slots)
+      if (gainedBefore(r.slot, k)) addInto(bonus, r.increases)
+    return { characterLevel: k + 1, totals: characterAbilityTotals(character, bonus) }
+  })
 }

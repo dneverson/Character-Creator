@@ -1,10 +1,11 @@
 // Each skill's modifier as a Quantity: the ability modifier, the proficiency bonus (with
 // the source that grants it), expertise (the bonus a second time), and the half-proficiency
-// bonus of Jack of All Trades or Remarkable Athlete where it applies.
+// bonus of Jack of All Trades or Remarkable Athlete where it applies, and an item's bonus
+// to ability checks (Stone of Good Luck).
 
 import { abilityMod } from '../dice/dice'
 import type { SkillRow, SkillSource } from '../character/skills'
-import { halfLines, halfRules } from './combat'
+import { halfLines, halfRules, itemCheckLines } from './combat'
 import type { AbilityTotals } from './armorClass'
 import type { Sources } from './sources'
 import { BASE_SOURCE, quantity, type Line, type SourceRef, type Quantity } from './types'
@@ -68,6 +69,7 @@ export function skillTotals(
         halfRules(sources, prof, `skill|${row.key}`, row.ability),
         row.proficient,
       ),
+      ...itemCheckLines(sources, `skill|${row.key}`),
     )
     return { ...row, total: quantity(lines) }
   })

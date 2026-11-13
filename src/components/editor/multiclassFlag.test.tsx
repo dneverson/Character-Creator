@@ -1,6 +1,8 @@
 // The multiclass prerequisite flag against the Ability Scores table, on the free rules
 // the site hosts: for a Druid and a Bard of either edition, in either order, the flag
-// is raised exactly when the Charisma the table shows is short of 13 or not assigned.
+// is raised exactly when the Charisma the second class was taken with is short of 13
+// or not assigned. That is the Charisma the table shows, less any increase gained
+// after it, such as a level 4 Ability Score Improvement.
 
 import { readFileSync } from 'node:fs'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
@@ -41,6 +43,8 @@ interface Way {
   label: string
   /** The Charisma the table shows, or null when it is not assigned. */
   cha: number | null
+  /** The scores at character level 2, when the second class is taken, where they differ. */
+  atEntry?: { cha: number; wis: number }
   build: (c: Character) => void
 }
 
@@ -102,6 +106,7 @@ const WAYS: Way[] = [
   {
     label: 'point buy 12 and the Druid level 4 Ability Score Improvement',
     cha: 13,
+    atEntry: { cha: 12, wis: 12 },
     build: (c) => {
       c.statMethod = 'pointbuy'
       c.abilities.cha.base = 12
@@ -197,18 +202,26 @@ describe('the multiclass flag against the Ability Scores table', () => {
       expect(shown).toBe(String(c.way.cha ?? 0))
       expect(screen.getByTestId('sheet-cha')).toHaveTextContent(String(c.way.cha ?? 0))
       const bardFlag = screen.queryByTestId(`multiclass-req:Bard|${c.bard}`)
-      if (c.way.cha === null) {
+      const druidFlag = screen.queryByTestId(`multiclass-req:Druid|${c.druid}`)
+      const cha = c.way.atEntry?.cha ?? c.way.cha
+      if (cha === null) {
         expect(bardFlag).toHaveTextContent(
           'Bard needs Charisma 13 to multiclass, Charisma is not set yet - allowed with DM approval.',
         )
-      } else if (c.way.cha < 13) {
+      } else if (cha < 13) {
         expect(bardFlag).toHaveTextContent(
-          `Bard needs Charisma 13 to multiclass, you have ${c.way.cha} - allowed with DM approval.`,
+          `Bard needs Charisma 13 to multiclass, you have ${cha} at character level 2 - allowed with DM approval.`,
         )
       } else {
         expect(bardFlag).toBeNull()
       }
-      expect(screen.queryByTestId(`multiclass-req:Druid|${c.druid}`)).toBeNull()
+      if (c.way.atEntry && c.way.atEntry.wis < 13) {
+        expect(druidFlag).toHaveTextContent(
+          `Druid needs Wisdom 13 to multiclass, you have ${c.way.atEntry.wis} at character level 2 - allowed with DM approval.`,
+        )
+      } else {
+        expect(druidFlag).toBeNull()
+      }
     },
   )
 })

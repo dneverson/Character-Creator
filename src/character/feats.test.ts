@@ -6,7 +6,13 @@ import { parseAbilityOptions } from '../data/abilityOptions'
 import type { PlayableRace } from '../data/race'
 import { makeFeat } from '../test/featFixtures'
 import { createCharacter, type Character, type ClassRef, type FeatChoice } from './model'
-import { featRuleFlags, featSlots, resolveFeats, type FeatContext } from './feats'
+import {
+  classEntryScores,
+  featRuleFlags,
+  featSlots,
+  resolveFeats,
+  type FeatContext,
+} from './feats'
 
 // ---- Fixtures ---------------------------------------------------------------
 
@@ -504,5 +510,54 @@ describe('resolveFeats', () => {
         choices: [],
       },
     ])
+  })
+})
+
+// ---- Scores at each class's entry -------------------------------------------
+
+describe('classEntryScores', () => {
+  const TWIN_SLOT = 'class:Twin|X:1:Ability Score Improvement'
+  const WIZARD_ASI = 'class:Wizard|XPHB:4:Ability Score Improvement'
+
+  it('counts only the slots gained before each class is taken', () => {
+    const c = character(
+      [
+        { name: 'Twin', source: 'X', level: 1 },
+        { name: 'Fighter', source: 'XPHB', level: 4 },
+        { name: 'Wizard', source: 'XPHB', level: 4 },
+      ],
+      {
+        [RACE_SLOT]: pick(grappler, { abilityChoices: { dex: 1 } }),
+        [TWIN_SLOT]: { kind: 'asi', abilityOption: 0, abilityChoices: { int: 2 } },
+        [ASI4_SLOT]: { kind: 'asi', abilityOption: 0, abilityChoices: { str: 2 } },
+        [WIZARD_ASI]: { kind: 'asi', abilityOption: 0, abilityChoices: { int: 2 } },
+      },
+      ['bonus:a'],
+    )
+    c.feats.choices['bonus:a'] = {
+      kind: 'asi',
+      abilityOption: 0,
+      abilityChoices: { wis: 2 },
+    }
+    for (const k of ['str', 'dex', 'int', 'wis'] as const) {
+      c.abilities[k] = { base: 12, other: 0 }
+    }
+    const summary = resolveFeats(
+      c,
+      ctx({ race: race([{ named: [], categories: 'any' }]) }),
+    )
+    const entries = classEntryScores(c, summary)
+    expect(entries.map((e) => e.characterLevel)).toEqual([1, 2, 3])
+    // The first class is taken with the race feat only.
+    expect(entries[0].totals).toMatchObject({ str: 12, dex: 13, int: 12, wis: 12 })
+    // The first class's level 1 ASI comes before the second class is taken.
+    expect(entries[1].totals).toMatchObject({ str: 12, dex: 13, int: 14, wis: 12 })
+    // The level 4 ASIs and the bonus feat come later, and never count.
+    expect(entries[2].totals).toMatchObject({ str: 12, dex: 13, int: 14, wis: 12 })
+    expect(summary.abilityBonus).toEqual({ str: 2, dex: 1, int: 4, wis: 2 })
+  })
+
+  it('has one entry per class and none without classes', () => {
+    expect(classEntryScores(character(), resolveFeats(character(), ctx()))).toEqual([])
   })
 })

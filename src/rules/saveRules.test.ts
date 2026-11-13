@@ -17,14 +17,8 @@ const SAVES_NOT_APPLIED: Record<string, string> = {
   'subclassFeature|Unfettered Mind|FRHoF|Cleric|Knowledge':
     'A reaction bonus, not a standing one.',
   'subclassFeature|Improved Circle Forms|XPHB|Druid|Moon': 'Only while in Wild Shape.',
-  'subclassFeature|Elegant Courtier|XGE|Fighter|Samurai':
-    'The choice of save depends on one made.',
   'classFeature|Strength of Mind|UATheMysticClass|Mystic':
     'Unearthed Arcana, not offered.',
-  'subclassFeature|Iron Mind|XGE|Ranger|Gloom Stalker':
-    'The choice of save depends on one made.',
-  'subclassFeature|Iron Mind|XPHB|Ranger|Gloom Stalker':
-    'The choice of save depends on one made.',
   "subclassFeature|Transmuter's Stone|PHB|Wizard|Transmutation":
     'A stone effect the player chooses.',
   "subclassFeature|Transmuter's Stone|AU|Wizard|Transmuter":

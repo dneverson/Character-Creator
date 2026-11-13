@@ -17,7 +17,8 @@ import {
 } from '../data/grants'
 import type { ClassEntry } from '../data/class'
 import type { GrantValue } from '../data/grants'
-import type { Sources } from './sources'
+import { SAVE_RULES } from '../rules/saveRules'
+import { heldBy, type Sources } from './sources'
 import type { SourceRef } from './types'
 
 /** The fields of a source that grant proficiencies other than skills. */
@@ -70,6 +71,8 @@ export interface GrantBlock {
   read: GrantRead
   /** Resilient: the saving throw is of the ability placed in the feat. */
   increases?: Partial<Record<string, number>>
+  /** A feature's own saving throw grant (Iron Mind): its choice has a card of its own. */
+  feature?: string
 }
 
 /** The lists of a class: the first class gives its starting lists, the others what a multiclass gains. */
@@ -159,7 +162,58 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
       increases,
     )
   }
+  featureSaveBlocks(sources, out)
   return out
+}
+
+/** Whether the grants so far, or a feature's own grant, give this saving throw. */
+function hasSave(sources: Sources, blocks: GrantBlock[], ability: string): boolean {
+  const granted = blocks.some(
+    (b) =>
+      b.field === 'savingThrowProficiencies' &&
+      (b.increases?.[ability] !== undefined ||
+        b.read.alternatives.some((a) => a.fixed.some((v) => v.key === ability))),
+  )
+  return (
+    granted ||
+    SAVE_RULES.some(
+      (r) =>
+        r.effect.kind === 'proficiency' &&
+        r.effect.abilities.some((a) => a === ability) &&
+        heldBy(sources, r.holder) !== undefined,
+    )
+  )
+}
+
+/**
+ * Iron Mind and its like: proficiency in Wisdom saving throws, or, when the character
+ * already has it, a choice of Intelligence or Charisma, read as the data would state it.
+ */
+function featureSaveBlocks(sources: Sources, out: GrantBlock[]) {
+  for (const rule of SAVE_RULES) {
+    const effect = rule.effect
+    if (effect.kind !== 'proficiencyOrChoice') continue
+    const held = heldBy(sources, rule.holder)
+    if (!held) continue
+    const tag = `${held.source.tag}|${rule.label}`
+    const blocks = hasSave(sources, out, effect.ability)
+      ? [{ choose: { from: effect.otherwise, count: 1 } }]
+      : [{ [effect.ability]: true }]
+    out.push({
+      id: `${tag}|savingThrowProficiencies`,
+      source: held.source,
+      card: {
+        tag,
+        label: `${held.source.label} · ${rule.label}`,
+        name: rule.label,
+        kind: 'class',
+      },
+      field: 'savingThrowProficiencies',
+      kind: 'save',
+      read: readGrant(blocks, 'save'),
+      feature: rule.label,
+    })
+  }
 }
 
 /** The alternative of a block the player took (the first until they choose). */

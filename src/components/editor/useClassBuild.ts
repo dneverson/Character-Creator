@@ -26,7 +26,7 @@ import {
 } from '../../data/class'
 import type { ClassRef } from '../../character/model'
 import { useActiveCharacter, useCharacterStore } from '../../character/store'
-import { characterAbilityTotals } from '../../character/derive'
+import { classEntryScores } from '../../character/feats'
 import { unassignedAbilities } from '../../character/stats'
 import { checkLevelCap, checkMulticlass, type Deviation } from '../../rules/compliance'
 import { useAsyncData } from '../../hooks/useAsyncData'
@@ -66,10 +66,10 @@ export function useClassBuild(): ClassBuild {
   const character = useActiveCharacter()
   const updateActive = useCharacterStore((s) => s.updateActive)
   const { data: loaded, error, loading } = useAsyncData(loadClasses)
-  // Multiclass prerequisites use current scores, feat increases included. Feat
-  // data loading or failing only leaves the bonus empty; the class build itself
-  // does not depend on it.
-  const featBonus = useFeatSummary().summary.abilityBonus
+  // Multiclass prerequisites use the scores each class was taken with, the feat
+  // increases gained before it included. Feat data loading or failing only leaves
+  // those increases out; the class build itself does not depend on it.
+  const featSummary = useFeatSummary().summary
 
   const selectedBooks = character?.selectedBooks
   const available = useMemo(() => {
@@ -180,14 +180,14 @@ export function useClassBuild(): ClassBuild {
     if (!character) {
       return { deviationByKey: new Map<string, Deviation>(), levelDeviations: [] }
     }
-    const totals = characterAbilityTotals(character, featBonus)
+    const entries = classEntryScores(character, featSummary)
     const unset = unassignedAbilities(character.abilities, character.statMethod)
-    const mc = checkMulticlass(classes, requirementsBySource, totals, unset)
+    const mc = checkMulticlass(classes, requirementsBySource, entries, unset)
     return {
       deviationByKey: new Map(mc.map((d) => [d.id, d])),
       levelDeviations: checkLevelCap(totalLevel),
     }
-  }, [character, classes, requirementsBySource, totalLevel, featBonus])
+  }, [character, classes, requirementsBySource, totalLevel, featSummary])
 
   return {
     loading,

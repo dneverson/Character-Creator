@@ -27,6 +27,7 @@ const NOUNS: Partial<Record<PickKind, string>> = {
   tool: 'tools',
   weapon: 'weapons',
   armor: 'kinds of armor',
+  save: 'saving throws',
 }
 
 /** Where a value already comes from, by lower-case label, for each kind the sheet lists. */
@@ -35,6 +36,7 @@ const LISTED: Partial<Record<PickKind, keyof ProficiencyListing>> = {
   tool: 'tool',
   weapon: 'weapon',
   armor: 'armor',
+  save: 'save',
 }
 
 interface Pool {
@@ -47,13 +49,12 @@ interface Pool {
 function poolsOf(blocks: GrantBlock[], choices: GrantChoices): Pool[] {
   const pools = new Map<string, Pool>()
   for (const block of blocks) {
-    // Resilient's saving throw follows the ability placed in the feat: no card.
-    if (block.field === 'savingThrowProficiencies') continue
+    // Resilient's saving throw follows the ability placed in the feat: no card. A
+    // feature's choice of saving throw (Iron Mind) has one.
+    if (block.field === 'savingThrowProficiencies' && !block.feature) continue
     for (const part of activeParts(block, choices)) {
       for (const spec of part.picks) {
-        const kinds = ownKinds(spec.kinds).filter(
-          (k) => k !== 'expertise' && k !== 'save',
-        )
+        const kinds = ownKinds(spec.kinds).filter((k) => k !== 'expertise')
         if (kinds.length === 0) continue
         const key = `${block.card.tag}|${kinds.join('-')}`
         const pool = pools.get(key) ?? { block, kinds, specs: [] }

@@ -14,6 +14,7 @@ import { useActiveCharacter, useCharacterStore } from '../../character/store'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { PickOne } from '../table/PickOne'
 import { AbilityOptionPicker } from './AbilityOptionPicker'
+import { OriginIncreaseFlags } from './OriginIncreaseFlags'
 import { EditorSection } from './EditorSection'
 import { NotInBooksAlert } from './NotInBooksAlert'
 import {
@@ -112,7 +113,10 @@ export function RaceSelection() {
         >
           {picked && race && (
             <div className="mt-3">
-              <h4 className="h6">Ability score increases</h4>
+              <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h4 className="h6 mb-0">Ability score increases</h4>
+                <OriginIncreaseFlags character={character} race={picked} />
+              </div>
               {picked.abilityOptions.length > 0 ? (
                 <AbilityOptionPicker
                   id="race-ability"

@@ -357,6 +357,32 @@ describe('SheetView speed, senses and rules', () => {
     ).toBeInTheDocument()
     await settle()
   })
+
+  it('shows what exhaustion does to the speed, as a line naming it', async () => {
+    const user = userEvent.setup()
+    setWide()
+    const c = seed()
+    c.play = { ...c.play, exhaustion: 2 }
+    vi.mocked(loadRaces).mockResolvedValue([
+      {
+        key: 'dwarf|phb',
+        name: 'Dwarf',
+        baseName: 'Dwarf',
+        source: 'PHB',
+        speed: 25,
+        abilityOptions: [],
+        featGrants: [],
+      },
+    ])
+    renderSheet()
+    const speed = await screen.findByRole('group', { name: 'Speed' })
+    await waitFor(() => expect(within(speed).getByText('12')).toBeInTheDocument())
+    await user.click(within(speed).getByRole('button', { name: 'How Speed adds up' }))
+    const pane = document.querySelector('.data-table-detail') as HTMLElement
+    expect(within(pane).getByText('Exhaustion 2')).toBeInTheDocument()
+    expect(within(pane).getByText('Speed halved')).toBeInTheDocument()
+    await settle()
+  })
 })
 
 describe('SheetView breakdowns', () => {

@@ -12,8 +12,13 @@ import type { Item } from '../data/items'
 import { totalLevel } from '../character/derive'
 import { proficiencyBonus } from '../data/skills'
 import { hpBreakdown } from '../character/hp'
-import { resolveFeats } from '../character/feats'
-import { checkMulticlass, checkLevelCap, type Deviation } from '../rules/compliance'
+import { classEntryScores, resolveFeats } from '../character/feats'
+import {
+  checkLevelCap,
+  checkMulticlass,
+  checkOriginIncreases,
+  type Deviation,
+} from '../rules/compliance'
 import { multiclassRequirements, type MulticlassRequirements } from '../data/class'
 import { unassignedAbilities } from '../character/stats'
 import { deriveSheet, type DerivedSheet } from '../derived'
@@ -114,8 +119,14 @@ function summarize(character: Character, deps: SheetDeps) {
   }
   const unset = unassignedAbilities(character.abilities, character.statMethod)
   const deviations: Deviation[] = [
-    ...checkMulticlass(character.classes, reqBySource, totals, unset),
+    ...checkMulticlass(
+      character.classes,
+      reqBySource,
+      classEntryScores(character, feats),
+      unset,
+    ),
     ...checkLevelCap(level),
+    ...checkOriginIncreases(character, deps.race, deps.background),
   ]
 
   return {

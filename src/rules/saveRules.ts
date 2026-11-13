@@ -1,6 +1,7 @@
 // What changes a saving throw that the data gives in text only: the saving throw
-// proficiencies a class feature grants (Diamond Soul, Slippery Mind) and the bonus an aura
-// adds to every save (Aura of Protection). The saving throws a class starts with and a feat
+// proficiencies a class feature grants (Diamond Soul, Slippery Mind, and Iron Mind, whose
+// save is the player's choice when its own is already had) and the bonus an aura adds to
+// every save (Aura of Protection). The saving throws a class starts with and a feat
 // such as Resilient grants are data and are read from it. Each row names its holder, so the
 // audit in saveRules.test.ts can tell a feature that is covered from one a book added.
 
@@ -12,6 +13,11 @@ export type SaveEffect =
   | { kind: 'proficiency'; abilities: readonly AbilityKey[] }
   /** The modifier of an ability added to every saving throw, at least `min`. */
   | { kind: 'abilityMod'; ability: AbilityKey; min: number }
+  /**
+   * Proficiency in one ability's saving throws; when the character already has it, one of
+   * `otherwise` instead, the player's choice (Iron Mind).
+   */
+  | { kind: 'proficiencyOrChoice'; ability: AbilityKey; otherwise: readonly AbilityKey[] }
 
 export interface SaveRule {
   holder: Holder
@@ -23,6 +29,19 @@ export interface SaveRule {
 const classFeature = (className: string, source: string, name: string): Holder => ({
   classFeature: { className, source, name },
 })
+
+const subclassFeature = (
+  className: string,
+  shortName: string,
+  source: string,
+  name: string,
+): Holder => ({ subclassFeature: { className, shortName, source, name } })
+
+const WIS_OR_INT_CHA: SaveEffect = {
+  kind: 'proficiencyOrChoice',
+  ability: 'wis',
+  otherwise: ['int', 'cha'],
+}
 
 const ALL: readonly AbilityKey[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
 
@@ -62,5 +81,23 @@ export const SAVE_RULES: readonly SaveRule[] = [
     label: 'Aura of Protection',
     text: 'Aura of Protection: you add your Charisma modifier (minimum +1) to every saving throw you make.',
     effect: { kind: 'abilityMod', ability: 'cha', min: 1 },
+  },
+  {
+    holder: subclassFeature('Ranger', 'Gloom Stalker', 'XGE', 'Iron Mind'),
+    label: 'Iron Mind',
+    text: 'Iron Mind: you gain proficiency in Wisdom saving throws. If you already have this proficiency, you instead gain proficiency in Intelligence or Charisma saving throws (your choice).',
+    effect: WIS_OR_INT_CHA,
+  },
+  {
+    holder: subclassFeature('Ranger', 'Gloom Stalker', 'XPHB', 'Iron Mind'),
+    label: 'Iron Mind',
+    text: 'Iron Mind: you gain proficiency in Wisdom saving throws. If you already have this proficiency, you instead gain proficiency in Intelligence or Charisma saving throws (your choice).',
+    effect: WIS_OR_INT_CHA,
+  },
+  {
+    holder: subclassFeature('Fighter', 'Samurai', 'XGE', 'Elegant Courtier'),
+    label: 'Elegant Courtier',
+    text: 'Elegant Courtier: you gain proficiency in Wisdom saving throws. If you already have this proficiency, you instead gain proficiency in Intelligence or Charisma saving throws (your choice).',
+    effect: WIS_OR_INT_CHA,
   },
 ]

@@ -24,6 +24,20 @@ describe('play rules', () => {
     expect(exhaustionEffects('one', 6)).toEqual(['Death'])
     expect(exhaustionEffects('one', 0)).toEqual([])
   })
+
+  it('lists the conditions that make the speed 0 per edition', () => {
+    const names = (edition: 'classic' | 'one') =>
+      PLAY_RULES[edition].speedZero.map((r) => r.condition)
+    expect(names('classic')).toContain('Stunned')
+    expect(names('one')).not.toContain('Stunned')
+    expect(names('one')).toEqual([
+      'Grappled',
+      'Paralyzed',
+      'Petrified',
+      'Restrained',
+      'Unconscious',
+    ])
+  })
 })
 
 describe.skipIf(!dataDir)('play rules against the data', () => {
@@ -65,5 +79,29 @@ describe.skipIf(!dataDir)('play rules against the data', () => {
     expect(text).toContain(`reduced by ${rule.d20Test} times your Exhaustion level`)
     expect(text).toContain(`equal to ${rule.speedFeet} times your Exhaustion level`)
     expect(text).toContain(`if your Exhaustion level is ${rule.deathAt}`)
+  })
+
+  it('changes the 2014 numbers at the levels the table names', () => {
+    const rule = PLAY_RULES.classic.exhaustion
+    expect(rule.kind).toBe('levels')
+    if (rule.kind !== 'levels') return
+    expect(rule.effects[rule.speedHalvedAt - 1]).toBe('Speed halved')
+    expect(rule.effects[rule.hpMaxHalvedAt - 1]).toBe('Hit point maximum halved')
+    expect(rule.effects[rule.speedZeroAt - 1]).toBe('Speed reduced to 0')
+  })
+
+  it('stops exactly the conditions whose text makes the speed 0, in each printing', () => {
+    const STOPS = /Speed is 0 and can't increase|speed becomes 0|can't move/i
+    for (const rules of Object.values(PLAY_RULES)) {
+      const stopping = conditions
+        .filter((r) => r.record.source === rules.conditionSource)
+        .filter((r) => STOPS.test(textOf(r.record)))
+        .map((r) => String(r.record.name))
+        .sort()
+      expect(rules.speedZero.map((r) => r.condition)).toEqual(stopping)
+      for (const { condition, text } of rules.speedZero) {
+        expect(textOf(find(condition, rules.conditionSource) ?? {})).toContain(text)
+      }
+    }
   })
 })

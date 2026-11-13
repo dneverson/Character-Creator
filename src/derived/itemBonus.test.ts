@@ -34,4 +34,12 @@ describe.skipIf(!dataDir)('item bonus fields against the data', () => {
     }
     expect([...keys].filter((k) => !(k in BONUS_LABELS))).toEqual([])
   })
+
+  it('reads every bonus to ability checks as a number, so the checks count it', () => {
+    const unread = records(dataDir ?? '')
+      .filter(({ collection }) => ['item', 'magicvariant'].includes(collection))
+      .map(({ record }) => record.bonusAbilityCheck)
+      .filter((value) => value !== undefined && !Number.isFinite(Number(value)))
+    expect(unread).toEqual([])
+  })
 })

@@ -24,6 +24,7 @@ import { ABILITY_NAMES } from '../dice/dice'
 import { SAVE_RULES } from '../rules/saveRules'
 import { MANUAL_TAG, picksOf } from '../character/picks'
 import {
+  activeParts,
   classGrantBlocks,
   grantBlocks,
   grantState,
@@ -195,6 +196,21 @@ export function proficiencies(
     for (const [key, tag] of Object.entries(picksOf(choices.picks, kind))) {
       give({ kind, key }, tagSources.get(tag) ?? NON_STANDARD)
     }
+  }
+  // A saving throw pick counts while its feature offers the choice: Iron Mind offers it
+  // only when the character already has its Wisdom save.
+  const saveChoosers = new Map(
+    blocks
+      .filter(
+        (b) =>
+          b.feature !== undefined &&
+          activeParts(b, choices).some((p) => p.picks.length > 0),
+      )
+      .map((b) => [b.card.tag, b.source]),
+  )
+  for (const [key, tag] of Object.entries(picksOf(choices.picks, 'save'))) {
+    const source = saveChoosers.get(tag)
+    if (source) give({ kind: 'save', key }, source)
   }
   for (const grant of PROFICIENCY_GRANTS) {
     const held = heldBy(sources, grant.holder)

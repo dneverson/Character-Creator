@@ -1,16 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { dataDir, records, recordId, textOf, type Rec } from '../test/dataAudit'
+import { dataDir, findIds, records, recordId, textOf, type Rec } from '../test/dataAudit'
 import { holderId } from './holder'
 import { SENSE_RULES } from './senseRules'
 import { ITEM_SPEED_WHEN, SPEED_RULES } from './speedRules'
 
 describe('speed and sense rules', () => {
   it('name each holder once, with a rule in words', () => {
-    for (const rules of [SPEED_RULES, SENSE_RULES]) {
-      const ids = rules.map((r) => holderId(r.holder))
-      expect(new Set(ids).size).toBe(ids.length)
-      for (const rule of rules) expect(rule.text.startsWith(rule.label)).toBe(true)
-    }
+    // A feature may give two senses (Power of Shadow), one row each.
+    const keys = [
+      ...SPEED_RULES.map((r) => holderId(r.holder)),
+      ...SENSE_RULES.map((r) => `${holderId(r.holder)}|${r.sense}`),
+    ]
+    expect(new Set(keys).size).toBe(keys.length)
+    for (const rule of [...SPEED_RULES, ...SENSE_RULES])
+      expect(rule.text.startsWith(rule.label)).toBe(true)
   })
 })
 
@@ -75,5 +78,66 @@ describe.skipIf(!dataDir)('item speed changes against the data', () => {
   it('name only items that change speed', () => {
     const named = [...Object.keys(ITEM_SPEED_WHEN), ...Object.keys(ITEM_SPEED_ALWAYS)]
     expect(named.filter((key) => !speedItems.has(key))).toEqual([])
+  })
+})
+
+/** What the books say about a sense with a range, or seeing in the dark. */
+const GIVES_SENSE =
+  /(darkvision|blindsight|truesight|tremorsense)[^.]{0,50}\d+ ?(feet|foot|ft)|see normally in (darkness|dim light)/i
+
+/** Sense grants the sheet deliberately does not count, each with the reason. */
+const SENSES_NOT_APPLIED: Readonly<Record<string, string>> = {
+  'subclassFeature|Aspect of the Wilds|XPHB|Barbarian|Wild Heart':
+    'Darkvision comes with the Owl, one of three options chosen again at each long rest.',
+  'subclassFeature|Visage of the Astral Self|TCE|Monk|Astral Self':
+    'Holds only while the astral visage is summoned (a bonus action, for 10 minutes).',
+  'subclassFeature|Mortal Bulwark|TCE|Paladin|Watchers':
+    'Truesight holds only for 1 minute after the bonus action that starts it.',
+  'subclassFeature|The Third Eye|PHB|Wizard|Divination':
+    'One benefit chosen as an action, until the next rest.',
+  'subclassFeature|The Third Eye|XPHB|Wizard|Diviner':
+    'One benefit chosen as a bonus action, until the next rest.',
+  'subclassFeature|Manifest Mind|TCE|Wizard|Scribes':
+    "The darkvision is the spectral mind's, not the character's.",
+  "subclassFeature|Transmuter's Stone|PHB|Wizard|Transmutation":
+    'A benefit chosen for the stone, given to whoever carries it.',
+  "subclassFeature|Transmuter's Stone|AU|Wizard|Transmuter":
+    'A benefit chosen for the stone, given to whoever carries it.',
+  'subclassFeature|Potent Stone|AU|Wizard|Transmuter':
+    'A benefit chosen for the stone, given to whoever carries it.',
+}
+
+describe.skipIf(!dataDir)('sense grants against the data', () => {
+  it('cover every feature and option that gives a sense', () => {
+    const rows = new Set(SENSE_RULES.map((r) => holderId(r.holder)))
+    const found = findIds(
+      dataDir ?? '',
+      ['classFeature', 'subclassFeature', 'optionalfeature'],
+      (text) => GIVES_SENSE.test(text),
+    )
+    const unknown = [...found].filter(
+      (id) => !rows.has(id) && !(id in SENSES_NOT_APPLIED),
+    )
+    expect(unknown).toEqual([])
+  })
+
+  it('find each feat that gives a sense in the data fields the sheet reads', () => {
+    const missing = records(dataDir ?? '')
+      .filter(
+        ({ collection, record }) =>
+          collection === 'feat' && GIVES_SENSE.test(textOf(record)),
+      )
+      .filter(({ record }) => !record.senses && !record.bonusSenses)
+      .map(({ collection, record }) => recordId(collection, record))
+    expect(missing).toEqual([])
+  })
+
+  it('name only features that give a sense', () => {
+    const found = findIds(
+      dataDir ?? '',
+      ['classFeature', 'subclassFeature', 'optionalfeature'],
+      (text) => GIVES_SENSE.test(text),
+    )
+    expect(Object.keys(SENSES_NOT_APPLIED).filter((id) => !found.has(id))).toEqual([])
   })
 })

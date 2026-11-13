@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { dataDir, records, recordId } from '../test/dataAudit'
 import {
   amountGroups,
   describeAbilityOption,
@@ -322,5 +323,41 @@ describe('options as feats print them', () => {
     expect(wording({ str: 1, max: 30 })).toBe('+1 Strength (up to 30)')
     // An option that gives nothing is not an option; the facts cell shows "-".
     expect(parseAbilityOptions([{}])).toEqual([])
+  })
+})
+
+describe.skipIf(!dataDir)('origin ability blocks against the data', () => {
+  const origins = records(dataDir ?? '').filter(({ collection }) =>
+    ['race', 'subrace', 'background'].includes(collection),
+  )
+
+  it('reads every ability block of a species or background as a way to take it', () => {
+    const dropped = origins
+      .filter(({ record }) => Array.isArray(record.ability))
+      .filter(({ record }) => {
+        const blocks = record.ability as unknown[]
+        return parseAbilityOptions(blocks).length !== blocks.length
+      })
+      .map(({ collection, record }) => recordId(collection, record))
+    expect(dropped).toEqual([])
+  })
+
+  it('gives every 2024 background +2 and +1, or +1 to all three, of three abilities', () => {
+    const odd = origins
+      .filter(
+        ({ collection, record }) =>
+          collection === 'background' && record.edition === 'one',
+      )
+      .filter(({ record }) => {
+        const options = parseAbilityOptions(record.ability as unknown[] | undefined)
+        return !(
+          options.length === 2 &&
+          options.every((o) => o.from.length === 3) &&
+          options[0].amounts.join() === '2,1' &&
+          options[1].amounts.join() === '1,1,1'
+        )
+      })
+      .map(({ collection, record }) => recordId(collection, record))
+    expect(odd).toEqual([])
   })
 })

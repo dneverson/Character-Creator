@@ -289,6 +289,105 @@ describe('senses', () => {
   })
 })
 
+describe('senses from features and options', () => {
+  const subFeature = (
+    className: string,
+    shortName: string,
+    source: string,
+    name: string,
+    level: number,
+  ) => ({
+    name,
+    source,
+    className,
+    classSource: 'PHB',
+    subclassShortName: shortName,
+    subclassSource: source,
+    level,
+    entries: [],
+  })
+  const ranger = (source: 'XGE' | 'XPHB') =>
+    loadedClass('Ranger', [], [], {
+      subclassFeature: [subFeature('Ranger', 'Gloom Stalker', source, 'Umbral Sight', 3)],
+    })
+  const gloomStalker = (level: number, source: 'XGE' | 'XPHB') => {
+    const c = build('Ranger', level, {}, [])
+    c.classes[0].subclass = { name: 'Gloom Stalker', shortName: 'Gloom Stalker', source }
+    return c
+  }
+  const darkvision = (rows: ReturnType<typeof senseRows>) =>
+    rows.find((r) => r.key === 'darkvision')
+
+  it('gives Umbral Sight darkvision 60 to a character without it', () => {
+    const rows = senseRows(sourcesOf(gloomStalker(3, 'XGE'), [ranger('XGE')]))
+    expect(darkvision(rows)?.range.value).toBe(60)
+    expect(darkvision(rows)?.range.lines[0]).toMatchObject({
+      label: 'Umbral Sight',
+      op: 'base',
+      source: { kind: 'subclass', label: 'Ranger, Gloom Stalker' },
+    })
+  })
+
+  it('adds 30 feet to the darkvision of the species with the 2014 Umbral Sight', () => {
+    const rows = senseRows(sourcesOf(gloomStalker(3, 'XGE'), [ranger('XGE')], elf))
+    expect(darkvision(rows)?.range.value).toBe(90)
+    expect(darkvision(rows)?.range.lines[1]).toMatchObject({
+      op: 'add',
+      amount: 30,
+      how: '30 ft. more, as you already have darkvision from your species',
+    })
+  })
+
+  it('counts only the species darkvision as already had in the 2014 rules', () => {
+    const sources = sourcesOf(gloomStalker(3, 'XGE'), [ranger('XGE')], undefined, [
+      'Far Eyes|XPHB',
+    ])
+    sources.feats[0].feat = { ...sources.feats[0].feat, senses: [{ darkvision: 60 }] }
+    expect(darkvision(senseRows(sources))?.range.value).toBe(60)
+  })
+
+  it('adds 60 feet to any darkvision already had with the 2024 Umbral Sight', () => {
+    const rows = senseRows(sourcesOf(gloomStalker(3, 'XPHB'), [ranger('XPHB')], elf))
+    expect(darkvision(rows)?.range.value).toBe(120)
+  })
+
+  it('waits for the level of the feature', () => {
+    expect(senseRows(sourcesOf(gloomStalker(2, 'XGE'), [ranger('XGE')]))).toEqual([])
+  })
+
+  it('gives a 2024 Ranger blindsight at level 18 with Feral Senses', () => {
+    const xRanger = loadedClass('Ranger', [], [], {
+      classFeature: [feature('Feral Senses', 'Ranger', 18, 'XPHB')],
+    })
+    const c = build('Ranger', 18, {}, [])
+    c.classes[0].source = 'XPHB'
+    const loaded = { ...xRanger, entry: { ...xRanger.entry, source: 'XPHB' } }
+    const rows = senseRows(sourcesOf(c, [loaded]))
+    expect(rows).toMatchObject([{ key: 'blindsight', label: 'Blindsight' }])
+    expect(rows[0].range.value).toBe(30)
+  })
+
+  it("lists Devil's Sight as a sense of its own when the invocation is held", () => {
+    const sources = { ...sourcesOf(build('Warlock', 2, {}, [])) }
+    const rows = senseRows({ ...sources, options: new Set(["Devil's Sight|XPHB"]) })
+    expect(rows).toMatchObject([{ key: "devil's sight", label: "Devil's Sight" }])
+    expect(rows[0].range.value).toBe(120)
+  })
+
+  it('gives two senses from one feature, each in its own row', () => {
+    const sorcerer = loadedClass('Sorcerer', [], [], {
+      subclassFeature: [subFeature('Sorcerer', 'Shadow', 'RHW', 'Power of Shadow', 3)],
+    })
+    const c = build('Sorcerer', 3, {}, [])
+    c.classes[0].subclass = { name: 'Shadow Sorcery', shortName: 'Shadow', source: 'RHW' }
+    const rows = senseRows(sourcesOf(c, [sorcerer]))
+    expect(rows.map((r) => [r.key, r.range.value])).toEqual([
+      ['darkvision', 120],
+      ['blindsight', 10],
+    ])
+  })
+})
+
 describe('hit dice', () => {
   it('count the levels of each die size with a line for each class', () => {
     const wizard = loadedClass('Wizard', [], [])

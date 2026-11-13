@@ -130,7 +130,15 @@ export function buildChecklist({
   // A Skilled pick is a skill or a tool; its budget is on the skill card.
   const skillsLeft = sumLeft(skills) + sumLeft(expertise)
   const profsLeft = openPicks
-    .filter((o) => !o.spec.kinds.includes('expertise') && !o.spec.kinds.includes('skill'))
+    .filter(
+      (o) =>
+        !o.spec.kinds.includes('expertise') &&
+        !o.spec.kinds.includes('skill') &&
+        !o.spec.kinds.includes('save'),
+    )
+    .reduce((n, o) => n + o.left, 0)
+  const savesLeft = openPicks
+    .filter((o) => o.spec.kinds.includes('save'))
     .reduce((n, o) => n + o.left, 0)
   add('skills', 'skills', skillsLeft, `${plural(skillsLeft, 'skill choice')} to make`)
   add(
@@ -138,6 +146,12 @@ export function buildChecklist({
     'proficiencies',
     profsLeft,
     `${plural(profsLeft, 'language, tool or weapon choice')} to make`,
+  )
+  add(
+    'saves',
+    'proficiencies',
+    savesLeft,
+    `${plural(savesLeft, 'saving throw choice')} to make`,
   )
   const optionsLeft = sumLeft(classOptions)
   add(

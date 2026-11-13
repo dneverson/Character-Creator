@@ -1,6 +1,7 @@
 // Initiative and the passive scores: each a Quantity of the lines it adds up from, so the
 // sheet and the PDF show one number and the player can see where it comes from. The rules
-// that change them are the rows of rules/combatRules.
+// that change them are the rows of rules/combatRules. An item's bonus to ability checks
+// (Stone of Good Luck) counts in initiative, every skill and every passive alike.
 
 import { abilityMod, formatMod, type AbilityKey } from '../dice/dice'
 import type { SkillRow } from '../character/skills'
@@ -11,6 +12,7 @@ import {
   type InitiativeRule,
 } from '../rules/combatRules'
 import type { AbilityTotals } from './armorClass'
+import { itemBonus } from './itemBonus'
 import { heldBy, type Sources } from './sources'
 import { BASE_SOURCE, quantity, type Line, type Quantity } from './types'
 
@@ -161,6 +163,8 @@ export function initiative(
     }
   }
   lines.push(...halfLines(halves, proficient))
+  // Initiative is a Dexterity check.
+  lines.push(...itemCheckLines(sources, 'initiative'))
   lines.push({
     id: INITIATIVE_MANUAL,
     label: 'Other bonus',
@@ -171,6 +175,34 @@ export function initiative(
     amount: sources.character.manualBonuses?.initiative ?? 0,
   })
   return quantity(lines)
+}
+
+/**
+ * The bonus of each item the character holds to ability checks, one line per item: an
+ * item that needs attunement counts only when attuned.
+ */
+export function itemCheckLines(sources: Sources, idPrefix: string): Line[] {
+  return sources.items.flatMap((held): Line[] => {
+    const amount = itemBonus(held.item, 'bonusAbilityCheck')
+    if (amount === 0) return []
+    const line = {
+      id: `${idPrefix}|item|${held.item.key}`,
+      label: held.item.name,
+      source: held.source,
+      amount,
+      op: 'add' as const,
+      how: `${formatMod(amount)} to ability checks`,
+    }
+    return [
+      held.active
+        ? { ...line, status: 'applied' }
+        : {
+            ...line,
+            status: 'inactive',
+            why: 'Needs attunement, and you are not attuned.',
+          },
+    ]
+  })
 }
 
 export function passives(sources: Sources, rows: SkillRow[], prof: number): PassiveRow[] {
@@ -214,6 +246,7 @@ export function passives(sources: Sources, rows: SkillRow[], prof: number): Pass
         halfRules(sources, prof, `passive|${key}`, row.ability),
         row.proficient,
       ),
+      ...itemCheckLines(sources, `passive|${key}`),
     )
     return [{ key, label: row.label, score: quantity(lines) }]
   })

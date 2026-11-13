@@ -1,12 +1,22 @@
 // What differs between the 2014 and the 2024 rules in play, apart from the rests (restRules.ts):
-// the name of inspiration, which printing of the conditions applies, and what each level of
-// exhaustion does. The audit in playRules.test.ts checks every row against the book data.
+// the name of inspiration, which printing of the conditions applies, what each level of
+// exhaustion does, and which conditions stop the character moving. The audit in
+// playRules.test.ts checks every row against the book data.
 
 import type { Edition } from '../data/edition'
 
 export type ExhaustionRule =
-  /** 2014: six levels, each with its own effect; the effects of lower levels apply too. */
-  | { kind: 'levels'; effects: readonly string[] }
+  /**
+   * 2014: six levels, each with its own effect; the effects of lower levels apply too. The
+   * levels a number changes at: speed halved, hit point maximum halved, speed 0.
+   */
+  | {
+      kind: 'levels'
+      effects: readonly string[]
+      speedHalvedAt: number
+      hpMaxHalvedAt: number
+      speedZeroAt: number
+    }
   /** 2024: every level takes the same amount off d20 tests and off speed. */
   | { kind: 'perLevel'; d20Test: number; speedFeet: number; deathAt: number }
 
@@ -16,6 +26,8 @@ export interface PlayRules {
   /** The book whose printing of the conditions, with their full text, applies. */
   conditionSource: string
   exhaustion: ExhaustionRule
+  /** The conditions that make the character's speed 0, as that printing words it. */
+  speedZero: readonly { condition: string; text: string }[]
 }
 
 export const PLAY_RULES: Record<Edition, PlayRules> = {
@@ -32,12 +44,26 @@ export const PLAY_RULES: Record<Edition, PlayRules> = {
         'Speed reduced to 0',
         'Death',
       ],
+      speedHalvedAt: 2,
+      hpMaxHalvedAt: 4,
+      speedZeroAt: 5,
     },
+    speedZero: [
+      { condition: 'Grappled', text: 'speed becomes 0' },
+      { condition: 'Paralyzed', text: "can't move" },
+      { condition: 'Petrified', text: "can't move" },
+      { condition: 'Restrained', text: 'speed becomes 0' },
+      { condition: 'Stunned', text: "can't move" },
+      { condition: 'Unconscious', text: "can't move" },
+    ],
   },
   one: {
     inspiration: 'Heroic Inspiration',
     conditionSource: 'XPHB',
     exhaustion: { kind: 'perLevel', d20Test: 2, speedFeet: 5, deathAt: 6 },
+    speedZero: ['Grappled', 'Paralyzed', 'Petrified', 'Restrained', 'Unconscious'].map(
+      (condition) => ({ condition, text: 'Speed is 0' }),
+    ),
   },
 }
 

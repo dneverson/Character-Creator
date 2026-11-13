@@ -7,6 +7,7 @@ import { editionYear } from '../../data/labels'
 import type { Quantity } from '../../derived/types'
 import { useContentNames } from '../../hooks/useContentNames'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
+import { applyPlayEffects } from '../../play/playEffects'
 import { useDerivedSheet } from '../editor/useDerivedSheet'
 import { CharacterHeader } from './CharacterHeader'
 import { SheetDetailProvider } from './SheetDetail'
@@ -37,15 +38,17 @@ const PHONE = '(max-width: 767.98px)'
 /**
  * The finished character: the details that never move across the top, the saves, skills,
  * senses and proficiencies down the left, and one box whose tabs switch what it shows.
- * Every number is read from the derived sheet.
+ * Every number is read from the derived sheet, with what exhaustion and the conditions do.
  */
 export function SheetView() {
   const character = useActiveCharacter()
-  const { sheet, loading, error } = useDerivedSheet()
+  const { sheet: built, loading, error } = useDerivedSheet()
   const phone = useMediaQuery(PHONE)
   const [template, setTemplate] = useSheetTemplate()
   useContentNames()
   if (!character) return null
+  // In play, the exhaustion level and the conditions change the numbers shown here only.
+  const sheet = built && applyPlayEffects(built, character.play)
 
   return (
     <SheetRoot template={template}>

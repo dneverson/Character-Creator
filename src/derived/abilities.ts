@@ -1,10 +1,12 @@
 // Each ability score as a Quantity: the lines it adds up from (the assigned score, the
 // species and background increases, each feat or Ability Score Improvement, and what the
-// player added by hand). The total is the one `characterAbilityBreakdown` works out.
+// player added by hand). The total is the one `characterAbilityBreakdown` works out. A
+// species or background increase the origin does not allow still counts, under a flag.
 
 import { ABILITIES, ABILITY_NAMES, type AbilityKey } from '../dice/dice'
 import { characterAbilityBreakdown } from '../character/derive'
 import type { Character } from '../character/model'
+import { checkOriginIncreases } from '../rules/compliance'
 import type { Sources } from './sources'
 import { BASE_SOURCE, quantity, type Line, type Quantity, type SourceRef } from './types'
 
@@ -25,6 +27,7 @@ export function abilityQuantities(
     tag: 'background',
     label: sources.background?.name ?? 'Background',
   }
+  const deviations = checkOriginIncreases(character, sources.race, sources.background)
   return Object.fromEntries(
     ABILITIES.map((key) => {
       const row = breakdown[key]
@@ -74,6 +77,19 @@ export function abilityQuantities(
         )
       }
       add('other', `Other ${name} bonus`, MANUAL, row.other)
+      for (const d of deviations) {
+        if (!d.abilities?.includes(key)) continue
+        const species = d.id.endsWith(':race')
+        lines.push({
+          id: `ability|${key}|${d.id}`,
+          label: species ? 'Species' : 'Background',
+          source: species ? raceSource : backgroundSource,
+          amount: 0,
+          op: 'note',
+          status: 'flag',
+          why: d.message,
+        })
+      }
       return [key, quantity(lines)]
     }),
   ) as Record<AbilityKey, Quantity>
