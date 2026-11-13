@@ -14,13 +14,78 @@
   --bs-body-bg: var(--sheet-panel-bg);
   --bs-border-color: var(--sheet-panel-border);
 }
+/* While the sheet is open its page colour reaches the bottom of the page. */
+body.sheet-page {
+  background: var(--sheet-page-bg);
+}
 .sheet {
   max-width: 1680px;
   font-size: 0.875rem;
 }
 
+.sheet-header__id {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
 .sheet-header__who {
   min-width: 0;
+}
+
+/* The portrait: a square frame left of the name, a picture or the words "Add portrait". */
+.sheet-portrait {
+  flex: 0 0 auto;
+  width: 4.5rem;
+  height: 4.5rem;
+  padding: 0;
+  overflow: hidden;
+  border: var(--sheet-panel-border-width) var(--sheet-panel-border-style)
+    var(--sheet-panel-border);
+  border-radius: var(--sheet-panel-radius);
+  box-shadow: var(--sheet-panel-shadow);
+  background: var(--sheet-panel-bg);
+  color: var(--sheet-muted-ink);
+  font: inherit;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.sheet-portrait:hover {
+  color: var(--sheet-ink);
+}
+.sheet-portrait:focus-visible {
+  outline: 2px solid var(--sheet-accent);
+  outline-offset: 2px;
+}
+.sheet-portrait__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sheet-portrait__empty {
+  display: block;
+  padding: 0.25rem;
+}
+@media (max-width: 767.98px) {
+  .sheet-portrait {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+}
+
+/* The crop frame of the Edit portrait window: the picture is dragged inside it. */
+.portrait-crop {
+  display: block;
+  width: 256px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  cursor: grab;
+  touch-action: none;
+}
+.portrait-crop:active {
+  cursor: grabbing;
 }
 .sheet-header__name {
   margin: 0;
@@ -346,9 +411,13 @@
 .derived-table--aligned {
   table-layout: fixed;
 }
-.derived-table--aligned td,
-.derived-table--aligned th {
+.derived-table--aligned td {
   overflow-wrap: anywhere;
+}
+/* A header breaks between words only. */
+.derived-table--aligned th {
+  overflow-wrap: normal;
+  word-break: normal;
 }
 .derived-table--aligned td:last-child,
 .derived-table--aligned th:last-child {
@@ -490,4 +559,68 @@
 /* The number field of a hit die roll in the short rest window. */
 .sheet-rest__roll {
   width: 6rem;
+}
+
+/* Proficiencies and languages: a label and a comma-separated line per group; a group with
+   something in it is one button that opens where each comes from. */
+.sheet-profs {
+  display: flex;
+  flex-direction: column;
+}
+.sheet-prof {
+  border-bottom: 1px solid color-mix(in srgb, var(--sheet-panel-border) 50%, transparent);
+  padding: 0.2rem 0;
+}
+.sheet-prof:last-child {
+  border-bottom: 0;
+}
+.sheet-prof__button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 0.4rem;
+  width: 100%;
+  border: 2px solid transparent;
+  border-radius: var(--sheet-panel-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.sheet-prof__label {
+  grid-column: 1;
+  font-family: var(--sheet-heading-font);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: var(--sheet-label-transform);
+  font-variant: var(--sheet-label-variant);
+  color: var(--sheet-muted-ink);
+}
+.sheet-prof__names {
+  grid-column: 1;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+.sheet-prof__names--none {
+  color: var(--sheet-muted-ink);
+}
+.sheet-prof__icon {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--sheet-muted-ink);
+}
+.sheet-prof__button:hover .sheet-prof__icon {
+  color: var(--sheet-ink);
+}
+.sheet-prof__button:hover .sheet-prof__names {
+  text-decoration: underline;
+}
+.sheet-prof__button[aria-pressed='true'] {
+  border-color: var(--sheet-accent);
+}
+.sheet-prof__button:focus-visible {
+  outline: 2px solid var(--sheet-accent);
+  outline-offset: 1px;
 }

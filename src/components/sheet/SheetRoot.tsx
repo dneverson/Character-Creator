@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import {
   sheetTemplate,
   tokensToCssVars,
@@ -16,12 +16,20 @@ export function SheetRoot({
 }) {
   const { resolved } = useTheme()
   const { id, tokens } = sheetTemplate(template)
+  const vars = tokensToCssVars(tokens[resolved])
+  const pageBg = vars['--sheet-page-bg']
+  // The page colour also fills the page below the sheet (the footer's margin), and only
+  // while the sheet is open.
+  useEffect(() => {
+    document.body.classList.add('sheet-page')
+    document.body.style.setProperty('--sheet-page-bg', pageBg)
+    return () => {
+      document.body.classList.remove('sheet-page')
+      document.body.style.removeProperty('--sheet-page-bg')
+    }
+  }, [pageBg])
   return (
-    <div
-      className="sheet-root"
-      data-sheet-template={id}
-      style={tokensToCssVars(tokens[resolved])}
-    >
+    <div className="sheet-root" data-sheet-template={id} style={vars}>
       {children}
     </div>
   )

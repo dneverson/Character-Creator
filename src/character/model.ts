@@ -14,6 +14,7 @@ import {
 import type { AbilityIncreases } from '../data/abilityOptions'
 import type { ItemKind } from '../data/itemTypes'
 import type { GrantPicks, PickKind, PickMap } from './picks'
+import { isPortrait } from './portrait'
 
 /** Default sources selected for a fresh character (2014 core), matching the legacy app. */
 export const DEFAULT_BOOKS = ['PHB', 'MM', 'DMG']
@@ -717,6 +718,12 @@ export interface Character {
    */
   completedAt?: number
 
+  /**
+   * The portrait: a 256 pixel square as a data URL (see portrait.ts). Absent means none,
+   * so no stored document needs migrating.
+   */
+  portrait?: string
+
   // --- History ---
   /** Everything done to the character, oldest first. Only ever added to. */
   history: HistoryEntry[]
@@ -1061,6 +1068,8 @@ export function ensureCharacterDefaults(raw: StoredCharacter | undefined): Chara
   merged.play = normalizePlay(raw.play)
   if (typeof raw.completedAt === 'number') merged.completedAt = raw.completedAt
   else delete merged.completedAt
+  if (isPortrait(raw.portrait)) merged.portrait = raw.portrait
+  else delete merged.portrait
   Object.assign(merged, storedHistory(raw))
   merged.createdAt = raw?.createdAt ?? base.createdAt
   merged.updatedAt = raw?.updatedAt ?? base.updatedAt

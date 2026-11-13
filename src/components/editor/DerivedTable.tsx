@@ -86,9 +86,9 @@ export function DerivedTable({
     >
       {aligned && (
         <colgroup>
-          <col style={{ width: '40%' }} />
-          <col style={{ width: '44%' }} />
-          <col style={{ width: '16%' }} />
+          <col style={{ width: '38%' }} />
+          <col style={{ width: '42%' }} />
+          <col style={{ width: '20%' }} />
         </colgroup>
       )}
       <thead>

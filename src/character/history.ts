@@ -26,13 +26,15 @@ export type CharacterPatch = Partial<
 
 /**
  * Parts of the character that are not recorded: its identity and bookkeeping,
- * the history itself, and which roll the player is looking at.
+ * the history itself, which roll the player is looking at, and the portrait (a
+ * picture, which would be kept twice in every entry that changed it).
  */
 const UNTRACKED: ReadonlySet<string> = new Set<keyof Character>([
   'id',
   'schemaVersion',
   'history',
   'rollCursors',
+  'portrait',
   'createdAt',
   'updatedAt',
 ])

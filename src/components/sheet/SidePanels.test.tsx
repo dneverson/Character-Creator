@@ -1,6 +1,8 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { SavesPanel, SensesPanel, SkillsPanel } from './SidePanels'
+import { ProficienciesPanel, SavesPanel, SensesPanel, SkillsPanel } from './SidePanels'
+import { SheetDetailProvider } from './SheetDetail'
 import { deriveSheet } from '../../derived'
 import { build, deps, FIGHTER } from '../../test/derivedFixtures'
 
@@ -45,5 +47,36 @@ describe('sheet side panels', () => {
     expect(within(list).getByText('Passive Perception')).toBeInTheDocument()
     expect(within(list).getByText('Passive Investigation')).toBeInTheDocument()
     expect(within(list).getByText('Passive Insight')).toBeInTheDocument()
+  })
+
+  it('lists each proficiency group as a comma line that opens where each comes from', async () => {
+    const user = userEvent.setup()
+    const sheet = sheetOf()
+    render(
+      <SheetDetailProvider>
+        <ProficienciesPanel sheet={sheet} />
+      </SheetDetailProvider>,
+    )
+    const armor = screen.getByRole('button', {
+      name: /^Armor: where each one comes from/,
+    })
+    expect(armor).toHaveTextContent('Armor')
+    expect(armor).toHaveTextContent(
+      sheet.proficiencies.listing.armor.map((r) => r.value).join(', '),
+    )
+    expect(screen.getByText('Languages').nextElementSibling).toHaveTextContent('None')
+    expect(
+      screen.queryByRole('button', { name: /^Languages: where each one comes from/ }),
+    ).not.toBeInTheDocument()
+    expect(armor).toHaveAttribute('aria-pressed', 'false')
+    await user.click(armor)
+    const dialog = await screen.findByRole('dialog')
+    expect(armor).toHaveAttribute('aria-pressed', 'true')
+    const table = within(dialog).getByRole('table', { name: 'Armor' })
+    expect(within(table).getByText('Heavy armor')).toBeInTheDocument()
+    expect(within(table).getAllByText('Fighter').length).toBeGreaterThan(0)
+    await user.click(within(dialog).getByRole('button', { name: 'Back' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(armor).toHaveFocus()
   })
 })

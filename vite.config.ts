@@ -41,10 +41,11 @@ export default defineConfig(({ command }) => ({
         // Type-only module (interfaces only) - no executable code to cover.
         'src/data/types.ts',
         // Thin wrappers over browser features jsdom does not have (IndexedDB;
-        // image decoding and a canvas). They are exercised in a real browser by
-        // `pnpm verify:content` instead.
+        // image decoding and a canvas). They are exercised in a real browser instead
+        // (`pnpm verify:content` for the first two; the portrait editor by hand).
         'src/storage/idb.ts',
         'src/content/thumbnail.ts',
+        'src/portrait/imageFile.ts',
       ],
       thresholds: {
         lines: 90,

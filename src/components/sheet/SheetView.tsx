@@ -102,7 +102,8 @@ export function SheetView() {
                   />
                   <StatBox
                     label="Speed"
-                    value={sheet.speed.value > 0 ? sheet.speed.value : NO_VALUE}
+                    // A speed of 0 is a speed (grappled, exhausted); only no species has no value.
+                    value={sheet.speed.lines.length > 0 ? sheet.speed.value : NO_VALUE}
                     sub={speedSub(sheet.speed)}
                     breakdown={{
                       id: 'speed',

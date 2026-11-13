@@ -41,6 +41,24 @@ describe('CharacterList', () => {
     expect(screen.getByText(/No characters yet/i)).toBeInTheDocument()
   })
 
+  it('shows a small thumbnail of the portrait, and nothing for a character without one', () => {
+    const [withPicture, without] = seed('Tordek', 'Mialee')
+    const { characters } = useCharacterStore.getState()
+    const portrait = 'data:image/webp;base64,QUJD'
+    useCharacterStore.setState({
+      characters: {
+        ...characters,
+        [withPicture]: { ...characters[withPicture]!, portrait },
+      },
+    })
+    const { container } = render(<CharacterList />)
+    const images = container.querySelectorAll('img')
+    expect(images).toHaveLength(1)
+    expect(images[0]).toHaveAttribute('src', portrait)
+    expect(images[0]?.closest('.card')).toHaveTextContent('Tordek')
+    expect(characters[without]).toBeDefined()
+  })
+
   it('says a build is in progress, or what class a finished one is', () => {
     const [draft, finished] = seed('Tordek', 'Mialee')
     const { characters } = useCharacterStore.getState()

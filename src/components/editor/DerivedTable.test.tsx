@@ -95,7 +95,7 @@ describe('DerivedTable', () => {
     )
     const widths = () =>
       [...screen.getByRole('table').querySelectorAll('col')].map((c) => c.style.width)
-    expect(widths()).toEqual(['40%', '44%', '16%'])
+    expect(widths()).toEqual(['38%', '42%', '20%'])
     rerender(
       <DerivedTable
         quantity={quantity(lines)}

@@ -8,8 +8,8 @@ import type { DerivedSheet } from '../../derived'
 import { Abbr } from '../Abbr'
 import { feet } from '../../data/labels'
 import { DerivedNumber } from '../derived/DerivedNumber'
-import { ListingTable } from '../editor/ProficienciesSection'
 import { FixedPanel } from './FixedPanel'
+import { ProficiencyGroup } from './ProficiencyGroup'
 
 const MARKS = {
   proficient: { letter: 'P', name: 'Proficient' },
@@ -119,15 +119,27 @@ export function SensesPanel({ sheet }: { sheet: DerivedSheet }) {
   )
 }
 
+/** The groups of the proficiency listing the sheet shows, in order. Saving throws have their own box. */
+const PROFICIENCY_GROUPS = [
+  { key: 'armor', title: 'Armor' },
+  { key: 'weapon', title: 'Weapons' },
+  { key: 'tool', title: 'Tools' },
+  { key: 'language', title: 'Languages' },
+] as const
+
 export function ProficienciesPanel({ sheet }: { sheet: DerivedSheet }) {
   const { listing } = sheet.proficiencies
   return (
     <FixedPanel title="Proficiencies & languages" area="profs">
-      <div className="d-flex flex-column gap-2">
-        <ListingTable title="Armor" rows={listing.armor} />
-        <ListingTable title="Weapons" rows={listing.weapon} />
-        <ListingTable title="Tools" rows={listing.tool} />
-        <ListingTable title="Languages" rows={listing.language} />
+      <div className="sheet-profs">
+        {PROFICIENCY_GROUPS.map(({ key, title }) => (
+          <ProficiencyGroup
+            key={key}
+            id={`profs:${key}`}
+            title={title}
+            rows={listing[key]}
+          />
+        ))}
       </div>
     </FixedPanel>
   )

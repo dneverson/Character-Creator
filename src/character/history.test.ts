@@ -108,6 +108,7 @@ describe('characterChanges', () => {
       id: 'other',
       schemaVersion: 99,
       rollCursors: { ability: 'x' },
+      portrait: 'data:image/webp;base64,AAAA',
       history: [],
       createdAt: 1,
       updatedAt: 2,

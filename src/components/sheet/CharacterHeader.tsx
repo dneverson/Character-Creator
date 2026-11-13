@@ -9,6 +9,7 @@ import { identityLine } from '../../character/identity'
 import { Icon } from '../Icon'
 import { sectionDomId } from '../editor/checklistContext'
 import { DraftInput } from '../editor/DraftInput'
+import { PortraitFrame } from '../portrait/PortraitFrame'
 
 const LEVEL_UP_REASON =
   'Finish the build first. While building, set levels in Class & Level.'
@@ -54,9 +55,12 @@ export function CharacterHeader({ mode, ruleset, actions }: Props) {
           style={{ maxWidth: 360 }}
         />
       ) : (
-        <div className="sheet-header__who">
-          <h1 className="sheet-header__name">{character.name}</h1>
-          {line && <div className="sheet-header__line">{line}</div>}
+        <div className="sheet-header__id">
+          <PortraitFrame />
+          <div className="sheet-header__who">
+            <h1 className="sheet-header__name">{character.name}</h1>
+            {line && <div className="sheet-header__line">{line}</div>}
+          </div>
         </div>
       )}
       <ButtonGroup aria-label="View">

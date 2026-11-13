@@ -458,6 +458,24 @@ describe('ensureCharacterDefaults', () => {
       expect(ensureCharacterDefaults(junk).completedAt).toBeUndefined()
     })
 
+    it('keeps a portrait that is a picture and drops anything else', () => {
+      const made = createCharacter()
+      const portrait = 'data:image/jpeg;base64,/9j/4AAQSkZJRg=='
+      expect(ensureCharacterDefaults({ ...made, portrait }).portrait).toBe(portrait)
+      expect('portrait' in ensureCharacterDefaults(made)).toBe(false)
+      for (const junk of [
+        'data:text/html;base64,PGI+',
+        'data:image/svg+xml;base64,PHN2Zz4=',
+        'javascript:alert(1)',
+        42,
+      ]) {
+        const loaded = ensureCharacterDefaults(
+          JSON.parse(JSON.stringify({ ...made, portrait: junk })),
+        )
+        expect('portrait' in loaded).toBe(false)
+      }
+    })
+
     it('keeps the number of a newer version of the model', () => {
       const newer = { ...createCharacter(), schemaVersion: CHARACTER_SCHEMA_VERSION + 1 }
       expect(ensureCharacterDefaults(newer).schemaVersion).toBe(

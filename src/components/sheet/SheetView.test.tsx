@@ -185,8 +185,11 @@ describe('SheetView', () => {
     expect(await screen.findByRole('list', { name: 'Saving throws' })).toBeInTheDocument()
     expect(screen.getByRole('list', { name: 'Skills' })).toBeInTheDocument()
     expect(screen.getByRole('list', { name: 'Senses' })).toBeInTheDocument()
-    expect(screen.getByRole('table', { name: 'Armor' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Languages' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /^Armor: where each one comes from/ }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Languages')).toBeInTheDocument()
+    expect(screen.queryByRole('table', { name: 'Armor' })).not.toBeInTheDocument()
   })
 
   it('holds the attacks in the Actions tab and the items in the Inventory tab', async () => {
@@ -355,6 +358,57 @@ describe('SheetView speed, senses and rules', () => {
     expect(
       within(senses).getByRole('button', { name: 'Darkvision: 60 ft.' }),
     ).toBeInTheDocument()
+    await settle()
+  })
+
+  it('shows a speed of 0 as 0, and a dash only when there is no species', async () => {
+    seed()
+    vi.mocked(loadRaces).mockResolvedValue([
+      {
+        key: 'dwarf|phb',
+        name: 'Dwarf',
+        baseName: 'Dwarf',
+        source: 'PHB',
+        speed: 0,
+        abilityOptions: [],
+        featGrants: [],
+      },
+    ])
+    renderSheet()
+    const speed = await screen.findByRole('group', { name: 'Speed' })
+    await waitFor(() =>
+      expect(speed.querySelector('.sheet-stat__value')).toHaveTextContent(/^0$/),
+    )
+    await settle()
+  })
+
+  it('puts the portrait frame at the top left, beside the name', async () => {
+    seed()
+    renderSheet()
+    const frame = await screen.findByRole('button', { name: 'Add portrait' })
+    expect(frame.parentElement).toHaveClass('sheet-header__id')
+    expect(frame.parentElement).toHaveTextContent('Tordek')
+    await settle()
+  })
+
+  it('keeps the dash for a speed when no species is chosen', async () => {
+    const c = seed()
+    c.race = undefined
+    renderSheet()
+    const speed = await screen.findByRole('group', { name: 'Speed' })
+    expect(speed.querySelector('.sheet-stat__value')).toHaveTextContent('-')
+    await settle()
+  })
+
+  it('paints the page colour on the body while the sheet is open only', async () => {
+    seed()
+    const { unmount } = renderSheet()
+    await screen.findByRole('group', { name: 'Speed' })
+    expect(document.body).toHaveClass('sheet-page')
+    expect(document.body.style.getPropertyValue('--sheet-page-bg')).not.toBe('')
+    unmount()
+    expect(document.body).not.toHaveClass('sheet-page')
+    expect(document.body.style.getPropertyValue('--sheet-page-bg')).toBe('')
     await settle()
   })
 

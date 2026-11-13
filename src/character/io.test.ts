@@ -12,6 +12,21 @@ describe('parseImportedCharacter', () => {
     expect(parsed.id).not.toBe(original.id)
   })
 
+  it('restores a portrait from the file and drops one that is not a picture', () => {
+    const portrait = 'data:image/webp;base64,UklGRg=='
+    const kept = parseImportedCharacter(
+      JSON.stringify({ ...createCharacter('Gimli'), portrait }),
+    )
+    expect(kept.portrait).toBe(portrait)
+    const dropped = parseImportedCharacter(
+      JSON.stringify({
+        ...createCharacter('Gimli'),
+        portrait: 'https://example.com/a.png',
+      }),
+    )
+    expect('portrait' in dropped).toBe(false)
+  })
+
   it('rejects invalid JSON', () => {
     expect(() => parseImportedCharacter('{not json')).toThrow('valid JSON')
   })

@@ -64,7 +64,20 @@ export function CharacterList() {
             <Col key={c.id}>
               <Card className="h-100">
                 <Card.Body className="d-flex flex-column">
-                  <Card.Title className="text-truncate">{c.name}</Card.Title>
+                  <div className="d-flex align-items-center gap-2 mb-2">
+                    {c.portrait && (
+                      <img
+                        src={c.portrait}
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="rounded flex-shrink-0"
+                      />
+                    )}
+                    <Card.Title className="text-truncate mb-0" style={{ minWidth: 0 }}>
+                      {c.name}
+                    </Card.Title>
+                  </div>
                   <div className="mb-1 small">
                     {c.completedAt === undefined ? (
                       <Badge bg="secondary">In progress</Badge>
