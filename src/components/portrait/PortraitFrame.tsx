@@ -4,7 +4,7 @@
 // cropped square on the character.
 
 import { useRef, useState, type ChangeEvent } from 'react'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import {
   PORTRAIT_NOT_AN_IMAGE,
   PORTRAIT_NOT_SAVED,
@@ -18,8 +18,8 @@ import { PortraitEditor } from './PortraitEditor'
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,image/avif'
 
 export function PortraitFrame() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   const input = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
   const [image, setImage] = useState<PortraitImage | null>(null)

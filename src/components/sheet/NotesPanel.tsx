@@ -1,12 +1,12 @@
 // The Notes tab: the player's own notes, written here and kept with the character.
 
 import Form from 'react-bootstrap/Form'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { DraftInput } from '../editor/DraftInput'
 
 export function NotesPanel() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   if (!character) return null
   return (
     <div className="sheet-notes">

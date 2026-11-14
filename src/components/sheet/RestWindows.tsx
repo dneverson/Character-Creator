@@ -11,12 +11,20 @@ import type { DerivedSheet } from '../../derived'
 import { BASE_SOURCE, quantity, type Line } from '../../derived/types'
 import { abilityMod, formatMod, randomInt } from '../../dice/dice'
 import type { HitDicePool } from '../../play/derivePlay'
-import { applyRest, hitDieHp, regainedDice, restWarning } from '../../play/rest'
+import {
+  applyRest,
+  hitDieHp,
+  rechargesOf,
+  regainedDice,
+  restEffectsFor,
+  restoredUses,
+  restWarning,
+} from '../../play/rest'
 import { REST_RULES, type RestEffect, type RestKind } from '../../rules/restRules'
 import { DerivedTable } from '../editor/DerivedTable'
 import { DraftInput } from '../editor/DraftInput'
 import { Icon } from '../Icon'
-import { applyPlay, usePlay } from './usePlay'
+import { useApplyPlay, usePlay } from './usePlay'
 
 const TITLES: Record<RestKind, string> = { short: 'Short rest', long: 'Long rest' }
 
@@ -37,6 +45,22 @@ function EffectList({
         </li>
       ))}
     </ul>
+  )
+}
+
+/** The limited uses this rest gives back, by counter, worked out as confirming applies them. */
+function RestoredUses({ sheet, kind }: { sheet: DerivedSheet; kind: RestKind }) {
+  const current = usePlay(sheet)
+  if (!current || sheet.resources.length === 0) return null
+  const restored = restoredUses(kind, rechargesOf(sheet.resources, current.derived.uses))
+  return (
+    <p className="mb-0">
+      Uses regained now:{' '}
+      {restored.length === 0
+        ? 'none (none are spent that this rest restores)'
+        : restored.map((r) => `${r.label} (${r.regained})`).join(', ')}
+      .
+    </p>
   )
 }
 
@@ -93,7 +117,8 @@ function ShortRestBody({
   return (
     <>
       <Warning text={restWarning(rules, current.derived.currentHp.value)} />
-      <EffectList effects={rules} skip={['spendHitDice']} />
+      <EffectList effects={restEffectsFor(rules, sheet.slots)} skip={['spendHitDice']} />
+      <RestoredUses sheet={sheet} kind="short" />
       <p className="mb-1">
         Spend hit dice for hit points. Roll one, or enter the number you rolled.
       </p>
@@ -179,10 +204,11 @@ function LongRestBody({ sheet }: { sheet: DerivedSheet }) {
   return (
     <>
       <Warning text={restWarning(rules, current.derived.currentHp.value)} />
-      <EffectList effects={rules} />
+      <EffectList effects={restEffectsFor(rules, sheet.slots)} />
       <p className="mb-0">
         Hit dice regained now: {regained === '' ? 'none (none are spent)' : regained}.
       </p>
+      <RestoredUses sheet={sheet} kind="long" />
     </>
   )
 }
@@ -199,20 +225,29 @@ function RestWindow({
   onHide: () => void
 }) {
   const [spends, setSpends] = useState<HitDieSpend[]>([])
+  const applyPlay = useApplyPlay()
   const current = usePlay(sheet)
   const confirm = () => {
     if (!current) return
     const rules = REST_RULES[sheet.edition][kind]
+    const uses = rechargesOf(sheet.resources, current.derived.uses)
+    const restored = rules.some((e) => e.kind === 'rechargeUses')
+      ? restoredUses(kind, uses)
+      : []
     applyPlay(
       (play) =>
         applyRest(play, rules, {
           maxHp: current.derived.maxHp,
           hitDice: current.derived.hitDice,
           spends,
+          uses,
         }),
-      kind === 'short'
-        ? { type: 'rest', rest: 'short', rolls: spends }
-        : { type: 'rest', rest: 'long' },
+      {
+        type: 'rest',
+        rest: kind,
+        ...(kind === 'short' ? { rolls: spends } : {}),
+        ...(restored.length > 0 ? { restored } : {}),
+      },
     )
     onHide()
   }

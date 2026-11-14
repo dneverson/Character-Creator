@@ -10,7 +10,7 @@ import Spinner from 'react-bootstrap/Spinner'
 import type { AbilityIncreases } from '../../data/abilityOptions'
 import { findPlayableRace, loadRaces, type PlayableRace } from '../../data/race'
 import type { RaceRef } from '../../character/model'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { PickOne } from '../table/PickOne'
 import { AbilityOptionPicker } from './AbilityOptionPicker'
@@ -41,8 +41,8 @@ function raceRef(race: PlayableRace, abilityOption = 0): RaceRef {
 }
 
 export function RaceSelection() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   const { data: races, error, loading } = useAsyncData(loadRaces)
 
   const selectedBooks = character?.selectedBooks

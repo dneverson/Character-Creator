@@ -25,7 +25,7 @@ import {
   type SubclassEntry,
 } from '../../data/class'
 import type { ClassRef } from '../../character/model'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { classEntryScores } from '../../character/feats'
 import { unassignedAbilities } from '../../character/stats'
 import { checkLevelCap, checkMulticlass, type Deviation } from '../../rules/compliance'
@@ -63,8 +63,8 @@ export interface ClassBuild {
 }
 
 export function useClassBuild(): ClassBuild {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   const { data: loaded, error, loading } = useAsyncData(loadClasses)
   // Multiclass prerequisites use the scores each class was taken with, the feat
   // increases gained before it included. Feat data loading or failing only leaves

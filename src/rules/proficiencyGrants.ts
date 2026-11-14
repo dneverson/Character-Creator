@@ -306,6 +306,19 @@ export const PROFICIENCY_GRANTS: readonly ProficiencyGrant[] = [
     text: 'Mastermind: you gain proficiency with the disguise kit and the forgery kit (and a gaming set and two languages of your choice, which are not stored yet).',
     tools: ['disguise kit', 'forgery kit'],
   },
+  // A Divine Order or Primal Order option: held only when it is the one taken.
+  {
+    holder: classFeature('Cleric', 'XPHB', 'Protector'),
+    text: 'Protector: you gain proficiency with martial weapons and training with heavy armor.',
+    armor: ['heavy'],
+    weapons: [MARTIAL],
+  },
+  {
+    holder: classFeature('Druid', 'XPHB', 'Warden'),
+    text: 'Warden: you gain proficiency with martial weapons and training with medium armor.',
+    armor: ['medium'],
+    weapons: [MARTIAL],
+  },
   {
     holder: classFeature('Druid', 'PHB', 'Druidic'),
     text: 'Druidic: you know Druidic, the secret language of druids.',

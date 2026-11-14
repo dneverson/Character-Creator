@@ -121,6 +121,13 @@ export function PickChoiceTable({ tableId, noun, chips, whyDisabled, onPick }: P
       nameOf={(chip) => chip.label}
       describe={describe}
       searchText={(chip) => `${chip.label} ${textOf(chip)}`}
+      // An option whose prerequisite is not met is greyed with the reason; the table's
+      // non-standard switch lets it be chosen (the DM's call).
+      rowMeta={
+        chips.some((c) => c.unmet !== undefined)
+          ? (chip) => ({ standard: chip.unmet === undefined, reason: chip.unmet })
+          : undefined
+      }
       action={{
         key: 'choose',
         header: 'Choose',

@@ -140,7 +140,7 @@ describe('the build checklist', () => {
     )
   })
 
-  it('counts the fighting styles still to choose', () => {
+  it('counts the fighting styles still to choose, in Combat', () => {
     const fighter = loadedClass('Fighter', [], [])
     fighter.entry.optionalfeatureProgression = [
       { name: 'Fighting Style', featureType: ['FS:F'], progression: { '1': 1 } },
@@ -152,13 +152,20 @@ describe('the build checklist', () => {
       types: ['FS:F'],
       entries: ['Text.'],
     }
-    const d: DeriveDeps = { ...deps([fighter]), fightingStyles: [style] }
+    const d: DeriveDeps = { ...deps([fighter]), optionCatalog: [style] }
     const c = finished()
     expect(itemsOf(c, d)).toEqual([
-      expect.objectContaining({ id: 'class-options', section: 'combat', count: 1 }),
+      expect.objectContaining({
+        id: 'class-options:fighting style choice',
+        section: 'combat',
+        count: 1,
+        label: '1 fighting style choice to make',
+      }),
     ])
+    expect(deriveSheet(c, d).checklist.status.combat).toBe('open')
     c.classOptions = { 'class:Fighter|PHB|FS:F': ['Defense|PHB'] }
     expect(idsOf(c, d)).toEqual([])
+    expect(deriveSheet(c, d).checklist.status.combat).toBe('done')
   })
 
   it('counts the cantrips and spells a caster has not chosen', () => {
@@ -171,7 +178,12 @@ describe('the build checklist', () => {
     c.race = human
     c.background = { name: 'Guild Artisan', source: 'PHB', abilityChoices: {} }
     expect(itemsOf(c, deps([sorcerer]))).toEqual([
-      expect.objectContaining({ id: 'spells', section: 'spells', count: 6 }),
+      expect.objectContaining({
+        id: 'spells',
+        section: 'spells',
+        count: 6,
+        label: '6 cantrips or spells not chosen',
+      }),
     ])
     const ref = (name: string, level = 0) => ({ name, source: 'PHB', level })
     c.spells = {
@@ -181,7 +193,11 @@ describe('the build checklist', () => {
       },
     }
     expect(itemsOf(c, deps([sorcerer]))).toEqual([
-      expect.objectContaining({ id: 'spells', count: 1 }),
+      expect.objectContaining({
+        id: 'spells',
+        count: 1,
+        label: '1 cantrip or spell not chosen',
+      }),
     ])
   })
 

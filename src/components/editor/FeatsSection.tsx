@@ -12,7 +12,7 @@ import Button from 'react-bootstrap/Button'
 import Spinner from 'react-bootstrap/Spinner'
 import { ASI_FEAT_KEY, ASI_OPTIONS, featCategoryLabel, type Feat } from '../../data/feats'
 import { BONUS_SLOT_PREFIX, type FeatChoice } from '../../character/model'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import {
   isSlotEmpty,
   type FeatFlag,
@@ -67,9 +67,36 @@ function asiRowOf(feats: Feat[]): Feat {
 }
 
 export function FeatsSection() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
-  const { feats, summary, loading, error } = useFeatSummary()
+  const character = useCharacter()
+  const { loading, error } = useFeatSummary()
+  if (!character) return null
+  return (
+    <EditorSection
+      id="feats"
+      title="Feats & Ability Score Improvements"
+      subtitle="Each slot your race, background, and class levels grant, in the order you gain them. Every feat from your books is listed; the ones that do not fit a slot are greyed with the reason. Rules problems are flagged, not blocked."
+    >
+      {loading && (
+        <div className="text-body-secondary">
+          <Spinner size="sm" animation="border" className="me-2" />
+          Loading feats…
+        </div>
+      )}
+      {error && <Alert variant="danger">Failed to load feats: {error.message}</Alert>}
+
+      {!loading && !error && <FeatSlots />}
+    </EditorSection>
+  )
+}
+
+/**
+ * The feat slots, each its own chooser. The section shows every slot and the way to add a
+ * bonus one; given `only`, just those slots (the ones a level brought, in Level up).
+ */
+export function FeatSlots({ only }: { only?: readonly string[] }) {
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
+  const { feats, summary } = useFeatSummary()
   // The slot whose table is open; unset until the player opens or shuts one, when
   // it is the first slot with nothing chosen. `null` is every table shut.
   const [opened, setOpened] = useState<string | null | undefined>(undefined)
@@ -84,10 +111,12 @@ export function FeatsSection() {
 
   if (!character) return null
   const state = character.feats
+  const shown = only
+    ? summary.slots.filter((r) => only.includes(r.slot.id))
+    : summary.slots
   const emptyOtherThan = (id: string) =>
-    summary.slots.find((r) => r.slot.id !== id && isSlotEmpty(r))?.slot.id ?? null
-  const open =
-    opened === undefined ? (summary.slots.find(isSlotEmpty)?.slot.id ?? null) : opened
+    shown.find((r) => r.slot.id !== id && isSlotEmpty(r))?.slot.id ?? null
+  const open = opened === undefined ? (shown.find(isSlotEmpty)?.slot.id ?? null) : opened
 
   function setChoice(slotId: string, choice: FeatChoice | undefined) {
     const choices = { ...state.choices }
@@ -114,66 +143,49 @@ export function FeatsSection() {
   }
 
   return (
-    <EditorSection
-      id="feats"
-      title="Feats & Ability Score Improvements"
-      subtitle="Each slot your race, background, and class levels grant, in the order you gain them. Every feat from your books is listed; the ones that do not fit a slot are greyed with the reason. Rules problems are flagged, not blocked."
-    >
-      {loading && (
-        <div className="text-body-secondary">
-          <Spinner size="sm" animation="border" className="me-2" />
-          Loading feats…
+    <>
+      {!only && summary.slots.length === 0 && (
+        <p className="text-body-secondary">
+          No feat slots yet. Your race, background, and class levels add them as you
+          choose them.
+        </p>
+      )}
+      {shown.map((resolved) => (
+        <SlotCard
+          key={resolved.slot.id}
+          resolved={resolved}
+          others={summary.slots.flatMap((r) =>
+            r.slot.id !== resolved.slot.id && r.feat
+              ? [{ feat: r.feat, slotLabel: r.slot.label }]
+              : [],
+          )}
+          allFeats={feats}
+          bookFeats={bookFeats}
+          asiRow={asiRow}
+          selectedBooks={selectedBooks ?? []}
+          browsing={open === resolved.slot.id}
+          onBrowsingChange={(browsing) => setOpened(browsing ? resolved.slot.id : null)}
+          allowNonStandard={allowNonStandard}
+          onAllowNonStandardChange={setAllowNonStandard}
+          onChange={(choice) => setChoice(resolved.slot.id, choice)}
+          onRemove={
+            resolved.slot.origin === 'bonus'
+              ? () => removeBonusSlot(resolved.slot.id)
+              : undefined
+          }
+        />
+      ))}
+      {!only && (
+        <div className="d-flex align-items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={addBonusSlot}>
+            Add bonus feat
+          </Button>
+          <span className="small text-body-secondary">
+            For a feat from a DM reward, a magic item, or any source outside these rules.
+          </span>
         </div>
       )}
-      {error && <Alert variant="danger">Failed to load feats: {error.message}</Alert>}
-
-      {!loading && !error && (
-        <>
-          {summary.slots.length === 0 && (
-            <p className="text-body-secondary">
-              No feat slots yet. Your race, background, and class levels add them as you
-              choose them.
-            </p>
-          )}
-          {summary.slots.map((resolved) => (
-            <SlotCard
-              key={resolved.slot.id}
-              resolved={resolved}
-              others={summary.slots.flatMap((r) =>
-                r.slot.id !== resolved.slot.id && r.feat
-                  ? [{ feat: r.feat, slotLabel: r.slot.label }]
-                  : [],
-              )}
-              allFeats={feats}
-              bookFeats={bookFeats}
-              asiRow={asiRow}
-              selectedBooks={selectedBooks ?? []}
-              browsing={open === resolved.slot.id}
-              onBrowsingChange={(browsing) =>
-                setOpened(browsing ? resolved.slot.id : null)
-              }
-              allowNonStandard={allowNonStandard}
-              onAllowNonStandardChange={setAllowNonStandard}
-              onChange={(choice) => setChoice(resolved.slot.id, choice)}
-              onRemove={
-                resolved.slot.origin === 'bonus'
-                  ? () => removeBonusSlot(resolved.slot.id)
-                  : undefined
-              }
-            />
-          ))}
-          <div className="d-flex align-items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={addBonusSlot}>
-              Add bonus feat
-            </Button>
-            <span className="small text-body-secondary">
-              For a feat from a DM reward, a magic item, or any source outside these
-              rules.
-            </span>
-          </div>
-        </>
-      )}
-    </EditorSection>
+    </>
   )
 }
 

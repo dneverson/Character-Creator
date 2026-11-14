@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { defaultPlayState, type PlayState } from '../character/model'
 import { REST_RULES } from '../rules/restRules'
-import { applyRest, hitDieHp, regainedDice, restWarning } from './rest'
+import type { DerivedResource } from '../derived/resources'
+import type { Recharge } from '../rules/resources'
+import {
+  applyRest,
+  hitDieHp,
+  rechargesOf,
+  regainedDice,
+  restEffectsFor,
+  restoredUses,
+  restWarning,
+} from './rest'
 import type { HitDicePool } from './derivePlay'
 
 const dice = (die: string, total: number, spent: number): HitDicePool => ({
@@ -23,6 +33,27 @@ const worn: PlayState = {
   deathSaves: { successes: 1, failures: 2 },
 }
 const pools = [dice('d8', 5, 3), dice('d10', 3, 1)]
+
+describe('the effects a rest lists for a character', () => {
+  const kindsOf = (slots: Parameters<typeof restEffectsFor>[1], kind: 'short' | 'long') =>
+    restEffectsFor(REST_RULES.classic[kind], slots).map((e) => e.kind)
+  const none = { standard: [0, 0, 0, 0, 0, 0, 0, 0, 0], maxSpellLevel: 0 }
+
+  it('lists the slots a rest restores only for a character with slots of that kind', () => {
+    expect(kindsOf(none, 'short')).not.toContain('restoreSlots')
+    expect(kindsOf(none, 'long')).not.toContain('restoreSlots')
+    const wizard = { ...none, standard: [2, 0, 0, 0, 0, 0, 0, 0, 0], maxSpellLevel: 1 }
+    expect(kindsOf(wizard, 'short')).not.toContain('restoreSlots')
+    expect(kindsOf(wizard, 'long')).toContain('restoreSlots')
+    const warlock = { ...none, pact: { slots: 1, level: 1 }, maxSpellLevel: 1 }
+    expect(kindsOf(warlock, 'short')).toContain('restoreSlots')
+    expect(kindsOf(warlock, 'long')).toContain('restoreSlots')
+  })
+
+  it('keeps every other effect', () => {
+    expect(kindsOf(none, 'short')).toEqual(['spendHitDice', 'rechargeUses'])
+  })
+})
 
 describe('hit die hit points', () => {
   it('gives at least the minimum of the edition', () => {
@@ -71,6 +102,84 @@ describe('a short rest', () => {
     const next = applyRest(worn, REST_RULES.one.short, { maxHp: 40, hitDice: pools })
     expect(next.damage).toBe(20)
     expect(next.hitDiceSpent).toEqual(worn.hitDiceSpent)
+  })
+})
+
+describe('limited uses at a rest', () => {
+  const use = (id: string, spent: number, recharge: Recharge, shortRegain = 0) => ({
+    id,
+    label: id,
+    spent,
+    recharge,
+    shortRegain,
+  })
+  const uses = [
+    use('surge', 1, 'short'),
+    use('rage', 2, 'long'),
+    use('bloodthirst', 3, 'shortOne'),
+    use('points', 5, 'long', 4),
+    use('wand', 3, 'none'),
+    use('fresh', 0, 'short'),
+  ]
+
+  it('reads what is spent of each counter, none when it has no pool', () => {
+    const resource = (id: string): DerivedResource => ({
+      id,
+      label: id,
+      from: 'Fighter',
+      kind: 'feature',
+      max: 2,
+      recharge: 'short',
+      shortRegain: 0,
+      basis: 'Fixed',
+      restores: 'All on a short or long rest',
+      entries: [],
+    })
+    expect(
+      rechargesOf(
+        [resource('surge'), resource('wind')],
+        [{ id: 'surge', total: 2, spent: 1, left: 1 }],
+      ),
+    ).toEqual([use('surge', 1, 'short'), use('wind', 0, 'short')])
+  })
+
+  it('a short rest restores the short counters, one of a shortOne, and the extra regain', () => {
+    expect(restoredUses('short', uses)).toEqual([
+      { id: 'surge', label: 'surge', regained: 1 },
+      { id: 'bloodthirst', label: 'bloodthirst', regained: 1 },
+      { id: 'points', label: 'points', regained: 4 },
+    ])
+  })
+
+  it('a long rest restores everything spent except what comes back another way', () => {
+    expect(restoredUses('long', uses).map((r) => [r.id, r.regained])).toEqual([
+      ['surge', 1],
+      ['rage', 2],
+      ['bloodthirst', 3],
+      ['points', 5],
+    ])
+  })
+
+  it('takes the restored uses off the play state, in both editions', () => {
+    const spent: PlayState = {
+      ...worn,
+      uses: { surge: 1, rage: 2, bloodthirst: 3, points: 5, wand: 3 },
+    }
+    for (const edition of [REST_RULES.classic, REST_RULES.one]) {
+      const short = applyRest(spent, edition.short, { maxHp: 40, hitDice: pools, uses })
+      expect(short.uses).toEqual({
+        surge: 0,
+        rage: 2,
+        bloodthirst: 2,
+        points: 1,
+        wand: 3,
+      })
+      const long = applyRest(spent, edition.long, { maxHp: 40, hitDice: pools, uses })
+      expect(long.uses).toEqual({ surge: 0, rage: 0, bloodthirst: 0, points: 0, wand: 3 })
+    }
+    expect(
+      applyRest(spent, REST_RULES.one.long, { maxHp: 40, hitDice: pools }).uses,
+    ).toEqual(spent.uses)
   })
 })
 

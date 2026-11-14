@@ -10,7 +10,7 @@ import { loadBackgrounds } from '../../data/background'
 import { loadRaces } from '../../data/race'
 import { loadFeats } from '../../data/feats'
 import { loadItems } from '../../data/items'
-import { loadFightingStyleOptions } from '../../data/classOptions'
+import { loadClassOptions } from '../../data/classOptions'
 import { loadLanguages } from '../../data/languages'
 import { FIGHTER, ITEMS, stack } from '../../test/derivedFixtures'
 import { settle } from '../../test/settle'
@@ -33,7 +33,7 @@ vi.mock('../../data/feats', async (importOriginal) => ({
 }))
 vi.mock('../../data/classOptions', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/classOptions')>()),
-  loadFightingStyleOptions: vi.fn(),
+  loadClassOptions: vi.fn(),
 }))
 vi.mock('../../data/languages', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/languages')>()),
@@ -77,7 +77,7 @@ beforeEach(() => {
   vi.mocked(loadBackgrounds).mockResolvedValue([])
   vi.mocked(loadRaces).mockResolvedValue([])
   vi.mocked(loadFeats).mockResolvedValue([])
-  vi.mocked(loadFightingStyleOptions).mockResolvedValue([])
+  vi.mocked(loadClassOptions).mockResolvedValue([])
   vi.mocked(loadLanguages).mockResolvedValue([])
   vi.mocked(loadItems).mockResolvedValue(ITEMS)
   useCharacterStore.setState({ characters: {}, order: [], activeId: null, view: 'list' })
@@ -221,7 +221,7 @@ describe('CombatSection', () => {
     expect(screen.getByRole('table', { name: 'Passive Perception' })).toBeInTheDocument()
   })
 
-  it('picks a fighting style on the class card and applies its rule', async () => {
+  it('picks a fighting style here and applies its rule', async () => {
     const user = userEvent.setup()
     const fighter = {
       ...FIGHTER,
@@ -233,7 +233,7 @@ describe('CombatSection', () => {
       },
     }
     vi.mocked(loadClasses).mockResolvedValue([fighter])
-    vi.mocked(loadFightingStyleOptions).mockResolvedValue([
+    vi.mocked(loadClassOptions).mockResolvedValue([
       {
         key: 'Defense|PHB',
         name: 'Defense',
@@ -268,5 +268,37 @@ describe('CombatSection', () => {
     const table = screen.getByRole('table', { name: 'Armor class breakdown' })
     expect(within(table).getByText('17')).toBeInTheDocument()
     expect(screen.getByText('1 of 1 done')).toBeInTheDocument()
+  })
+
+  it('offers no option card that is not a fighting style', async () => {
+    const warlock = {
+      ...FIGHTER,
+      entry: {
+        ...FIGHTER.entry,
+        name: 'Warlock',
+        optionalfeatureProgression: [
+          { name: 'Eldritch Invocations', featureType: ['EI'], progression: [2] },
+        ],
+      },
+    }
+    vi.mocked(loadClasses).mockResolvedValue([warlock])
+    vi.mocked(loadClassOptions).mockResolvedValue([
+      {
+        key: "Devil's Sight|PHB",
+        name: "Devil's Sight",
+        source: 'PHB',
+        types: ['EI'],
+        entries: ['You can see normally in darkness.'],
+      },
+    ])
+    seed((ch) => {
+      ch.classes = [{ name: 'Warlock', source: 'PHB', level: 1 }]
+    })
+    renderSection()
+    expect(
+      await screen.findByRole('table', { name: 'Armor class breakdown' }),
+    ).toBeInTheDocument()
+    // Invocations and every other option are picked in Class Features.
+    expect(screen.queryByText("Devil's Sight")).toBeNull()
   })
 })

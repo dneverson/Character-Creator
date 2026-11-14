@@ -7,6 +7,7 @@ import { ContentNotice } from './components/content/ContentNotice'
 import { ContentPrompt } from './components/content/ContentPrompt'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { CharacterEditor } from './components/editor/CharacterEditor'
+import { LevelUpView } from './components/levelup/LevelUpView'
 import { SheetView } from './components/sheet/SheetView'
 import { StorageNotice } from './components/StorageNotice'
 import { useCharacterStore } from './character/store'
@@ -41,6 +42,7 @@ export default function App() {
       >
         {view === 'editor' && <CharacterEditor />}
         {view === 'sheet' && <SheetView />}
+        {view === 'levelUp' && <LevelUpView />}
         {view === 'list' && <CharacterList />}
       </ErrorBoundary>
       <AppFooter />

@@ -14,9 +14,10 @@ import {
   type DeathSave,
 } from '../../play/actions'
 import type { Pool } from '../../play/derivePlay'
-import { applyPlay, usePlay } from './usePlay'
+import { useApplyPlay, usePlay } from './usePlay'
 
-function Pip({
+/** One pip: a button that names what it is and whether it is used. */
+export function Pip({
   filled,
   pressed,
   label,
@@ -81,6 +82,7 @@ export function SlotPips({
   /** The group's name; each place that shows the pips gives its own. */
   label?: string
 }) {
+  const applyPlay = useApplyPlay()
   const current = usePlay(sheet)
   if (!current) return null
   const { slots, pact } = current.derived
@@ -119,6 +121,7 @@ const SAVE_NAMES: Record<DeathSave, string> = {
 }
 
 function DeathSaveRow({ kind, marked }: { kind: DeathSave; marked: number }): ReactNode {
+  const applyPlay = useApplyPlay()
   return (
     <span className="sheet-slots__level">
       <span className="sheet-slots__name">{SAVE_NAMES[kind]}</span>

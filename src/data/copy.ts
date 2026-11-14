@@ -4,16 +4,19 @@
 // cases (array append/prepend/insert/replace/remove and scalar overrides) and
 // degrades gracefully on anything it does not recognise.
 
+/** Which entry a `_copy` inherits from, and how it changes what it inherits. */
+export interface CopyRef {
+  name: string
+  source: string
+  _mod?: Record<string, ModOp | ModOp[]>
+  _preserve?: Record<string, boolean>
+  [k: string]: unknown
+}
+
 export interface Copyable {
   name: string
   source: string
-  _copy?: {
-    name: string
-    source: string
-    _mod?: Record<string, ModOp | ModOp[]>
-    _preserve?: Record<string, boolean>
-    [k: string]: unknown
-  }
+  _copy?: CopyRef
   [k: string]: unknown
 }
 
@@ -100,17 +103,18 @@ function applyMods(
 
 /**
  * Resolve a single entry's `_copy` chain. `find` locates a base entry by
- * name+source (returning undefined if unknown). Returns a new resolved object;
+ * name+source, and by any further identity the copy reference carries (a
+ * subclass's `className` and `classSource`), returning undefined if unknown. Returns a new resolved object;
  * the original is not mutated. If the base can't be found, the entry is returned
  * with `_copy` stripped so callers still get usable own-fields.
  */
 export function resolveCopy<T extends Copyable>(
   entry: T,
-  find: (name: string, source: string) => T | undefined,
+  find: (name: string, source: string, ref: CopyRef) => T | undefined,
 ): T {
   if (!entry._copy) return entry
   const baseRef = entry._copy
-  const base = find(baseRef.name, baseRef.source)
+  const base = find(baseRef.name, baseRef.source, baseRef)
   if (!base) {
     const { _copy, ...rest } = entry
     void _copy

@@ -70,6 +70,14 @@ describe('speed', () => {
     expect(speedQuantity(sourcesOf(c)).lines).toEqual([])
   })
 
+  it('adds Unarmored Movement to no speed when the species is not found', () => {
+    // A multiclass Barbarian 3, Bard 3, Monk 2 showed a speed of 10 ft.: the bonus alone.
+    const c = build('Monk', 2, {}, [])
+    const speed = speedQuantity(sourcesOf(c, [monk]))
+    expect(speed.value).toBe(0)
+    expect(speed.lines).toEqual([])
+  })
+
   it('adds Fast Movement unless heavy armor is worn', () => {
     const open = build('Barbarian', 5, {}, [])
     expect(speedQuantity(sourcesOf(open, [barbarian], elf)).value).toBe(45)

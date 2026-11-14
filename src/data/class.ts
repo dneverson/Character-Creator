@@ -1,11 +1,16 @@
 // Class data: loading and resolving the normalized 5etools class format.
 // `classFeatures` are string refs ("Rage|Barbarian||1") resolved against the
-// file's top-level `classFeature[]`; subclasses work the same way.
+// file's top-level `classFeature[]`; subclasses work the same way. A class or
+// subclass with `_copy` (a reprint, or one book's version of another's subclass)
+// is resolved against its original when the files load, so every record a
+// caller sees is complete.
 
 import type { AbilityKey } from '../dice/dice'
 import { fetchData } from './dataClient'
+import { resolveCopy, type Copyable, type CopyRef } from './copy'
 import type { Entry } from '../text/Entries'
 import type { ClassRef } from '../character/model'
+import type { OptionalFeatureProgression } from './classOptions'
 
 export interface HitDice {
   number: number
@@ -79,25 +84,20 @@ export interface ClassStartingEquipment {
 }
 
 /** The optional features a class (or subclass) gives, and how many by class level. */
-export interface OptionalFeatureProgression {
-  name: string
-  featureType: string[]
-  /** Class level -> how many are known at that level ("1": 1). */
-  progression: Record<string, number>
-}
+export type { OptionalFeatureProgression }
 
-export interface ClassEntry extends SpellcastingFields {
+export interface ClassEntry extends SpellcastingFields, Copyable {
   name: string
   source: string
   edition?: 'classic' | 'one'
   page?: number
-  /** Optional: reprints and partial `_copy` stubs in the source data omit it. */
+  /** Optional: the sidekicks (TCE) level by the creature's own hit dice. */
   hd?: HitDice
   /** Saving-throw proficiency abilities. */
   proficiency?: string[]
   startingProficiencies?: StartingProficiencies
   startingEquipment?: ClassStartingEquipment
-  /** Absent on a `_copy` stub that has not been resolved against its original. */
+  /** Absent on a class the data gives no features. */
   classFeatures?: ClassFeatureRef[]
   optionalfeatureProgression?: OptionalFeatureProgression[]
   classTableGroups?: ClassTableGroup[]
@@ -150,35 +150,45 @@ export function multiclassRequirements(
   return options.length === 1 ? options[0] : { or: options }
 }
 
-/** Display label for a class hit die, e.g. "d10". Entries without a hit die
- * (reprints / partial `_copy` stubs) render as an em dash. */
+/** Display label for a class hit die, e.g. "d10"; a class without one shows a hyphen. */
 export function hitDieLabel(entry: ClassEntry): string {
   return entry.hd ? `d${entry.hd.faces}` : '-'
 }
 
-export interface ClassFeatureEntry {
+/** A class feature as the data has it; a `_copy` one inherits its text. */
+interface ClassFeatureRecord extends Copyable {
   name: string
   source: string
   className: string
   classSource: string
   level: number
+  entries?: Entry[]
+}
+
+export interface ClassFeatureEntry extends ClassFeatureRecord {
   entries: Entry[]
 }
 
-export interface SubclassEntry extends SpellcastingFields {
+/** A subclass as the data has it; a `_copy` one inherits its features. */
+interface SubclassRecord extends SpellcastingFields, Copyable {
   name: string
   shortName: string
   source: string
   className: string
   classSource: string
   edition?: 'classic' | 'one'
-  subclassFeatures: string[]
+  subclassFeatures?: string[]
   /** The level table of a subclass that casts (Eldritch Knight, Arcane Trickster). */
   subclassTableGroups?: ClassTableGroup[]
   optionalfeatureProgression?: OptionalFeatureProgression[]
 }
 
-export interface SubclassFeatureEntry {
+export interface SubclassEntry extends SubclassRecord {
+  subclassFeatures: string[]
+}
+
+/** A subclass feature as the data has it; a `_copy` one inherits its text. */
+interface SubclassFeatureRecord extends Copyable {
   name: string
   source: string
   className: string
@@ -186,14 +196,27 @@ export interface SubclassFeatureEntry {
   subclassShortName: string
   subclassSource: string
   level: number
+  entries?: Entry[]
+}
+
+export interface SubclassFeatureEntry extends SubclassFeatureRecord {
   entries: Entry[]
 }
 
+/** A class file with its `_copy` records resolved (`resolveClassFiles`). */
 export interface ClassFile {
   class?: ClassEntry[]
   subclass?: SubclassEntry[]
   classFeature?: ClassFeatureEntry[]
   subclassFeature?: SubclassFeatureEntry[]
+}
+
+/** A class file as the data has it, where a `_copy` record lacks what it inherits. */
+export interface RawClassFile {
+  class?: ClassEntry[]
+  subclass?: SubclassRecord[]
+  classFeature?: ClassFeatureRecord[]
+  subclassFeature?: SubclassFeatureRecord[]
 }
 
 /** A class entry together with the file it came from (for feature resolution). */
@@ -212,14 +235,107 @@ async function loadClassIndex(): Promise<ClassIndex> {
 export async function loadClasses(): Promise<LoadedClass[]> {
   const index = await loadClassIndex()
   const files = await Promise.all(
-    Object.values(index).map((f) => fetchData<ClassFile>(`class/${f}`)),
+    Object.values(index).map((f) => fetchData<RawClassFile>(`class/${f}`)),
   )
   const out: LoadedClass[] = []
-  for (const file of files) {
+  for (const file of resolveClassFiles(files)) {
     for (const entry of file.class ?? []) out.push({ entry, file })
   }
   out.sort((a, b) => a.entry.name.localeCompare(b.entry.name))
   return out
+}
+
+/**
+ * The class files with every `_copy` record resolved against its original: a class
+ * (the Priest copies the Cleric), a subclass (a book's version of another class's)
+ * and a feature. The original may sit in another file. A file also gets the
+ * features its records name that live in another file, so every record's features
+ * resolve from its own file. The given files are not changed.
+ */
+export function resolveClassFiles(files: readonly RawClassFile[]): ClassFile[] {
+  const findClass = copyFinder(files.flatMap((f) => f.class ?? []))
+  const findSubclass = copyFinder(files.flatMap((f) => f.subclass ?? []))
+  const findClassFeature = copyFinder(files.flatMap((f) => f.classFeature ?? []))
+  const findSubclassFeature = copyFinder(files.flatMap((f) => f.subclassFeature ?? []))
+  // A copy whose original is missing from the data keeps only its own fields.
+  const ownFeatures = files.map((file) => ({
+    classFeature: (file.classFeature ?? []).map((f) => {
+      const resolved = resolveCopy(f, findClassFeature)
+      return { ...resolved, entries: resolved.entries ?? [] }
+    }),
+    subclassFeature: (file.subclassFeature ?? []).map((f) => {
+      const resolved = resolveCopy(f, findSubclassFeature)
+      return { ...resolved, entries: resolved.entries ?? [] }
+    }),
+  }))
+  const classPool = ownFeatures.flatMap((f) => f.classFeature)
+  const subclassPool = ownFeatures.flatMap((f) => f.subclassFeature)
+  return files.map((file, i) => {
+    const ownClasses = file.class?.map((c) => resolveCopy(c, findClass))
+    const ownSubclasses = file.subclass?.map((s) => {
+      const resolved = resolveCopy(s, findSubclass)
+      return { ...resolved, subclassFeatures: resolved.subclassFeatures ?? [] }
+    })
+    const classFeature = withBorrowed(
+      ownFeatures[i].classFeature,
+      classPool,
+      (ownClasses ?? []).flatMap((c) => (c.classFeatures ?? []).map(classFeatureRefOf)),
+      (f, ref) => isClassFeature(f, parseFeatureRef(ref)),
+    )
+    const subclassFeature = withBorrowed(
+      ownFeatures[i].subclassFeature,
+      subclassPool,
+      (ownSubclasses ?? []).flatMap((s) => s.subclassFeatures),
+      (f, ref) => isSubclassFeature(f, parseSubclassFeatureRef(ref)),
+    )
+    return {
+      ...(ownClasses && { class: ownClasses }),
+      ...(ownSubclasses && { subclass: ownSubclasses }),
+      ...(classFeature.length > 0 && { classFeature }),
+      ...(subclassFeature.length > 0 && { subclassFeature }),
+    }
+  })
+}
+
+/** What names a class record beyond its name and source, as a `_copy` gives it. */
+const COPY_IDENTITY = [
+  'className',
+  'classSource',
+  'shortName',
+  'subclassShortName',
+  'subclassSource',
+  'level',
+] as const
+
+/**
+ * Finds the original a `_copy` names among the records: by name and source, and
+ * by the class, subclass and level the reference also names (two classes may
+ * each have a "Hunter" subclass, and the features of one subclass share a book).
+ */
+function copyFinder<T extends Copyable>(records: readonly T[]) {
+  return (name: string, source: string, ref: CopyRef) =>
+    records.find(
+      (r) =>
+        r.name === name &&
+        r.source === source &&
+        COPY_IDENTITY.every((key) => !(key in ref) || r[key] === ref[key]),
+    )
+}
+
+/** A file's own features, then each named one it lacks, found in every file. */
+function withBorrowed<F>(
+  own: readonly F[],
+  all: readonly F[],
+  refs: readonly string[],
+  matches: (feature: F, ref: string) => boolean,
+): F[] {
+  const borrowed = new Set<F>()
+  for (const ref of refs) {
+    if (own.some((f) => matches(f, ref))) continue
+    const found = all.find((f) => matches(f, ref))
+    if (found) borrowed.add(found)
+  }
+  return [...own, ...borrowed]
 }
 
 // ---- Feature resolution ---------------------------------------------------
@@ -237,17 +353,37 @@ interface ParsedRef {
   className: string
   classSource: string
   level: number
+  /** The feature's own source, when the ref names one. */
+  source?: string
 }
 
-function parseFeatureRef(ref: string, defaultSource: string): ParsedRef {
-  const [name = '', className = '', classSource = '', level = '1'] = ref.split('|')
+/** The book a feature ref means when it leaves a source out, as 5etools reads it. */
+const DEFAULT_REF_SOURCE = 'PHB'
+
+const classFeatureRefOf = (item: ClassFeatureRef) =>
+  typeof item === 'string' ? item : item.classFeature
+
+/** A class feature ref, "Rage|Barbarian|XPHB|1": the class source, and the
+ * feature's own source after the level, are optional. */
+function parseFeatureRef(ref: string): ParsedRef {
+  const [name = '', className = '', classSource = '', level = '1', source = ''] =
+    ref.split('|')
   return {
     name,
     className,
-    classSource: classSource || defaultSource,
+    classSource: classSource || DEFAULT_REF_SOURCE,
     level: Number(level) || 1,
+    ...(source && { source }),
   }
 }
+
+/** Whether a pool feature is the one a ref names, by its whole identity. */
+const isClassFeature = (f: ClassFeatureEntry, ref: ParsedRef) =>
+  f.name === ref.name &&
+  f.className === ref.className &&
+  f.classSource === ref.classSource &&
+  f.level === ref.level &&
+  (ref.source === undefined || f.source === ref.source)
 
 /** Resolve a class's features into a level-indexed list (levels 1..20). */
 export function resolveClassFeatures(
@@ -265,8 +401,7 @@ export function resolveClassFeatures(
 
   for (const item of entry.classFeatures ?? []) {
     const isSubclassSlot = typeof item === 'object' && item.gainSubclassFeature === true
-    const ref = typeof item === 'string' ? item : item.classFeature
-    const parsed = parseFeatureRef(ref, entry.source)
+    const parsed = parseFeatureRef(classFeatureRefOf(item))
 
     if (isSubclassSlot) {
       add(parsed.level, {
@@ -278,12 +413,7 @@ export function resolveClassFeatures(
       continue
     }
 
-    const match = pool.find(
-      (f) =>
-        f.name === parsed.name &&
-        f.level === parsed.level &&
-        f.classSource === parsed.classSource,
-    )
+    const match = pool.find((f) => isClassFeature(f, parsed))
     if (match) {
       add(parsed.level, { name: match.name, level: match.level, entries: match.entries })
     } else {
@@ -294,17 +424,31 @@ export function resolveClassFeatures(
   return byLevel
 }
 
-function parseSubclassFeatureRef(ref: string, defaultClassSource: string) {
+/** A subclass feature ref, "Frenzy|Barbarian||Berserker||3" (sources optional). */
+function parseSubclassFeatureRef(ref: string) {
   const parts = ref.split('|')
   return {
     name: parts[0] ?? '',
     className: parts[1] ?? '',
-    classSource: parts[2] || defaultClassSource,
+    classSource: parts[2] || DEFAULT_REF_SOURCE,
     subclassShortName: parts[3] ?? '',
-    subclassSource: parts[4] || defaultClassSource,
+    subclassSource: parts[4] || DEFAULT_REF_SOURCE,
     level: Number(parts[5]) || 1,
   }
 }
+
+/** Whether a pool feature is the one a ref names, by its whole identity: the 2014
+ * and 2024 versions of a subclass share feature names and levels. */
+const isSubclassFeature = (
+  f: SubclassFeatureEntry,
+  ref: ReturnType<typeof parseSubclassFeatureRef>,
+) =>
+  f.name === ref.name &&
+  f.className === ref.className &&
+  f.classSource === ref.classSource &&
+  f.subclassShortName === ref.subclassShortName &&
+  f.subclassSource === ref.subclassSource &&
+  f.level === ref.level
 
 /** Resolve a subclass's features into a level-indexed list. */
 export function resolveSubclassFeatures(
@@ -314,13 +458,8 @@ export function resolveSubclassFeatures(
   const pool = file.subclassFeature ?? []
   const byLevel = new Map<number, ResolvedFeature[]>()
   for (const ref of subclass.subclassFeatures) {
-    const parsed = parseSubclassFeatureRef(ref, subclass.classSource)
-    const match = pool.find(
-      (f) =>
-        f.name === parsed.name &&
-        f.level === parsed.level &&
-        f.subclassShortName === parsed.subclassShortName,
-    )
+    const parsed = parseSubclassFeatureRef(ref)
+    const match = pool.find((f) => isSubclassFeature(f, parsed))
     const list = byLevel.get(parsed.level) ?? []
     list.push({
       name: match?.name ?? parsed.name,
@@ -341,33 +480,43 @@ export function subclassUnlockLevel(loaded: LoadedClass): number {
   let min = Number.POSITIVE_INFINITY
   for (const item of loaded.entry.classFeatures ?? []) {
     if (typeof item === 'object' && item.gainSubclassFeature === true) {
-      const parsed = parseFeatureRef(item.classFeature, loaded.entry.source)
+      const parsed = parseFeatureRef(item.classFeature)
       if (parsed.level < min) min = parsed.level
     }
   }
   return Number.isFinite(min) ? min : 1
 }
 
-/** Subclasses available for a given class entry (matched by name + edition). */
+/**
+ * Subclasses available for a given class entry: its own, but not one marked for
+ * the other edition (a 2014 subclass the data also lists under the 2024 class).
+ * A subclass the data marks with no edition (the 2024 Artificer's) is the class's.
+ */
 export function subclassesFor(loaded: LoadedClass): SubclassEntry[] {
   const { entry, file } = loaded
   return (file.subclass ?? []).filter(
     (s) =>
       s.className === entry.name &&
       s.classSource === entry.source &&
-      (entry.edition ? s.edition === entry.edition : true),
+      (!entry.edition || !s.edition || s.edition === entry.edition),
+  )
+}
+
+/** The subclass a character's class names, among those its class offers. */
+export function subclassOf(
+  loaded: LoadedClass,
+  chosen: { shortName: string; source: string } | undefined,
+): SubclassEntry | undefined {
+  if (!chosen) return undefined
+  return subclassesFor(loaded).find(
+    (s) => s.shortName === chosen.shortName && s.source === chosen.source,
   )
 }
 
 /** A class's features up to its level, with the chosen subclass's features in place. */
 export function featuresForClass(loaded: LoadedClass, cls: ClassRef): ResolvedFeature[] {
   const classFeatures = resolveClassFeatures(loaded)
-  const useSubclass = cls.subclass
-    ? subclassesFor(loaded).find(
-        (s) =>
-          s.shortName === cls.subclass!.shortName && s.source === cls.subclass!.source,
-      )
-    : undefined
+  const useSubclass = subclassOf(loaded, cls.subclass)
   const subFeatures = useSubclass
     ? resolveSubclassFeatures(loaded.file, useSubclass)
     : undefined

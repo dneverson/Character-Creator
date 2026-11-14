@@ -12,6 +12,7 @@ import { resolveSpellGrants } from '../character/spellGrants'
 import { cardGrantsOf, hasRoom, spellRooms } from '../character/spellTiers'
 import { subclassesFor, subclassUnlockLevel } from '../data/class'
 import type { OpenPick } from './grantBlocks'
+import { cardChoiceWord, chosenOptions, isFightingStyleCard } from './classOptions'
 import type { DeriveDeps, Sources } from './sources'
 
 /** The creator's sections, top to bottom, with the heading each one gives itself. */
@@ -62,7 +63,7 @@ export interface ChecklistInputs {
   /** The skill cards and the expertise cards. */
   skills: PickCard[]
   expertise: PickCard[]
-  /** The class option cards (fighting styles). */
+  /** The class option cards: fighting styles, invocations, maneuvers and the rest. */
   classOptions: PickCard[]
 }
 
@@ -153,13 +154,20 @@ export function buildChecklist({
     savesLeft,
     `${plural(savesLeft, 'saving throw choice')} to make`,
   )
-  const optionsLeft = sumLeft(classOptions)
-  add(
-    'class-options',
-    'combat',
-    optionsLeft,
-    `${plural(optionsLeft, 'class option')} to choose`,
-  )
+  // One line per kind of option: "2 invocation choices to make". A fighting style is
+  // picked in Combat, every other option in Class & Level.
+  const optionsLeft = new Map<string, { section: SectionId; left: number }>()
+  for (const card of classOptions) {
+    if (card.left === 0) continue
+    const word = cardChoiceWord(card, sources.optionSlots, sources.featureSlots)
+    const section = isFightingStyleCard(card) ? 'combat' : 'class'
+    optionsLeft.set(word, {
+      section,
+      left: (optionsLeft.get(word)?.left ?? 0) + card.left,
+    })
+  }
+  for (const [word, { section, left }] of optionsLeft)
+    add(`class-options:${word}`, section, left, `${plural(left, word)} to make`)
 
   const casters = characterCasters(character, deps.classByKey, summary.abilityBonus)
   const { grants } = resolveSpellGrants(character, {
@@ -167,6 +175,7 @@ export function buildChecklist({
     background: deps.background,
     featSlots: summary.slots,
     classByKey: deps.classByKey,
+    options: chosenOptions(sources, deps),
   })
   const cardGrants = cardGrantsOf(grants, casters)
   const rooms = spellRooms(character, casters, cardGrants)
@@ -181,7 +190,7 @@ export function buildChecklist({
     'spells',
     'spells',
     classLeft,
-    `${plural(classLeft, 'cantrip or spell')} not chosen`,
+    `${plural(classLeft, 'cantrip or spell', 'cantrips or spells')} not chosen`,
   )
   add(
     'spell-grants',
@@ -219,7 +228,7 @@ export function buildChecklist({
     feats: summary.slots.length > 0,
     skills: hasClass(character),
     proficiencies: hasClass(character),
-    combat: classOptions.length > 0,
+    combat: classOptions.some(isFightingStyleCard),
     spells: casters.length > 0 || cardGrants.some((g) => g.pick && !g.locked),
     equipment: owed.length > 0,
   }

@@ -6,7 +6,7 @@ import { ErrorBoundary } from '../ErrorBoundary'
 import { CharacterHeader } from '../sheet/CharacterHeader'
 import { downloadCharacter } from '../../character/io'
 import { exportCharacterPdf } from '../../pdf/exportPdf'
-import { useActiveCharacter } from '../../character/store'
+import { useCharacter } from '../../character/useCharacterDoc'
 import { useContentNames } from '../../hooks/useContentNames'
 import {
   SECTION_TITLES,
@@ -66,7 +66,7 @@ const SECTIONS: { id: SectionId; Section: ComponentType }[] = [
 ]
 
 export function CharacterEditor() {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfError, setPdfError] = useState<string | null>(null)
   const [sectionCommand, setSectionCommand] = useState<SectionCommand | null>(null)

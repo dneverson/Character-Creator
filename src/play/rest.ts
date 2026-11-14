@@ -1,10 +1,13 @@
 // A rest applied to the play state, by the rules table of the edition (restRules.ts). Nothing
 // here blocks: a rest at 0 hit points only carries a warning, and the player can always go on.
 
-import type { HitDieSpend, PlayState } from '../character/model'
+import type { HitDieSpend, PlayState, RestoredUse } from '../character/model'
+import type { Recharge } from '../rules/resources'
 import type { RestEffect, RestKind } from '../rules/restRules'
+import type { SpellSlots } from '../rules/spellcasting'
 import { heal, MAX_EXHAUSTION } from './actions'
-import type { HitDicePool } from './derivePlay'
+import type { DerivedResource } from '../derived/resources'
+import type { HitDicePool, UsePool } from './derivePlay'
 
 const find = <K extends RestEffect['kind']>(
   rules: readonly RestEffect[],
@@ -43,11 +46,69 @@ export function restWarning(
   return rule && currentHp <= 0 ? rule.text : undefined
 }
 
+/**
+ * The effects of a rest that mean something for this character: the slots a rest restores
+ * are listed only for a character with slots of that kind (Pact Magic for a Warlock).
+ */
+export function restEffectsFor(
+  rules: readonly RestEffect[],
+  slots: SpellSlots,
+): readonly RestEffect[] {
+  const has = {
+    standard: slots.standard.some((n) => n > 0),
+    pact: (slots.pact?.slots ?? 0) > 0,
+  }
+  return rules.filter((e) => e.kind !== 'restoreSlots' || e.which.some((w) => has[w]))
+}
+
+/** A limited-use counter as a rest reads it: what was spent and what restores it. */
+export interface UseRecharge {
+  id: string
+  label: string
+  spent: number
+  recharge: Recharge
+  /** Uses a short rest restores on top of the recharge (Sorcerous Restoration). */
+  shortRegain: number
+}
+
+/** The counters of the derived sheet with what is spent of each, as a rest reads them. */
+export function rechargesOf(
+  resources: readonly DerivedResource[],
+  pools: readonly UsePool[],
+): UseRecharge[] {
+  const spent = new Map(pools.map((p) => [p.id, p.spent]))
+  return resources.map((r) => ({
+    id: r.id,
+    label: r.label,
+    spent: spent.get(r.id) ?? 0,
+    recharge: r.recharge,
+    shortRegain: r.shortRegain,
+  }))
+}
+
+/** The uses a rest of this kind gives back, by counter; none for a counter with none spent. */
+export function restoredUses(on: RestKind, uses: readonly UseRecharge[]): RestoredUse[] {
+  return uses.flatMap((use) => {
+    const back =
+      on === 'long'
+        ? use.recharge === 'none'
+          ? 0
+          : use.spent
+        : use.recharge === 'short'
+          ? use.spent
+          : (use.recharge === 'shortOne' ? 1 : 0) + use.shortRegain
+    const regained = Math.min(back, use.spent)
+    return regained > 0 ? [{ id: use.id, label: use.label, regained }] : []
+  })
+}
+
 export interface RestInput {
   maxHp: number
   hitDice: readonly HitDicePool[]
   /** Short rest: the hit dice spent and what they rolled. */
   spends?: readonly HitDieSpend[]
+  /** The limited-use counters, for the rest to restore what each one says. */
+  uses?: readonly UseRecharge[]
 }
 
 /** The play state after a rest of this kind under these rules. */
@@ -84,6 +145,14 @@ export function applyRest(
   const slots = find(rules, 'restoreSlots')
   if (slots?.which.includes('standard')) next = { ...next, slotsSpent: [] }
   if (slots?.which.includes('pact')) next = { ...next, pactSpent: 0 }
+  const recharge = find(rules, 'rechargeUses')
+  if (recharge) {
+    const uses = { ...next.uses }
+    for (const { id, regained } of restoredUses(recharge.on, input.uses ?? [])) {
+      uses[id] = Math.max(0, (uses[id] ?? 0) - regained)
+    }
+    next = { ...next, uses }
+  }
   if (find(rules, 'endTempHp')) next = { ...next, tempHp: 0 }
   if (find(rules, 'reduceExhaustion')) {
     next = {

@@ -6,14 +6,14 @@
 import type { StoryState } from '../../character/model'
 import { newRoll, rollAction } from '../../character/rollHistory'
 import { unsetTables, withStoryRows, withTableRows } from '../../character/storyTables'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { findBackground, loadBackgrounds, type StoryTable } from '../../data/background'
 import { rollOnTable } from '../../data/dieTables'
 import { useAsyncData } from '../../hooks/useAsyncData'
 
 export function useBackgroundStory() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   const { data: backgrounds } = useAsyncData(loadBackgrounds)
   // Every loaded background, so one outside the enabled books keeps its tables.
   const background = character

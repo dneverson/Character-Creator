@@ -7,13 +7,16 @@ import {
   restoreHitDie,
   restorePact,
   restoreSlot,
+  restoreUse,
   setConcentration,
   setHitDiceSpent,
   setSlotsSpent,
   setTempHp,
+  setUsesSpent,
   spendHitDie,
   spendPact,
   spendSlot,
+  spendUse,
   stepExhaustion,
   toggleCondition,
   toggleDeathSave,
@@ -141,6 +144,28 @@ describe('hit dice', () => {
   it('sets the spent count within the total and keeps other sizes', () => {
     const p = play({ hitDiceSpent: { d6: 1 } })
     expect(setHitDiceSpent(p, 'd8', 9, 3).hitDiceSpent).toEqual({ d6: 1, d8: 3 })
+  })
+})
+
+describe('limited uses', () => {
+  it('spends and regains one use, between none and the maximum', () => {
+    const once = spendUse(play(), 'rage', 2)
+    expect(once.uses).toEqual({ rage: 1 })
+    expect(spendUse(spendUse(once, 'rage', 2), 'rage', 2).uses.rage).toBe(2)
+    expect(restoreUse(once, 'rage', 2).uses.rage).toBe(0)
+    expect(restoreUse(play(), 'rage', 2).uses.rage).toBe(0)
+  })
+
+  it('counts a stored number above a lowered maximum as all spent', () => {
+    const stale = play({ uses: { rage: 5 } })
+    expect(restoreUse(stale, 'rage', 3).uses.rage).toBe(2)
+    expect(spendUse(stale, 'rage', 3).uses.rage).toBe(3)
+  })
+
+  it('sets the spent count within the maximum and keeps the other counters', () => {
+    const both = play({ uses: { rage: 1, ki: 4 } })
+    expect(setUsesSpent(both, 'ki', 9, 5).uses).toEqual({ rage: 1, ki: 5 })
+    expect(setUsesSpent(both, 'ki', -1, 5).uses).toEqual({ rage: 1, ki: 0 })
   })
 })
 

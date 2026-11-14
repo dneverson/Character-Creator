@@ -39,10 +39,6 @@ export const PROFICIENCY_NOT_GRANTED: Record<string, string> = {
     'a weapon mastery property, not a proficiency',
   'feat|Weapon Master|XPHB':
     'a weapon mastery property, not a proficiency, the pick is not stored',
-  'classFeature|Protector|XPHB|Cleric':
-    'a class option (Protector or Thaumaturge) that is not stored yet; Protector gives martial weapons and heavy armor',
-  'classFeature|Warden|XPHB|Druid':
-    'a class option (Warden or Magician) that is not stored yet; Warden gives martial weapons and medium armor',
   'classFeature|Deflect Missiles|PHB|Monk':
     'proficiency with the one attack, not a standing proficiency',
   'subclassFeature|Path of the Kensei|XGE|Monk|Kensei':

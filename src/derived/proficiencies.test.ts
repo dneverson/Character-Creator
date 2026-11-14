@@ -35,6 +35,55 @@ describe('proficiencies', () => {
     expect(armorProficiency(w, 'light')).toBeUndefined()
   })
 
+  it('gives heavy armor to a 2024 cleric only when the Protector order is taken', () => {
+    const order = (name: string) => ({
+      name,
+      source: 'XPHB',
+      className: 'Cleric',
+      classSource: 'XPHB',
+      level: 1,
+      entries: [`${name} text.`],
+    })
+    const cleric = loadedClass('Cleric', ['light'], ['simple'], {
+      classFeature: [
+        {
+          ...order('Divine Order'),
+          entries: [
+            {
+              type: 'options',
+              count: 1,
+              entries: [
+                { type: 'refClassFeature', classFeature: 'Protector|Cleric|XPHB|1|XPHB' },
+                {
+                  type: 'refClassFeature',
+                  classFeature: 'Thaumaturge|Cleric|XPHB|1|XPHB',
+                },
+              ],
+            },
+          ],
+        },
+        order('Protector'),
+        order('Thaumaturge'),
+      ],
+    })
+    cleric.entry = {
+      ...cleric.entry,
+      source: 'XPHB',
+      classFeatures: ['Divine Order|Cleric|XPHB|1'],
+    }
+    const c = createCharacter('C')
+    c.classes = [{ name: 'Cleric', source: 'XPHB', level: 1 }]
+    expect(
+      armorProficiency(proficiencies(collectSources(c, deps([cleric]))), 'heavy'),
+    ).toBe(undefined)
+    c.classOptions = {
+      'class:Cleric|XPHB|feature:Divine Order|1': ['Protector|Cleric|XPHB|1|XPHB'],
+    }
+    expect(
+      armorProficiency(proficiencies(collectSources(c, deps([cleric]))), 'heavy')?.label,
+    ).toBe('Cleric')
+  })
+
   it('knows a named weapon and a category', () => {
     const c = createCharacter('W')
     c.classes = [{ name: 'Wizard', source: 'PHB', level: 1 }]

@@ -4,7 +4,7 @@
 import { useMemo } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import { loadBeasts, type Beast } from '../../data/beasts'
-import { useActiveCharacter } from '../../character/store'
+import { useCharacter } from '../../character/useCharacterDoc'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import {
   beastKey,
@@ -19,7 +19,7 @@ import { useSheetRowDetail } from './SheetDetail'
 import type { SheetPanelProps } from './SheetPanels'
 
 export function ExtrasPanel({ sheet }: SheetPanelProps) {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const detailTarget = useSheetRowDetail('extras')
   const booksKey = (character?.selectedBooks ?? []).join(',')
   const loader = useMemo(

@@ -11,7 +11,7 @@ import { loadBackgrounds } from '../../data/background'
 import { loadRaces } from '../../data/race'
 import { loadFeats } from '../../data/feats'
 import { loadItems } from '../../data/items'
-import { loadFightingStyleOptions } from '../../data/classOptions'
+import { loadClassOptions } from '../../data/classOptions'
 import { loadLanguages } from '../../data/languages'
 import { FIGHTER, ITEMS, stack } from '../../test/derivedFixtures'
 import { settle } from '../../test/settle'
@@ -34,7 +34,7 @@ vi.mock('../../data/feats', async (importOriginal) => ({
 }))
 vi.mock('../../data/classOptions', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/classOptions')>()),
-  loadFightingStyleOptions: vi.fn(),
+  loadClassOptions: vi.fn(),
 }))
 vi.mock('../../data/languages', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/languages')>()),
@@ -123,7 +123,7 @@ beforeEach(() => {
   vi.mocked(loadBackgrounds).mockResolvedValue([])
   vi.mocked(loadRaces).mockResolvedValue([])
   vi.mocked(loadFeats).mockResolvedValue([])
-  vi.mocked(loadFightingStyleOptions).mockResolvedValue([])
+  vi.mocked(loadClassOptions).mockResolvedValue([])
   vi.mocked(loadLanguages).mockResolvedValue([])
   vi.mocked(loadItems).mockResolvedValue(ITEMS)
   useCharacterStore.setState({ characters: {}, order: [], activeId: null, view: 'list' })

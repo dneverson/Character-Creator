@@ -12,7 +12,11 @@ import {
   wildShapeRuleLines,
   type WildShapeLimits,
 } from '../../rules/wildshape'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import {
+  useCharacter,
+  useLatestCharacter,
+  useUpdateCharacter,
+} from '../../character/useCharacterDoc'
 import type { BeastRef } from '../../character/model'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { Abbr, AbbrText } from '../Abbr'
@@ -33,12 +37,6 @@ type Meta = Omit<RowMeta, 'id'>
 
 const isDruid = (name: string) => name === 'Druid'
 
-/** The wild shape forms of the active character as they are now (a batch adds several). */
-function currentForms(): BeastRef[] {
-  const { activeId, characters } = useCharacterStore.getState()
-  return activeId ? (characters[activeId]?.wildShapes ?? []) : []
-}
-
 interface BeastFormsProps {
   selectedBooks: string[]
   wildShapes: BeastRef[]
@@ -50,7 +48,10 @@ interface BeastFormsProps {
  * part of the book data, so it is read only when this table is shown.
  */
 function BeastForms({ selectedBooks, wildShapes, limits }: BeastFormsProps) {
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const updateActive = useUpdateCharacter()
+  // The forms as they are now (a batch adds several).
+  const latest = useLatestCharacter()
+  const currentForms = () => latest()?.wildShapes ?? []
   const booksKey = selectedBooks.join(',')
   const loader = useMemo(
     () => () => loadBeasts(booksKey ? booksKey.split(',') : []),
@@ -158,7 +159,7 @@ function BeastForms({ selectedBooks, wildShapes, limits }: BeastFormsProps) {
 }
 
 export function WildShapeSection() {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const editions = useAsyncData(loadBookEditions)
 
   const druid = useMemo(() => {

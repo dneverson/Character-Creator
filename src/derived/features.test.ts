@@ -119,6 +119,7 @@ describe('featureRows', () => {
       from: 'Feat',
       kind: 'Feat',
       entries: ['You cannot be surprised.'],
+      anchor: 'feat:one',
     })
   })
 })

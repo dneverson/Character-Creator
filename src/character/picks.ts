@@ -16,7 +16,7 @@ export type PickKind =
   | 'expertise'
   | 'resist'
   | 'condition'
-  /** A class option (a fighting style): stored in `classOptions`, not in the picks. */
+  /** A class option (an invocation, a maneuver): stored in `classOptions`, not in the picks. */
   | 'option'
 
 /** The values of one kind the player chose, each with the source tag that pays for it. */
@@ -58,17 +58,22 @@ export function togglePick(
   return { ...picks, [kind]: map }
 }
 
-/** The class options with this one placed, or taken back when already placed. */
-export function toggleClassOption(
+/**
+ * The class options with one more of this option placed, or one taken back when
+ * `remove`. A value is the option's key, or "<key>#<n>" for a repeatable option's
+ * further instance; the key is what is stored, as often as it was taken.
+ */
+export function pickClassOption(
   options: Record<string, string[]>,
   tag: string,
   value: string,
+  remove: boolean,
 ): Record<string, string[]> {
+  const key = value.split('#')[0]
   const held = options[tag] ?? []
-  return {
-    ...options,
-    [tag]: held.includes(value) ? held.filter((v) => v !== value) : [...held, value],
-  }
+  if (!remove) return { ...options, [tag]: [...held, key] }
+  const at = held.lastIndexOf(key)
+  return { ...options, [tag]: at < 0 ? held : held.filter((_, i) => i !== at) }
 }
 
 /** The skill picks of a character. */
@@ -93,6 +98,11 @@ export interface PickChip {
   hint?: string
   /** What the option is and does, from the data, so it can be read before it is picked. */
   detail?: PickChipDetail
+  /**
+   * Why the option is not a standard pick (a prerequisite not met), in words: greyed with
+   * the reason, and still pickable with the DM's approval.
+   */
+  unmet?: string
 }
 
 /** What a pick is, in the data's own words: labelled facts, then its rules text. */

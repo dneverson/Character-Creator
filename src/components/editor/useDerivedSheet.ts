@@ -2,48 +2,50 @@
 // character has and the loaded data, for the sections that show them.
 
 import { useMemo } from 'react'
-import { useActiveCharacter } from '../../character/store'
-import { loadFightingStyleOptions } from '../../data/classOptions'
+import { useCharacter } from '../../character/useCharacterDoc'
+import { loadClassOptions } from '../../data/classOptions'
 import { loadBookEditions } from '../../data/edition'
 import { loadItems } from '../../data/items'
 import { loadLanguages } from '../../data/languages'
 import { deriveSheet } from '../../derived'
+import type { DeriveDeps } from '../../derived/sources'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { useFeatSummary } from './useFeatSummary'
 
 export function useDerivedSheet() {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const { classByKey, background, race, feats, loading, error } = useFeatSummary()
   const items = useAsyncData(loadItems)
   const languages = useAsyncData(loadLanguages)
-  const styles = useAsyncData(loadFightingStyleOptions)
+  const options = useAsyncData(loadClassOptions)
   const editions = useAsyncData(loadBookEditions)
 
-  const sheet = useMemo(
-    () =>
-      character
-        ? deriveSheet(character, {
-            classByKey,
-            background,
-            race,
-            feats,
-            items: items.data ?? undefined,
-            languages: languages.data ?? undefined,
-            fightingStyles: styles.data ?? undefined,
-            editionOf: editions.data ?? undefined,
-          })
-        : undefined,
+  const deps = useMemo<DeriveDeps>(
+    () => ({
+      classByKey,
+      background,
+      race,
+      feats,
+      items: items.data ?? undefined,
+      languages: languages.data ?? undefined,
+      optionCatalog: options.data ?? undefined,
+      editionOf: editions.data ?? undefined,
+    }),
     [
-      character,
       classByKey,
       background,
       race,
       feats,
       items.data,
       languages.data,
-      styles.data,
+      options.data,
       editions.data,
     ],
+  )
+
+  const sheet = useMemo(
+    () => (character ? deriveSheet(character, deps) : undefined),
+    [character, deps],
   )
 
   const catalog = useMemo(
@@ -53,8 +55,10 @@ export function useDerivedSheet() {
 
   return {
     sheet,
+    /** What the sheet was derived from, for other derivations of the same character. */
+    deps,
     catalog,
-    loading: loading || items.loading || languages.loading || styles.loading,
-    error: error ?? items.error ?? languages.error ?? styles.error,
+    loading: loading || items.loading || languages.loading || options.loading,
+    error: error ?? items.error ?? languages.error ?? options.error,
   }
 }

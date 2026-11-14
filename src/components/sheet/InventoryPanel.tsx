@@ -3,10 +3,10 @@
 // away in the sheet's detail pane. Wearing and attuning are toggled here, as in the editor.
 
 import { useMemo } from 'react'
-import { useActiveCharacter } from '../../character/store'
+import { useCharacter } from '../../character/useCharacterDoc'
 import { loadItems, type Item } from '../../data/items'
 import { useAsyncData } from '../../hooks/useAsyncData'
-import { inventoryColumns } from '../editor/inventoryColumns'
+import { inventoryColumns, useEditStack } from '../editor/inventoryColumns'
 import { CoinPurse, InventoryTotals } from '../editor/InventoryTotals'
 import { useOwnedItems } from '../editor/useOwnedItems'
 import {
@@ -22,9 +22,13 @@ import { BrowseTable } from '../table/BrowseTable'
 import type { Column } from '../table/types'
 import type { SheetPanelProps } from './SheetPanels'
 import { useSheetRowDetail } from './SheetDetail'
+import { UseCounter } from './UseCounter'
+import { RechargeNote } from './RechargeNote'
+import { usePlay } from './usePlay'
 
 export function InventoryPanel({ sheet }: SheetPanelProps) {
-  const character = useActiveCharacter()
+  const character = useCharacter()
+  const editStack = useEditStack()
   const { data: items, loading } = useAsyncData(loadItems)
   const { race } = useFeatSummary()
   const stacks = useMemo(() => character?.equipment.items ?? [], [character])
@@ -36,9 +40,16 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
     [character?.classes],
   )
   const rowMeta = useMemo(() => itemRowMeta(sheet.edition), [sheet.edition])
+  const pools = usePlay(sheet)?.derived.uses
+  const resources = sheet.resources
 
   const columns = useMemo<Column<Item>[]>(() => {
-    const [name, ...rest] = inventoryColumns({ stackOf, strength, classNames })
+    const [name, ...rest] = inventoryColumns({
+      editStack,
+      stackOf,
+      strength,
+      classNames,
+    })
     const quantity: Column<Item> = {
       key: 'quantity',
       header: 'Qty',
@@ -47,8 +58,29 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
       sortValue: (item) => stackOf.get(item.key)?.quantity ?? 1,
       filterable: false,
     }
-    return [name, quantity, ...rest]
-  }, [stackOf, strength, classNames])
+    // The charges of an equipped item are counted; the rest only say how many they hold.
+    const charges: Column<Item> = {
+      key: 'charges',
+      header: 'Charges',
+      priority: 1,
+      filterable: false,
+      sortValue: (item) => Number(item.charges?.max) || 0,
+      render: (item) => {
+        const resource = resources.find((r) => r.id === `item:${item.key}`)
+        if (!resource) return item.charges?.max ?? ''
+        return (
+          <span className="sheet-uses-cell__item">
+            <UseCounter
+              resource={resource}
+              pool={pools?.find((p) => p.id === resource.id)}
+            />
+            <RechargeNote resource={resource} named={false} />
+          </span>
+        )
+      },
+    }
+    return [name, quantity, charges, ...rest]
+  }, [editStack, stackOf, strength, classNames, resources, pools])
 
   if (!character) return null
   return (

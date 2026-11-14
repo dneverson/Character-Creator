@@ -25,7 +25,11 @@ import {
   type Spell,
 } from '../../data/spells'
 import { matchesFilter, type FilterLists } from '../../data/grants'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import {
+  useCharacter,
+  useLatestCharacter,
+  useUpdateCharacter,
+} from '../../character/useCharacterDoc'
 import {
   EMPTY_SELECTION,
   cardGrantsOf,
@@ -60,14 +64,6 @@ import { SpellPicker } from './SpellPicker'
 import { YourSpells } from './YourSpells'
 import { useSpellList } from './useSpellList'
 
-/** The character as it is now, for handlers that run more than once in a click. */
-function latestCharacter() {
-  const { activeId, characters } = useCharacterStore.getState()
-  return activeId ? characters[activeId] : undefined
-}
-const latestSelection = (classKey: string) =>
-  latestCharacter()?.spells[classKey] ?? EMPTY_SELECTION
-
 /** A spell a class always has, with the grant that gives it. */
 interface Fixed {
   grant: SpellGrant
@@ -76,9 +72,23 @@ interface Fixed {
 
 // ---- Section ----------------------------------------------------------------
 
-export function SpellsSection() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+/** Part of the section: some classes' choices and some grants (what a level brought). */
+export interface SpellsScope {
+  classKeys: readonly string[]
+  grantIds: readonly string[]
+}
+
+/**
+ * The Spells section. Given a `scope`, only those classes and grants, without the section's
+ * frame, overview and list of every spell (Level up shows what the new level asks for).
+ */
+export function SpellsSection({ scope }: { scope?: SpellsScope } = {}) {
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
+  // The character as it is now, for handlers that run more than once in a click.
+  const latestCharacter = useLatestCharacter()
+  const latestSelection = (classKey: string) =>
+    latestCharacter()?.spells[classKey] ?? EMPTY_SELECTION
   const {
     featSummary,
     casters,
@@ -129,6 +139,14 @@ export function SpellsSection() {
     return out
   }, [grants, casters, byName])
   const cardGrants = useMemo(() => cardGrantsOf(grants, casters), [grants, casters])
+  const shownCasters = useMemo(
+    () => (scope ? casters.filter((c) => scope.classKeys.includes(c.classKey)) : casters),
+    [scope, casters],
+  )
+  const shownGrants = useMemo(
+    () => (scope ? cardGrants.filter((g) => scope.grantIds.includes(g.id)) : cardGrants),
+    [scope, cardGrants],
+  )
   // What a filter's class is read against: every class, in the selected books.
   const filterLists = useMemo<FilterLists>(
     () => ({
@@ -153,7 +171,7 @@ export function SpellsSection() {
   }
   /** Every table the player chooses in, with how full it is, for the character as given. */
   const roomsOf = (now: Character): Room[] =>
-    spellRooms(now, casters, cardGrants, hostedOf)
+    spellRooms(now, shownCasters, shownGrants, hostedOf)
   const firstWithRoom = (now: Character) => roomsOf(now).find(hasRoom)?.id ?? null
   const open = opened === undefined ? firstWithRoom(character) : opened
 
@@ -202,12 +220,8 @@ export function SpellsSection() {
       s.cantrips.length + s.spells.length + (s.spellbook?.length ?? 0) > 0,
   )
 
-  return (
-    <EditorSection
-      id="spells"
-      title="Spells"
-      subtitle="Cantrips and spells per spellcasting class, chosen from every spell in your books. Limits are shown; a spell your class cannot have is greyed with the reason, and the switch allows it as a non-standard choice."
-    >
+  const content = (
+    <>
       {loading && (
         <div className="text-body-secondary">
           <Spinner size="sm" animation="border" className="me-2" />
@@ -216,7 +230,7 @@ export function SpellsSection() {
       )}
       {error && <Alert variant="danger">Failed to load spells: {error.message}</Alert>}
 
-      {!loading && !error && casters.length === 0 && (
+      {!scope && !loading && !error && casters.length === 0 && (
         <Alert variant="warning" className="mb-0">
           No spellcasting class yet. Add a class like Wizard, Cleric, or Bard to cast
           spells.
@@ -225,8 +239,8 @@ export function SpellsSection() {
 
       {!loading && !error && (
         <>
-          {casters.length > 0 && <SlotOverview slots={slots} />}
-          {casters.map((caster) => (
+          {!scope && casters.length > 0 && <SlotOverview slots={slots} />}
+          {shownCasters.map((caster) => (
             <CasterCard
               key={caster.classKey}
               caster={caster}
@@ -252,7 +266,7 @@ export function SpellsSection() {
             />
           ))}
           <GrantedSpells
-            grants={cardGrants}
+            grants={shownGrants}
             variants={resolved.variants}
             choices={character.spellGrants}
             byName={byName}
@@ -266,67 +280,83 @@ export function SpellsSection() {
             onAllowNonStandardChange={setAllowNonStandard}
             editChoice={editChoice}
           />
-          <YourSpells
-            casters={casters}
-            character={character}
-            grants={cardAndPlaced}
-            byKey={byKey}
-            byName={byName}
-            removeClassPick={(classKey, spell) =>
-              edit(classKey, (c) => ({
-                ...c,
-                cantrips: without(c.cantrips, spell.key),
-                spellbook: c.spellbook ? without(c.spellbook, spell.key) : undefined,
-                spells: without(c.spells, spell.key),
-              }))
-            }
-            removeGrantPick={(id, spell) =>
-              editChoice(id, (c) => ({ ...c, picks: without(c.picks, spell.key) }))
-            }
-          />
-          {lostGrants.length > 0 && (
-            <Alert
-              variant="warning"
-              className="d-flex flex-wrap align-items-center gap-2"
-            >
-              <span className="flex-grow-1">
-                <strong>Spells from something you no longer have:</strong>{' '}
-                {[
-                  ...new Set(lostGrants.flatMap(([, c]) => c.picks.map((r) => r.name))),
-                ].join(', ')}
-                . They stay on the character until you remove them.
-              </span>
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => {
-                  const gone = new Set(lostGrants.map(([id]) => id))
-                  updateActive({
-                    spellGrants: Object.fromEntries(
-                      Object.entries(character.spellGrants).filter(
-                        ([id]) => !gone.has(id),
+          {!scope && (
+            <>
+              <YourSpells
+                casters={casters}
+                character={character}
+                grants={cardAndPlaced}
+                byKey={byKey}
+                byName={byName}
+                removeClassPick={(classKey, spell) =>
+                  edit(classKey, (c) => ({
+                    ...c,
+                    cantrips: without(c.cantrips, spell.key),
+                    spellbook: c.spellbook ? without(c.spellbook, spell.key) : undefined,
+                    spells: without(c.spells, spell.key),
+                  }))
+                }
+                removeGrantPick={(id, spell) =>
+                  editChoice(id, (c) => ({ ...c, picks: without(c.picks, spell.key) }))
+                }
+              />
+              {lostGrants.length > 0 && (
+                <Alert
+                  variant="warning"
+                  className="d-flex flex-wrap align-items-center gap-2"
+                >
+                  <span className="flex-grow-1">
+                    <strong>Spells from something you no longer have:</strong>{' '}
+                    {[
+                      ...new Set(
+                        lostGrants.flatMap(([, c]) => c.picks.map((r) => r.name)),
                       ),
-                    ),
-                  })
-                }}
-              >
-                Remove all
-              </Button>
-            </Alert>
+                    ].join(', ')}
+                    . They stay on the character until you remove them.
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => {
+                      const gone = new Set(lostGrants.map(([id]) => id))
+                      updateActive({
+                        spellGrants: Object.fromEntries(
+                          Object.entries(character.spellGrants).filter(
+                            ([id]) => !gone.has(id),
+                          ),
+                        ),
+                      })
+                    }}
+                  >
+                    Remove all
+                  </Button>
+                </Alert>
+              )}
+              {orphans.map(([key, selection]) => (
+                <OrphanAlert
+                  key={key}
+                  classKey={key}
+                  selection={selection}
+                  onRemoveAll={() => {
+                    const { [key]: _gone, ...rest } = character.spells
+                    updateActive({ spells: rest })
+                  }}
+                />
+              ))}
+            </>
           )}
-          {orphans.map(([key, selection]) => (
-            <OrphanAlert
-              key={key}
-              classKey={key}
-              selection={selection}
-              onRemoveAll={() => {
-                const { [key]: _gone, ...rest } = character.spells
-                updateActive({ spells: rest })
-              }}
-            />
-          ))}
         </>
       )}
+    </>
+  )
+  if (scope) return content
+  return (
+    <EditorSection
+      id="spells"
+      title="Spells"
+      subtitle="Cantrips and spells per spellcasting class, chosen from every spell in your books. Limits are shown; a spell your class cannot have is greyed with the reason, and the switch allows it as a non-standard choice."
+    >
+      {content}
     </EditorSection>
   )
 }

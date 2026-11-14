@@ -2,6 +2,7 @@
 
 import type { DerivedSheet } from '../../derived'
 import { SheetAttacks } from './SheetAttacks'
+import { SheetUses } from './SheetUses'
 import { ProficienciesPanel, SavesPanel, SensesPanel, SkillsPanel } from './SidePanels'
 
 export interface SheetPanelProps {
@@ -9,7 +10,12 @@ export interface SheetPanelProps {
 }
 
 export function ActionsPanel({ sheet }: SheetPanelProps) {
-  return <SheetAttacks attacks={sheet.attacks} />
+  return (
+    <>
+      <SheetAttacks attacks={sheet.attacks} />
+      <SheetUses sheet={sheet} />
+    </>
+  )
 }
 
 /** On a phone the left column is two tabs; this is the first, the skills the second. */

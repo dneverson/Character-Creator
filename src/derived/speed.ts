@@ -128,34 +128,37 @@ function itemLines(sources: Sources, before: Line[]): Line[] {
   return lines
 }
 
-/** A character with no species has no speed, so the quantity has no lines. */
+/**
+ * A character with no species has no speed, so the quantity has no lines: a bonus such as
+ * Unarmored Movement adds to the species' walking speed and is nothing on its own.
+ */
 export function speedQuantity(sources: Sources): Quantity {
-  const lines: Line[] = []
   const race = sources.race
   const speed = race?.speed
-  if (race && speed !== undefined) {
-    const source = { kind: 'race' as const, tag: 'race', label: race.name }
-    lines.push({
+  if (!race || speed === undefined) return quantity([])
+  const source = { kind: 'race' as const, tag: 'race', label: race.name }
+  const lines: Line[] = [
+    {
       id: 'speed|race',
       label: 'Walking speed',
       source,
       amount: walkingSpeed(speed),
       op: 'base',
       status: 'applied',
-    })
-    if (typeof speed === 'object') {
-      for (const [mode, value] of Object.entries(speed)) {
-        if (mode === 'walk' || mode === 'canHover') continue
-        const text = modeText(mode, value, speedDistance(speed.walk))
-        if (!text) continue
-        lines.push({
-          id: `speed|mode|${mode}`,
-          label: capital(text),
-          source,
-          op: 'note',
-          status: 'applied',
-        })
-      }
+    },
+  ]
+  if (typeof speed === 'object') {
+    for (const [mode, value] of Object.entries(speed)) {
+      if (mode === 'walk' || mode === 'canHover') continue
+      const text = modeText(mode, value, speedDistance(speed.walk))
+      if (!text) continue
+      lines.push({
+        id: `speed|mode|${mode}`,
+        label: capital(text),
+        source,
+        op: 'note',
+        status: 'applied',
+      })
     }
   }
   for (const rule of SPEED_RULES) {
@@ -176,6 +179,6 @@ export function speedQuantity(sources: Sources): Quantity {
         : { ...base, status: 'applied' },
     )
   }
-  if (race && speed !== undefined) lines.push(...itemLines(sources, lines))
+  lines.push(...itemLines(sources, lines))
   return quantity(lines)
 }

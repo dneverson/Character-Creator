@@ -4,19 +4,25 @@ import ButtonGroup from 'react-bootstrap/ButtonGroup'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Stack from 'react-bootstrap/Stack'
 import Tooltip from 'react-bootstrap/Tooltip'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { canLevelUp, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { identityLine } from '../../character/identity'
 import { Icon } from '../Icon'
 import { sectionDomId } from '../editor/checklistContext'
 import { DraftInput } from '../editor/DraftInput'
 import { PortraitFrame } from '../portrait/PortraitFrame'
 
-const LEVEL_UP_REASON =
+const NOT_DONE_REASON =
   'Finish the build first. While building, set levels in Class & Level.'
+const LEVEL_CAP_REASON =
+  'Your character is level 20, the highest level in the rules. A reward past it, such as an epic boon from your DM, goes in Edit as a bonus feat.'
 
 interface Props {
-  /** Which view the header is in: the sheet shows the name, the editor lets it be changed. */
-  mode: 'sheet' | 'edit'
+  /**
+   * Which view the header is in: the sheet and Level up show the name, the editor lets it
+   * be changed.
+   */
+  mode: 'sheet' | 'edit' | 'levelup'
   /** The rules the character plays by ("2024 rules"), shown after who it is. */
   ruleset?: string
   /** Buttons at the right-hand end. */
@@ -28,11 +34,17 @@ interface Props {
  * name, the Sheet | Edit | Level up switch and whatever the view adds on the right.
  */
 export function CharacterHeader({ mode, ruleset, actions }: Props) {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const backToList = useCharacterStore((s) => s.backToList)
   const setView = useCharacterStore((s) => s.setView)
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const updateActive = useUpdateCharacter()
   if (!character) return null
+  // Why Level up cannot open, or null when it can.
+  const levelUpReason = canLevelUp(character)
+    ? null
+    : character.completedAt === undefined
+      ? NOT_DONE_REASON
+      : LEVEL_CAP_REASON
   const line = [identityLine(character), ruleset].filter(Boolean).join(' - ')
 
   return (
@@ -78,19 +90,29 @@ export function CharacterHeader({ mode, ruleset, actions }: Props) {
         >
           Edit
         </Button>
-        <OverlayTrigger overlay={<Tooltip>{LEVEL_UP_REASON}</Tooltip>}>
-          {/* A disabled button gets no pointer events, so the span carries the tooltip. */}
-          <span className="d-inline-block" tabIndex={0}>
-            <Button
-              variant="secondary"
-              disabled
-              style={{ pointerEvents: 'none' }}
-              className="rounded-start-0"
-            >
-              Level up
-            </Button>
-          </span>
-        </OverlayTrigger>
+        {levelUpReason === null ? (
+          <Button
+            variant={mode === 'levelup' ? 'primary' : 'secondary'}
+            aria-pressed={mode === 'levelup'}
+            onClick={() => setView('levelUp')}
+          >
+            Level up
+          </Button>
+        ) : (
+          <OverlayTrigger overlay={<Tooltip>{levelUpReason}</Tooltip>}>
+            {/* A disabled button gets no pointer events, so the span carries the tooltip. */}
+            <span className="d-inline-block" tabIndex={0}>
+              <Button
+                variant="secondary"
+                disabled
+                style={{ pointerEvents: 'none' }}
+                className="rounded-start-0"
+              >
+                Level up
+              </Button>
+            </span>
+          </OverlayTrigger>
+        )}
       </ButtonGroup>
       {actions && <div className="ms-auto d-flex flex-wrap gap-2">{actions}</div>}
     </Stack>

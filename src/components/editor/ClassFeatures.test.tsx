@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ClassFeatures } from './ClassFeatures'
 import { ThemeProvider } from '../../theme/ThemeProvider'
@@ -10,6 +11,12 @@ import {
   type LoadedClass,
   type ResolvedFeature,
 } from '../../data/class'
+import { loadBackgrounds } from '../../data/background'
+import { loadRaces } from '../../data/race'
+import { loadFeats } from '../../data/feats'
+import { loadItems } from '../../data/items'
+import { loadClassOptions, type ClassOption } from '../../data/classOptions'
+import { loadLanguages } from '../../data/languages'
 import { settle } from '../../test/settle'
 
 vi.mock('../../data/class', async (importOriginal) => {
@@ -20,6 +27,31 @@ vi.mock('../../data/class', async (importOriginal) => {
     featuresForClass: vi.fn(),
   }
 })
+// The option cards come from the derived sheet, which loads these too.
+vi.mock('../../data/background', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/background')>()),
+  loadBackgrounds: vi.fn(),
+}))
+vi.mock('../../data/race', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/race')>()),
+  loadRaces: vi.fn(),
+}))
+vi.mock('../../data/feats', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/feats')>()),
+  loadFeats: vi.fn(),
+}))
+vi.mock('../../data/classOptions', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/classOptions')>()),
+  loadClassOptions: vi.fn(),
+}))
+vi.mock('../../data/languages', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/languages')>()),
+  loadLanguages: vi.fn(),
+}))
+vi.mock('../../data/items', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/items')>()),
+  loadItems: vi.fn(),
+}))
 const mockClasses = vi.mocked(loadClasses)
 // Feature resolution (levels, subclass replacement) is unit-tested in data/class.test.ts;
 // here the component renders whatever list it is handed.
@@ -70,6 +102,12 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockClasses.mockResolvedValue([fighter])
   mockFeatures.mockReturnValue(featureList)
+  vi.mocked(loadBackgrounds).mockResolvedValue([])
+  vi.mocked(loadRaces).mockResolvedValue([])
+  vi.mocked(loadFeats).mockResolvedValue([])
+  vi.mocked(loadClassOptions).mockResolvedValue([])
+  vi.mocked(loadLanguages).mockResolvedValue([])
+  vi.mocked(loadItems).mockResolvedValue([])
   useCharacterStore.setState({ characters: {}, order: [], activeId: null, view: 'list' })
 })
 
@@ -269,5 +307,107 @@ describe('ClassFeatures', () => {
     renderSection()
 
     expect(await screen.findByText('No features at this level.')).toBeInTheDocument()
+  })
+
+  it('leaves the fighting style to Combat and offers the other options here', async () => {
+    const styled: LoadedClass = {
+      ...fighter,
+      entry: {
+        ...fighter.entry,
+        optionalfeatureProgression: [
+          { name: 'Fighting Style', featureType: ['FS:F'], progression: { '1': 1 } },
+          { name: 'Maneuvers', featureType: ['MV:B'], progression: { '1': 1 } },
+        ],
+      },
+    }
+    const options: ClassOption[] = [
+      {
+        key: 'Defense|PHB',
+        name: 'Defense',
+        source: 'PHB',
+        types: ['FS:F'],
+        entries: ['While you are wearing armor, you gain a +1 bonus to AC.'],
+      },
+      {
+        key: 'Parry|PHB',
+        name: 'Parry',
+        source: 'PHB',
+        types: ['MV:B'],
+        entries: ['Reduce the damage by the number you roll.'],
+      },
+    ]
+    mockClasses.mockResolvedValue([styled])
+    vi.mocked(loadClassOptions).mockResolvedValue(options)
+    seedActive((ch) => {
+      ch.classes = [{ name: 'Fighter', source: 'PHB', level: 1 }]
+    })
+    renderSection()
+
+    expect(await screen.findByText('Parry')).toBeInTheDocument()
+    expect(screen.queryByText('Class - Fighter fighting style')).toBeNull()
+    expect(screen.queryByText('Defense')).toBeNull()
+  })
+
+  it('greys an option whose prerequisite is not met and still allows it with DM approval', async () => {
+    const user = userEvent.setup()
+    const warlock: LoadedClass = {
+      entry: {
+        name: 'Warlock',
+        source: 'PHB',
+        edition: 'classic',
+        hd: { number: 1, faces: 8 },
+        classFeatures: [],
+        optionalfeatureProgression: [
+          { name: 'Eldritch Invocations', featureType: ['EI'], progression: [0, 2] },
+        ],
+      },
+      file: {},
+    }
+    mockClasses.mockResolvedValue([warlock])
+    mockFeatures.mockReturnValue([])
+    vi.mocked(loadClassOptions).mockResolvedValue([
+      {
+        key: 'Agonizing Blast|PHB',
+        name: 'Agonizing Blast',
+        source: 'PHB',
+        types: ['EI'],
+        entries: ['Add your Charisma modifier to the damage.'],
+        prerequisite: [{ spell: ['eldritch blast#c'] }],
+      },
+      {
+        key: "Devil's Sight|PHB",
+        name: "Devil's Sight",
+        source: 'PHB',
+        types: ['EI'],
+        entries: ['You can see normally in darkness.'],
+      },
+    ])
+    const c = seedActive((ch) => {
+      ch.classes = [{ name: 'Warlock', source: 'PHB', level: 2 }]
+    })
+    renderSection()
+
+    expect(
+      await screen.findByText('Class - Warlock eldritch invocations'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('2 of 2 left')).toBeInTheDocument()
+    // The unmet one is greyed with its reason and waits for the DM approval switch.
+    expect(screen.getByLabelText('Show choices that are not available')).toBeChecked()
+    const rowOf = () =>
+      screen
+        .getAllByText('Agonizing Blast')
+        .map((el) => el.closest('tr'))
+        .find((tr): tr is HTMLTableRowElement => tr !== null) as HTMLElement
+    expect(
+      within(rowOf()).getByText(
+        /Needs The Eldritch Blast cantrip - allowed with DM approval/,
+      ),
+    ).toBeInTheDocument()
+    expect(within(rowOf()).getByRole('button', { name: 'Choose' })).toBeDisabled()
+    await user.click(screen.getByLabelText('Allow non-standard choices (DM approval)'))
+    await user.click(within(rowOf()).getByRole('button', { name: 'Choose' }))
+    expect(useCharacterStore.getState().characters[c.id].classOptions).toEqual({
+      'class:Warlock|PHB|EI': ['Agonizing Blast|PHB'],
+    })
   })
 })

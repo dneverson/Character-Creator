@@ -161,7 +161,12 @@ describe('charges', () => {
       recharge: 'dawn',
       rechargeAmount: '{@dice 1d6 + 4}',
     })
-    expect(charges).toEqual({ max: '7', recharge: 'at dawn', amount: '1d6 + 4' })
+    expect(charges).toEqual({
+      max: '7',
+      recharge: 'at dawn',
+      on: 'dawn',
+      amount: '1d6 + 4',
+    })
     expect(chargesText(charges!)).toBe('7, regains 1d6 + 4 at dawn')
     expect(chargesText({ max: '3' })).toBe('3')
     expect(chargesOf({ charges: '{@dice 1d6 + 1}', rechargeAmount: 5 })).toEqual({

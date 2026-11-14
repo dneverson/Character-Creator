@@ -1,7 +1,9 @@
 import Alert from 'react-bootstrap/Alert'
+import Button from 'react-bootstrap/Button'
 import Container from 'react-bootstrap/Container'
 import Spinner from 'react-bootstrap/Spinner'
-import { useActiveCharacter } from '../../character/store'
+import { selectCanUndoLevelUp, useCharacterStore } from '../../character/store'
+import { useCharacter } from '../../character/useCharacterDoc'
 import { ABILITIES, ABILITY_NAMES, formatMod, abilityMod } from '../../dice/dice'
 import { editionYear } from '../../data/labels'
 import type { Quantity } from '../../derived/types'
@@ -41,10 +43,12 @@ const PHONE = '(max-width: 767.98px)'
  * Every number is read from the derived sheet, with what exhaustion and the conditions do.
  */
 export function SheetView() {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const { sheet: built, loading, error } = useDerivedSheet()
   const phone = useMediaQuery(PHONE)
   const [template, setTemplate] = useSheetTemplate()
+  const canUndoLevelUp = useCharacterStore(selectCanUndoLevelUp)
+  const undoLevelUp = useCharacterStore((s) => s.undoLevelUp)
   useContentNames()
   if (!character) return null
   // In play, the exhaustion level and the conditions change the numbers shown here only.
@@ -57,7 +61,16 @@ export function SheetView() {
           <CharacterHeader
             mode="sheet"
             ruleset={sheet ? `${editionYear(sheet.edition)} rules` : undefined}
-            actions={<TemplateMenu value={template} onChange={setTemplate} />}
+            actions={
+              <>
+                {canUndoLevelUp && (
+                  <Button variant="secondary" onClick={undoLevelUp}>
+                    Undo level up
+                  </Button>
+                )}
+                <TemplateMenu value={template} onChange={setTemplate} />
+              </>
+            }
           />
           {loading && (
             <div className="text-body-secondary mb-2">

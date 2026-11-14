@@ -11,7 +11,7 @@ export type EditionOf = (source: string) => Edition
 
 /** The edition of a source when the books list is not loaded: the 2024 books are these. */
 const ONE_SOURCES: ReadonlySet<string> = new Set(['XPHB', 'XDMG', 'XMM'])
-const fallbackEdition: EditionOf = (source) =>
+export const fallbackEdition: EditionOf = (source) =>
   ONE_SOURCES.has(source) ? 'one' : 'classic'
 
 export function characterEdition(

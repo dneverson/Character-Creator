@@ -10,8 +10,8 @@ import Button from 'react-bootstrap/Button'
 import Spinner from 'react-bootstrap/Spinner'
 import { applyVariant } from '../../data/itemVariants'
 import { loadItems, type Item } from '../../data/items'
-import { useActiveCharacter } from '../../character/store'
-import { editItems } from '../../character/inventoryEdit'
+import { useCharacter } from '../../character/useCharacterDoc'
+import { useEditItems } from '../../character/inventoryEdit'
 import type { InventoryItem } from '../../character/model'
 import { characterAbilityTotals } from '../../character/derive'
 import {
@@ -29,7 +29,7 @@ import { CustomItemModal, type CustomItemDraft } from './CustomItemModal'
 import { NotInBooksAlert } from './NotInBooksAlert'
 import { StartingEquipment } from './StartingEquipment'
 import { useFeatSummary } from './useFeatSummary'
-import { editStack, inventoryColumns } from './inventoryColumns'
+import { inventoryColumns, useEditStack } from './inventoryColumns'
 import { CoinPurse, InventoryTotals } from './InventoryTotals'
 import { useOwnedItems } from './useOwnedItems'
 import {
@@ -42,56 +42,66 @@ import {
   itemTags,
 } from './itemFacts'
 
-const addItem = (item: Item) =>
-  editItems((all) =>
-    all.some((s) => inventoryKey(s) === item.key)
-      ? all.map((s) =>
-          inventoryKey(s) === item.key ? { ...s, quantity: s.quantity + 1 } : s,
-        )
-      : [...all, { name: item.name, source: item.source, quantity: 1 }],
-  )
-/** A stack of one more of an item that is made of a template and a base item. */
-const addVariant = (template: Item, base: Item) => {
-  const made = applyVariant(template, base)
-  editItems((all) =>
-    all.some((s) => inventoryKey(s) === made.key)
-      ? all.map((s) =>
-          inventoryKey(s) === made.key ? { ...s, quantity: s.quantity + 1 } : s,
-        )
-      : [
-          ...all,
-          {
-            name: made.name,
-            source: template.source,
-            quantity: 1,
-            variantOf: template.key,
-            base: base.key,
-          },
-        ],
-  )
-}
-/** Saves an item of the player's own: a new stack, or the one being edited in place. */
-const saveCustom = (draft: CustomItemDraft, editing?: InventoryItem) =>
-  editItems((all) => {
-    const others = all.filter(
-      (s) => !editing || inventoryKey(s) !== inventoryKey(editing),
+/** The changes the Equipment section makes to the inventory. */
+function useInventoryEdits() {
+  const editItems = useEditItems()
+  const editStack = useEditStack()
+  const addItem = (item: Item) =>
+    editItems((all) =>
+      all.some((s) => inventoryKey(s) === item.key)
+        ? all.map((s) =>
+            inventoryKey(s) === item.key ? { ...s, quantity: s.quantity + 1 } : s,
+          )
+        : [...all, { name: item.name, source: item.source, quantity: 1 }],
     )
-    const stack: InventoryItem = {
-      ...editing,
-      name: uniqueCustomName(others, draft.name),
-      source: CUSTOM_SOURCE,
-      quantity: draft.quantity,
-      custom: draft.custom,
-    }
-    return editing
-      ? all.map((s) => (inventoryKey(s) === inventoryKey(editing) ? stack : s))
-      : [...all, stack]
-  })
-const setQuantity = (item: Item, quantity: number) => editStack(item.key, { quantity })
-const removeKey = (key: string) =>
-  editItems((all) => all.filter((s) => inventoryKey(s) !== key))
+  /** A stack of one more of an item that is made of a template and a base item. */
+  const addVariant = (template: Item, base: Item) => {
+    const made = applyVariant(template, base)
+    editItems((all) =>
+      all.some((s) => inventoryKey(s) === made.key)
+        ? all.map((s) =>
+            inventoryKey(s) === made.key ? { ...s, quantity: s.quantity + 1 } : s,
+          )
+        : [
+            ...all,
+            {
+              name: made.name,
+              source: template.source,
+              quantity: 1,
+              variantOf: template.key,
+              base: base.key,
+            },
+          ],
+    )
+  }
+  /** Saves an item of the player's own: a new stack, or the one being edited in place. */
+  const saveCustom = (draft: CustomItemDraft, editing?: InventoryItem) =>
+    editItems((all) => {
+      const others = all.filter(
+        (s) => !editing || inventoryKey(s) !== inventoryKey(editing),
+      )
+      const stack: InventoryItem = {
+        ...editing,
+        name: uniqueCustomName(others, draft.name),
+        source: CUSTOM_SOURCE,
+        quantity: draft.quantity,
+        custom: draft.custom,
+      }
+      return editing
+        ? all.map((s) => (inventoryKey(s) === inventoryKey(editing) ? stack : s))
+        : [...all, stack]
+    })
+  const setQuantity = (item: Item, quantity: number) => editStack(item.key, { quantity })
+  const removeKey = (key: string) =>
+    editItems((all) => all.filter((s) => inventoryKey(s) !== key))
+  return { addItem, addVariant, saveCustom, setQuantity, removeKey }
+}
+
 export function EquipmentSection() {
-  const character = useActiveCharacter()
+  const editItems = useEditItems()
+  const editStack = useEditStack()
+  const { addItem, addVariant, saveCustom, setQuantity, removeKey } = useInventoryEdits()
+  const character = useCharacter()
   const { data: items, error, loading } = useAsyncData(loadItems)
   const { background, classByKey, race, summary } = useFeatSummary()
 
@@ -128,6 +138,7 @@ export function EquipmentSection() {
   const summaryColumns = useMemo<Column<Item>[]>(
     () =>
       inventoryColumns({
+        editStack,
         stackOf,
         strength,
         classNames,
@@ -158,7 +169,7 @@ export function EquipmentSection() {
           </>
         ),
       }),
-    [stackOf, catalog, strength, classNames],
+    [editStack, editItems, stackOf, catalog, strength, classNames],
   )
 
   if (!character) return null

@@ -26,6 +26,12 @@ export interface SlotPool extends Pool {
   level: number
 }
 
+/** A limited-use counter's uses: what the derived sheet allows, less what was spent. */
+export interface UsePool extends Pool {
+  /** The resource's id: the key of `PlayState.uses`. */
+  id: string
+}
+
 export interface PactPool extends Pool {
   /** The level every Pact Magic slot is cast at. */
   level: number
@@ -42,6 +48,8 @@ export interface DerivedPlay {
   /** Only the spell levels the character has slots of. */
   slots: SlotPool[]
   pact?: PactPool
+  /** The limited-use counters with a maximum; an unlimited one keeps no count. */
+  uses: UsePool[]
   deathState: DeathState
 }
 
@@ -51,7 +59,7 @@ const pool = (total: number, spentRaw: number): Pool => {
 }
 
 export function derivePlay(
-  sheet: Pick<DerivedSheet, 'hp' | 'hitDice' | 'slots'>,
+  sheet: Pick<DerivedSheet, 'hp' | 'hitDice' | 'slots' | 'resources'>,
   play: PlayState,
 ): DerivedPlay {
   const maxHp = Math.max(0, sheet.hp.value)
@@ -112,6 +120,9 @@ export function derivePlay(
       level: sheet.slots.pact.level,
       ...pool(sheet.slots.pact.slots, play.pactSpent),
     },
+    uses: sheet.resources.flatMap((r) =>
+      r.max === undefined ? [] : [{ id: r.id, ...pool(r.max, play.uses[r.id] ?? 0) }],
+    ),
     deathState,
   }
 }

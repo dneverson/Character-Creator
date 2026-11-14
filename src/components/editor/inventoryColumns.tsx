@@ -2,10 +2,10 @@
 // stats and a note. The Equipment section and the sheet's Inventory tab draw the same
 // columns, so an item reads and is worn the same way in both.
 
-import type { ReactNode } from 'react'
+import { useCallback, type ReactNode } from 'react'
 import Form from 'react-bootstrap/Form'
 import type { Item } from '../../data/items'
-import { editItems } from '../../character/inventoryEdit'
+import { useEditItems } from '../../character/inventoryEdit'
 import type { InventoryItem } from '../../character/model'
 import { inventoryKey } from '../../character/inventory'
 import { lacksClass, strengthNeeded } from '../../rules/equipment'
@@ -18,14 +18,24 @@ import { itemColumns, itemSummaryColumns } from './itemFacts'
 
 export const oneDecimal = (n: number) => Math.round(n * 10) / 10
 
-/** Changes one stack of the inventory, found by its key. */
-export const editStack = (key: string, patch: Partial<InventoryItem>) =>
-  editItems((all) => all.map((s) => (inventoryKey(s) === key ? { ...s, ...patch } : s)))
+/** A function that changes one stack of the inventory, found by its key. */
+export function useEditStack() {
+  const editItems = useEditItems()
+  return useCallback(
+    (key: string, patch: Partial<InventoryItem>) =>
+      editItems((all) =>
+        all.map((s) => (inventoryKey(s) === key ? { ...s, ...patch } : s)),
+      ),
+    [editItems],
+  )
+}
 
 /** Whether an item can be attuned to (it needs attunement, or may have it). */
 const attunable = (item: Item) => item.attunement !== undefined
 
 interface Inputs {
+  /** Changes the stack of an item (see `useEditStack`). */
+  editStack: (key: string, patch: Partial<InventoryItem>) => void
   /** The character's stacks by item key. */
   stackOf: Map<string, InventoryItem>
   /** The character's Strength, for armor that asks for some. */
@@ -37,6 +47,7 @@ interface Inputs {
 }
 
 export function inventoryColumns({
+  editStack,
   stackOf,
   strength,
   classNames,

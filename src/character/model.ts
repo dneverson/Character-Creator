@@ -173,14 +173,54 @@ export type HistoryAction =
   | { type: 'roll'; roll: RollRecord }
   /** The player pressed Done: the build counts as finished (open choices or not). */
   | { type: 'completed' }
-  /** A short or long rest taken; a short rest lists the hit dice rolled for hit points. */
-  | { type: 'rest'; rest: 'short' | 'long'; rolls?: HitDieSpend[] }
+  /**
+   * A short or long rest taken; a short rest lists the hit dice rolled for hit points.
+   * `restored` lists the limited uses the rest gave back.
+   */
+  | {
+      type: 'rest'
+      rest: 'short' | 'long'
+      rolls?: HitDieSpend[]
+      restored?: RestoredUse[]
+    }
+  /**
+   * A level gained, in one class ("Wizard|PHB"), from its level before (0 for a new class).
+   * A character that rolls its hit points records the new level's die here.
+   */
+  | {
+      type: 'level-up'
+      class: string
+      from: number
+      to: number
+      hitDie?: LevelHitDie
+    }
+  /** The last level up taken back, by the Undo the sheet offers right after it. */
+  | { type: 'level-up-undone' }
+
+/**
+ * The hit die of a level gained by a character that rolls its hit points: its size
+ * ("d8"), the value taken, and whether it was rolled here, entered from the table's
+ * dice, or the average taken.
+ */
+export interface LevelHitDie {
+  die: string
+  value: number
+  by: 'rolled' | 'entered' | 'average'
+}
 
 /** One hit die spent on a short rest: its size ("d8"), the roll, the hit points it gave. */
 export interface HitDieSpend {
   die: string
   roll: number
   hp: number
+}
+
+/** The uses of one limited-use counter a rest gave back. */
+export interface RestoredUse {
+  /** The counter's id, as `PlayState.uses` keeps it. */
+  id: string
+  label: string
+  regained: number
 }
 
 export interface HistoryEntry {
@@ -240,8 +280,8 @@ export interface PlayState {
   /** Pact Magic slots spent. */
   pactSpent: number
   /**
-   * Charges spent by resource id, for the features that have limited uses. Nothing writes
-   * it yet; it is here so that adding them needs no new version of the document.
+   * The uses spent of each limited-use counter, by its id (`DerivedResource.id`): of a
+   * feature, of a spell cast per rest, or of an item's charges.
    */
   uses: Record<string, number>
   /** The spell the character is concentrating on, or null. */

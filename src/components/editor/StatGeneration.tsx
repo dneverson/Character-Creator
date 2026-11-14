@@ -31,7 +31,7 @@ import {
   rollRecords,
   withCursor,
 } from '../../character/rollHistory'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import {
   clearedAbilities,
   gauntletScores,
@@ -229,8 +229,8 @@ function StatsSummary({ stats }: { stats: RollStats }) {
 }
 
 export function StatGeneration() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   const [hovered, setHovered] = useState<LineRef | null>(null)
   // The face shown on the roll buttons; re-randomised on each click so the die
   // appears to tumble (a small "rolling" flourish, purely decorative).

@@ -13,7 +13,7 @@ import { loadItems } from '../../data/items'
 import { loadSpells } from '../../data/spells'
 import { loadBeasts } from '../../data/beasts'
 import { loadConditions } from '../../data/conditions'
-import { loadFightingStyleOptions } from '../../data/classOptions'
+import { loadClassOptions } from '../../data/classOptions'
 import { loadLanguages } from '../../data/languages'
 import { FIGHTER, ITEMS, loadedClass } from '../../test/derivedFixtures'
 import { listsOf, makeSpell } from '../../test/spellFixtures'
@@ -36,7 +36,7 @@ vi.mock('../../data/feats', async (importOriginal) => ({
 }))
 vi.mock('../../data/classOptions', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/classOptions')>()),
-  loadFightingStyleOptions: vi.fn(),
+  loadClassOptions: vi.fn(),
 }))
 vi.mock('../../data/languages', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/languages')>()),
@@ -155,7 +155,7 @@ beforeEach(() => {
   vi.mocked(loadBackgrounds).mockResolvedValue([])
   vi.mocked(loadRaces).mockResolvedValue([])
   vi.mocked(loadFeats).mockResolvedValue([])
-  vi.mocked(loadFightingStyleOptions).mockResolvedValue([])
+  vi.mocked(loadClassOptions).mockResolvedValue([])
   vi.mocked(loadLanguages).mockResolvedValue([])
   vi.mocked(loadItems).mockResolvedValue(ITEMS)
   vi.mocked(loadSpells).mockResolvedValue([bless])
@@ -514,6 +514,8 @@ describe('the rests', () => {
     await user.click(await screen.findByRole('button', { name: 'Short rest' }))
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('3 left')).toBeInTheDocument()
+    // No Pact Magic, so the window does not say Pact Magic slots come back.
+    expect(within(dialog).queryByText(/Pact Magic/)).toBeNull()
     await user.type(
       within(dialog).getByRole('spinbutton', { name: 'My d8 roll' }),
       '5{Enter}',
@@ -563,11 +565,9 @@ describe('the rests', () => {
     })
     renderSheet()
     await user.click(await screen.findByRole('button', { name: 'Short rest' }))
-    await user.click(
-      within(await screen.findByRole('dialog')).getByRole('button', {
-        name: 'Confirm short rest',
-      }),
-    )
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/Pact Magic slots are regained/)).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Confirm short rest' }))
     expect(active().play).toMatchObject({ pactSpent: 0, slotsSpent: [1] })
   })
 })

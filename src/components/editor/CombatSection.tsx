@@ -5,10 +5,10 @@ import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
 import Spinner from 'react-bootstrap/Spinner'
 import Table from 'react-bootstrap/Table'
-import { toggleClassOption, type PickChip } from '../../character/picks'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { formatMod } from '../../dice/dice'
 import { AC_MANUAL } from '../../derived/armorClass'
+import { isFightingStyleCard } from '../../derived/classOptions'
 import type { AttackRow } from '../../derived/attacks'
 import { INITIATIVE_MANUAL, type PassiveRow } from '../../derived/combat'
 import type { SpellStatRow } from '../../derived/spellStats'
@@ -21,6 +21,7 @@ import { damageText } from './attackText'
 import { PickCard } from './PickCard'
 import { SignedInput } from './SignedInput'
 import { useDerivedSheet } from './useDerivedSheet'
+import { usePickClassOption } from './usePickClassOption'
 
 /** A button that opens the lines of a number under its row. */
 function HowButton({
@@ -291,9 +292,10 @@ function SpellStatsTable({ rows }: { rows: SpellStatRow[] }) {
 
 /** Armor class, attacks and spell numbers, each with the lines it adds up from. */
 export function CombatSection() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   const { sheet, loading, error } = useDerivedSheet()
+  const pickOption = usePickClassOption()
   const acManualId = useId()
   const initiativeManualId = useId()
 
@@ -334,12 +336,9 @@ export function CombatSection() {
     }
   }
 
-  function pickStyle(chip: PickChip, tag: string) {
-    if (!character) return
-    updateActive({
-      classOptions: toggleClassOption(character.classOptions, tag, chip.value),
-    })
-  }
+  // The fighting styles are picked here, where their rules apply; every other class
+  // option is picked in Class Features.
+  const styleCards = sheet?.classOptions.filter(isFightingStyleCard) ?? []
 
   return (
     <EditorSection
@@ -375,13 +374,13 @@ export function CombatSection() {
               renderRow={manualRow(AC_MANUAL, 'ac', acManualId, 'Other AC bonus')}
             />
           </div>
-          {sheet.classOptions.length > 0 && (
+          {styleCards.length > 0 && (
             <div className="d-flex flex-column gap-2">
-              {sheet.classOptions.map((card) => (
+              {styleCards.map((card) => (
                 <PickCard
                   key={card.tag}
                   card={card}
-                  onPick={(chip) => pickStyle(chip, card.tag)}
+                  onPick={(chip) => pickOption(card, chip)}
                 />
               ))}
             </div>

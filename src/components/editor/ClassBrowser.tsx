@@ -17,82 +17,15 @@ import Spinner from 'react-bootstrap/Spinner'
 import { BrowseTable, type RowAction } from '../table/BrowseTable'
 import { DetailGroup } from '../table/EntryDetail'
 import { FACT_LABEL_CLASS } from '../table/factStyles'
-import type { Column } from '../table/types'
-import { hitDieLabel, subclassesFor } from '../../data/class'
-import { useActiveCharacter } from '../../character/store'
+import { subclassesFor } from '../../data/class'
+import { useCharacter } from '../../character/useCharacterDoc'
 import { EditorSection } from './EditorSection'
 import { ClassBuildTray } from './ClassBuildTray'
 import { ClassFeatures } from './ClassFeatures'
 import { classKey, useClassBuild } from './useClassBuild'
-import {
-  castingLabel,
-  rowEdition,
-  rowKey,
-  rowSource,
-  upper,
-  type ClassRow,
-} from './classRows'
+import { referenceColumns, referenceRows, searchText } from './classReference'
+import { rowKey, type ClassRow } from './classRows'
 import { classTags, colTitle, describeClasses } from './classViewShared'
-
-// The stat columns. The shared browse table places the "Build" action column
-// before them.
-const referenceColumns: Column<ClassRow>[] = [
-  {
-    key: 'name',
-    header: 'Class',
-    // Each row names the class and its subclass ("Fighter (Champion)"). Kept as
-    // a single text node so the class name is not split into its own element.
-    render: (r) =>
-      r.subclass ? (
-        <span>
-          <strong>{r.loaded.entry.name}</strong> ({r.subclass.name})
-        </span>
-      ) : (
-        <strong>{r.loaded.entry.name}</strong>
-      ),
-    sortable: true,
-    // Empty second part keeps a bare class row above its own subclasses.
-    sortValue: (r) => `${r.loaded.entry.name} ${r.subclass?.name ?? ''}`,
-  },
-  {
-    key: 'hd',
-    header: 'Hit Die',
-    render: (r) => hitDieLabel(r.loaded.entry),
-    sortable: true,
-    sortValue: (r) => r.loaded.entry.hd?.faces ?? 0,
-    priority: 2,
-  },
-  {
-    key: 'saves',
-    header: 'Saves',
-    render: (r) => upper(r.loaded.entry.proficiency) || '-',
-    priority: 3,
-  },
-  {
-    key: 'casting',
-    header: 'Spellcasting',
-    render: (r) => castingLabel(r.loaded),
-    filterable: true,
-    filterValue: (r) => castingLabel(r.loaded),
-    priority: 3,
-  },
-  {
-    key: 'source',
-    header: 'Source',
-    render: (r) => rowSource(r),
-    filterable: true,
-    filterValue: rowSource,
-    priority: 1,
-  },
-  {
-    key: 'edition',
-    header: 'Edition',
-    render: (r) => rowEdition(r),
-    filterable: true,
-    filterValue: rowEdition,
-    priority: 1,
-  },
-]
 
 // How the "Build" action control should read for a given row, given the current
 // build. A class is one entry, so the action is one of:
@@ -125,7 +58,7 @@ function addStateFor(
 
 // What only the detail of a single base-class row shows: the subclasses it can
 // take, from the enabled books.
-function AvailableSubclasses({ row }: { row: ClassRow }) {
+export function AvailableSubclasses({ row }: { row: ClassRow }) {
   if (row.subclass) return null
   const subclasses = subclassesFor(row.loaded)
   if (subclasses.length === 0) return null
@@ -151,33 +84,16 @@ function AvailableSubclasses({ row }: { row: ClassRow }) {
   )
 }
 
-const searchText = (r: ClassRow) =>
-  `${r.loaded.entry.name} ${r.subclass?.name ?? ''} ${rowSource(r)}`
-
 export function ClassBrowser() {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const build = useClassBuild()
   const { loaded, loading, error, classes, addEntry, removeEntry } = build
 
   const selectedBooks = character?.selectedBooks
-  const rows = useMemo<ClassRow[]>(() => {
-    if (!loaded || !selectedBooks) return []
-    const set = new Set(selectedBooks)
-    const out: ClassRow[] = []
-    for (const l of loaded) {
-      if (!set.has(l.entry.source)) continue
-      // Only surface subclasses from books the player has enabled.
-      const subs = subclassesFor(l).filter((s) => set.has(s.source))
-      if (subs.length === 0) {
-        // Fallback: a class with no available subclass still gets one row so it
-        // does not disappear from the reference entirely.
-        out.push({ loaded: l })
-      } else {
-        for (const subclass of subs) out.push({ loaded: l, subclass })
-      }
-    }
-    return out
-  }, [loaded, selectedBooks])
+  const rows = useMemo<ClassRow[]>(
+    () => (loaded && selectedBooks ? referenceRows(loaded, selectedBooks) : []),
+    [loaded, selectedBooks],
+  )
 
   if (!character) return null
 

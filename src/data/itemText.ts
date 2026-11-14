@@ -172,6 +172,7 @@ export function chargesOf(raw: Fields): ItemCharges | undefined {
   return {
     max,
     recharge: rechargeText(isText(raw.recharge) ? raw.recharge : undefined),
+    ...(isText(raw.recharge) ? { on: raw.recharge } : {}),
     amount,
   }
 }

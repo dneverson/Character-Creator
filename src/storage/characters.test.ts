@@ -79,6 +79,7 @@ describe('localCharacterStorage', () => {
     expect(loaded.name).toBe('Old Hero')
     expect(loaded.selectedBooks).toEqual(['PHB', 'MM', 'DMG'])
     expect(loaded.story.alignment).toBe('')
+    expect(loaded.equipment).toMatchObject({ items: [], starting: {} })
   })
 
   it('stores a record of an earlier version again, once, brought up to date', async () => {

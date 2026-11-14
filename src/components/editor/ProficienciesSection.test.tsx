@@ -11,7 +11,7 @@ import { loadClasses, type LoadedClass } from '../../data/class'
 import { loadRaces } from '../../data/race'
 import { loadFeats } from '../../data/feats'
 import { loadItems } from '../../data/items'
-import { loadFightingStyleOptions } from '../../data/classOptions'
+import { loadClassOptions } from '../../data/classOptions'
 import { loadLanguages } from '../../data/languages'
 import { settle } from '../../test/settle'
 import { makeItem } from '../../test/itemFixtures'
@@ -34,7 +34,7 @@ vi.mock('../../data/feats', async (importOriginal) => ({
 }))
 vi.mock('../../data/classOptions', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/classOptions')>()),
-  loadFightingStyleOptions: vi.fn(),
+  loadClassOptions: vi.fn(),
 }))
 vi.mock('../../data/languages', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/languages')>()),
@@ -129,7 +129,7 @@ beforeEach(() => {
   vi.mocked(loadRaces).mockResolvedValue([])
   vi.mocked(loadFeats).mockResolvedValue([])
   vi.mocked(loadItems).mockResolvedValue(TOOLS)
-  vi.mocked(loadFightingStyleOptions).mockResolvedValue([])
+  vi.mocked(loadClassOptions).mockResolvedValue([])
   vi.mocked(loadLanguages).mockResolvedValue([
     { name: 'Dwarvish', entries: [{ source: 'PHB', type: 'standard' }] },
     { name: 'Abyssal', entries: [{ source: 'PHB', type: 'exotic' }] },

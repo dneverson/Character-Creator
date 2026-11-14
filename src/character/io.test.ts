@@ -35,6 +35,9 @@ describe('parseImportedCharacter', () => {
     const parsed = parseImportedCharacter('{}')
     expect(parsed.name).toBe('Imported Character')
     expect(parsed.selectedBooks).toEqual(['PHB', 'MM', 'DMG'])
+    // A file with no equipment gets an empty inventory, so the sheet can open it.
+    expect(parsed.equipment).toMatchObject({ items: [], starting: {} })
+    expect(parsed.equipment.currency).toEqual({ pp: 0, gp: 0, ep: 0, sp: 0, cp: 0 })
   })
 
   it('rejects a non-object payload', () => {

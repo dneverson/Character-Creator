@@ -4,7 +4,7 @@
 
 import { abilityMod, type AbilityKey } from '../dice/dice'
 import { classCaster, type ClassCaster } from '../rules/spellcasting'
-import { subclassesFor, type LoadedClass } from '../data/class'
+import { subclassOf, type LoadedClass } from '../data/class'
 import type { Character } from './model'
 import { characterAbilityTotals } from './derive'
 
@@ -22,12 +22,7 @@ export function characterCasters(
   for (const c of character.classes) {
     const lc = classByKey.get(`${c.name}|${c.source}`)
     if (!lc) continue
-    const chosen = c.subclass
-    const subclass = chosen
-      ? subclassesFor(lc).find(
-          (s) => s.shortName === chosen.shortName && s.source === chosen.source,
-        )
-      : undefined
+    const subclass = subclassOf(lc, c.subclass)
     // A casting subclass (Eldritch Knight) brings its own ability; the class has none.
     const castingSource = subclass?.casterProgression ? subclass : lc.entry
     const ability = castingSource.spellcastingAbility as AbilityKey | undefined

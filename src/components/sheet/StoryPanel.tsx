@@ -3,7 +3,8 @@
 
 import Button from 'react-bootstrap/Button'
 import type { StoryState } from '../../character/model'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacterStore } from '../../character/store'
+import { useCharacter } from '../../character/useCharacterDoc'
 
 const FIELDS: { key: keyof StoryState; label: string }[] = [
   { key: 'personalityTraits', label: 'Personality Traits' },
@@ -16,7 +17,7 @@ const FIELDS: { key: keyof StoryState; label: string }[] = [
 ]
 
 export function StoryPanel() {
-  const story = useActiveCharacter()?.story
+  const story = useCharacter()?.story
   const setView = useCharacterStore((s) => s.setView)
   if (!story) return null
   const written = FIELDS.filter((f) => story[f.key].trim() !== '')

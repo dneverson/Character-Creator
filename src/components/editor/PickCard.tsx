@@ -26,7 +26,9 @@ interface Props {
 /** Why a chip cannot be clicked, in plain words (RAW: pick another). */
 function whyDisabled(chip: PickChip, card: PickCardModel): string | undefined {
   if (chip.state === 'taken')
-    return `Already proficient from ${chip.takenBy}. Pick another.`
+    return card.kinds[0] === 'option'
+      ? `Already chosen for ${chip.takenBy}. Pick another.`
+      : `Already proficient from ${chip.takenBy}. Pick another.`
   if (chip.state === 'full') {
     if (card.kinds[0] === 'option' || card.kinds[0] === 'expertise') {
       return `${card.name}: all ${card.count} are chosen. Remove one to pick another.`
@@ -67,6 +69,11 @@ export function PickCard({ card: given, onPick, detailOf }: Props) {
             .map((p) => card.chips.find((c) => c.value === p)?.label ?? p)
             .join(', ')}
         </span>
+        {card.chips
+          .filter((c) => c.state === 'picked' && c.unmet)
+          .map((c) => (
+            <NonStandardBadge key={c.value} reason={`${c.label}: ${c.unmet}`} />
+          ))}
         <Badge bg="secondary">
           {card.used} of {card.count} done
         </Badge>

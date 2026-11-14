@@ -5,7 +5,7 @@
 
 import { useState } from 'react'
 import Form from 'react-bootstrap/Form'
-import { useActiveCharacter } from '../../character/store'
+import { useCharacter } from '../../character/useCharacterDoc'
 import { EXHAUSTION, loadConditions, type Condition } from '../../data/conditions'
 import type { Edition } from '../../data/edition'
 import { useAsyncData } from '../../hooks/useAsyncData'
@@ -13,7 +13,7 @@ import { toggleCondition } from '../../play/actions'
 import { exhaustionEffects, PLAY_RULES } from '../../rules/playRules'
 import { Entries } from '../../text/Entries'
 import { PaneFrame } from './SheetDetail'
-import { applyPlay } from './usePlay'
+import { useApplyPlay } from './usePlay'
 
 /** The conditions of one edition's printing, from the data. */
 function useConditions(edition: Edition) {
@@ -45,6 +45,7 @@ function ConditionRow({
   open: boolean
   onOpen: () => void
 }) {
+  const applyPlay = useApplyPlay()
   return (
     <li className="sheet-condition">
       <div className="d-flex align-items-center gap-2">
@@ -82,7 +83,7 @@ export function ConditionsDetail({
   /** The condition whose text is open to begin with. */
   initial?: string
 }) {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const { conditions, loading, error } = useConditions(edition)
   const [open, setOpen] = useState<string | null>(initial ?? null)
   const has = new Set(character?.play.conditions)
@@ -106,7 +107,7 @@ export function ConditionsDetail({
 
 /** The exhaustion rule of the edition, with what the character's level does now. */
 export function ExhaustionDetail({ edition }: { edition: Edition }) {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const { exhaustion, loading, error } = useConditions(edition)
   const level = character?.play.exhaustion ?? 0
   const effects = exhaustionEffects(edition, level)

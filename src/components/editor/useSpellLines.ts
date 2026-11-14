@@ -2,13 +2,13 @@
 // sheet's Spells tab.
 
 import { useMemo } from 'react'
-import { useActiveCharacter } from '../../character/store'
+import { useCharacter } from '../../character/useCharacterDoc'
 import type { SpellLine } from './SpellLines'
 import { useSpellList } from './useSpellList'
 import { yourSpellLines } from './yourSpellLines'
 
 export function useSpellLines() {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const { casters, grants, byKey, byName, loading } = useSpellList()
   const list = useMemo(() => {
     if (!character) return { lines: [] as SpellLine[], granted: 0 }

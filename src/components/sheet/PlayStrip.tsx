@@ -23,10 +23,10 @@ import { ConditionsDetail, ExhaustionDetail } from './ConditionsDetail'
 import { useSheetDetail } from './SheetDetail'
 import { RestButtons } from './RestWindows'
 import { SlotPips } from './SheetPips'
-import { applyPlay, usePlay } from './usePlay'
+import { useApplyPlay, usePlay } from './usePlay'
 
 /** A small icon button with its words as its name and its tooltip. */
-function IconButton({
+export function IconButton({
   label,
   icon,
   disabled,
@@ -54,6 +54,7 @@ function IconButton({
 }
 
 export function PlayStrip({ sheet }: { sheet: DerivedSheet }) {
+  const applyPlay = useApplyPlay()
   const detail = useSheetDetail()
   const current = usePlay(sheet)
   if (!current) return null

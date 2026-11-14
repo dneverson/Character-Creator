@@ -3,18 +3,24 @@
 // The Spells section edits against it and the sheet's Spells tab reads it.
 
 import { useMemo } from 'react'
-import { useActiveCharacter } from '../../character/store'
+import { useCharacter } from '../../character/useCharacterDoc'
 import { characterCasters } from '../../character/spellcasting'
 import { resolveSpellGrants, spellsByName } from '../../character/spellGrants'
+import { loadClassOptions } from '../../data/classOptions'
+import { loadBookEditions } from '../../data/edition'
 import { loadSpells } from '../../data/spells'
+import { chosenOptions } from '../../derived/classOptions'
+import { collectSources } from '../../derived/sources'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { useFeatSummary } from './useFeatSummary'
 
 export function useSpellList() {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const featSummary = useFeatSummary()
   const spellsData = useAsyncData(loadSpells)
-  const { classByKey, race, background, summary } = featSummary
+  const optionData = useAsyncData(loadClassOptions)
+  const editions = useAsyncData(loadBookEditions)
+  const { classByKey, race, background, summary, feats } = featSummary
 
   const casters = useMemo(
     () =>
@@ -32,9 +38,32 @@ export function useSpellList() {
             background,
             featSlots: summary.slots,
             classByKey,
+            options: chosenOptions(
+              collectSources(character, {
+                classByKey,
+                race,
+                background,
+                feats,
+                optionCatalog: optionData.data ?? undefined,
+              }),
+              {
+                classByKey,
+                optionCatalog: optionData.data ?? undefined,
+                editionOf: editions.data ?? undefined,
+              },
+            ),
           })
         : undefined,
-    [character, race, background, summary.slots, classByKey],
+    [
+      character,
+      race,
+      background,
+      summary.slots,
+      classByKey,
+      feats,
+      optionData.data,
+      editions.data,
+    ],
   )
   const grants = useMemo(() => resolved?.grants ?? [], [resolved])
 

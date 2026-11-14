@@ -33,12 +33,14 @@ export const editionLabel = (l: LoadedClass) => editionYear(l.entry.edition)
 export const upper = (parts?: string[]) =>
   (parts ?? []).map((p) => p.toUpperCase()).join(', ')
 
-// A player-friendly label for the raw casterProgression codes in the data.
-const CASTER_LABEL: Record<string, string> = {
+// A player-friendly label for the raw casterProgression codes in the data. The codes name
+// a slot progression, not a class: "artificer" is the half caster whose caster level
+// rounds up, so it has slots from level 1 (the Artificer, the 2024 Paladin and Ranger).
+export const CASTER_LABEL: Record<string, string> = {
   full: 'Full caster',
   '1/2': 'Half caster',
   '1/3': 'Third caster',
-  artificer: 'Artificer',
+  artificer: 'Half caster',
   pact: 'Pact magic',
 }
 

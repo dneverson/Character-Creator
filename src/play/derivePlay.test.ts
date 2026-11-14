@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createCharacter, defaultPlayState, type PlayState } from '../character/model'
 import { edited } from '../character/history'
+import type { DerivedResource } from '../derived/resources'
 import { quantity } from '../derived/types'
 import { derivePlay } from './derivePlay'
 
@@ -29,11 +30,33 @@ const sheet = (max = 20, slots = [4, 3, 0, 0, 0, 0, 0, 0, 0]) => ({
     casters: [],
     casterLevel: quantity([]),
   },
+  resources: [resource('use:rage', 3), resource('use:unlimited', undefined)],
 })
+
+function resource(id: string, max: number | undefined): DerivedResource {
+  return {
+    id,
+    label: id,
+    from: 'Barbarian',
+    kind: 'feature',
+    max,
+    recharge: 'long',
+    shortRegain: 0,
+    basis: '',
+    restores: '',
+    entries: [],
+  }
+}
 
 const play = (patch: Partial<PlayState> = {}) => ({ ...defaultPlayState(), ...patch })
 
 describe('derivePlay', () => {
+  it('reads the uses spent against each counter, and keeps no count when unlimited', () => {
+    const d = derivePlay(sheet(), play({ uses: { 'use:rage': 5, 'use:unlimited': 2 } }))
+    expect(d.uses).toEqual([{ id: 'use:rage', total: 3, spent: 3, left: 0 }])
+    expect(derivePlay(sheet(), play()).uses[0].left).toBe(3)
+  })
+
   it('works out the current hit points as lines', () => {
     const d = derivePlay(sheet(), play({ damage: 7, tempHp: 4 }))
     expect(d.currentHp.value).toBe(13)

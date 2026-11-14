@@ -17,7 +17,7 @@ import {
   type SpellFilter,
   type SpellPath,
 } from '../data/grants'
-import { subclassesFor, type LoadedClass } from '../data/class'
+import { subclassOf, type LoadedClass } from '../data/class'
 import type { PlayableBackground } from '../data/background'
 import type { PlayableRace } from '../data/race'
 import type { Spell } from '../data/spells'
@@ -58,6 +58,8 @@ export interface SpellGrant {
   spellLevel?: number
   /** How it is cast: "At will", "1 per long rest"; empty for always known or prepared. */
   uses: string
+  /** The casts `uses` counts, for a spell cast a number of times per rest. */
+  limit?: GrantLimit
   ability?: GrantAbility
   /** Where the player's pick among `ability` choices is kept: one per block of spells. */
   abilityId?: string
@@ -65,6 +67,18 @@ export interface SpellGrant {
   variant?: string
   /** The rules edition of the giving source, which picks which book a bare name means. */
   edition?: Spell['edition']
+}
+
+/** How many times a granted spell is cast before a rest restores the casts. */
+export interface GrantLimit {
+  /** A number, the proficiency bonus, or an ability's modifier. */
+  count: number | 'pb' | AbilityKey
+  rest: 'long' | 'short'
+  /**
+   * The casts are counted once for the spells that share them: the grants of one list
+   * share one count, unless the data counts each spell on its own ("1e").
+   */
+  pool: string
 }
 
 /** A source that offers named sets of spells: the player takes one. */
@@ -127,6 +141,15 @@ const times = (n: number, per: string) => `${n} per ${per}`
 interface Leaf {
   spells: unknown[]
   uses: string
+  /** The count of casts, without the pool the grant makes of it. */
+  limit?: Omit<GrantLimit, 'pool'> & { each: boolean }
+}
+
+/** A count key of `daily` or `rest`: "1", "2e" (each), "pb", "cha". */
+function countOf(key: string): number | 'pb' | AbilityKey | undefined {
+  const bare = key.endsWith('e') ? key.slice(0, -1) : key
+  if (bare === 'pb' || isAbility(bare)) return bare
+  return /^\d+$/.test(bare) ? Number(bare) : undefined
 }
 
 /** The ways a place's value holds spells: a list, or lists by how they are cast. */
@@ -134,24 +157,40 @@ function leavesOf(value: unknown, resource: string | undefined): Leaf[] {
   if (Array.isArray(value)) return [{ spells: value, uses: '' }]
   if (!isJson(value)) return []
   const out: Leaf[] = []
-  const byCount = (field: unknown, label: (n: string) => string) => {
+  const byCount = (
+    field: unknown,
+    label: (n: string) => string,
+    rest?: GrantLimit['rest'],
+  ) => {
     if (!isJson(field)) return
-    for (const [count, spells] of Object.entries(field))
-      if (Array.isArray(spells)) out.push({ spells, uses: label(count) })
+    for (const [count, spells] of Object.entries(field)) {
+      if (!Array.isArray(spells)) continue
+      const n = rest && countOf(count)
+      out.push({
+        spells,
+        uses: label(count),
+        ...(rest && n !== undefined
+          ? { limit: { count: n, rest, each: count.endsWith('e') } }
+          : {}),
+      })
+    }
   }
   if (Array.isArray(value._)) out.push({ spells: value._, uses: '' })
   if (Array.isArray(value.will)) out.push({ spells: value.will, uses: 'At will' })
   if (Array.isArray(value.ritual)) out.push({ spells: value.ritual, uses: 'Ritual only' })
-  byCount(value.daily, (n) =>
-    n === 'pb'
-      ? 'Proficiency bonus times per long rest'
-      : isAbility(n)
-        ? `${n.toUpperCase()} modifier times per long rest`
-        : n.endsWith('e')
-          ? `${times(Number(n.slice(0, -1)), 'long rest')} each`
-          : times(Number(n), 'long rest'),
+  byCount(
+    value.daily,
+    (n) =>
+      n === 'pb'
+        ? 'Proficiency bonus times per long rest'
+        : isAbility(n)
+          ? `${n.toUpperCase()} modifier times per long rest`
+          : n.endsWith('e')
+            ? `${times(Number(n.slice(0, -1)), 'long rest')} each`
+            : times(Number(n), 'long rest'),
+    'long',
   )
-  byCount(value.rest, (n) => times(Number(n), 'short or long rest'))
+  byCount(value.rest, (n) => times(Number(n), 'short or long rest'), 'short')
   byCount(value.resource, (n) => `Costs ${n} ${resource ?? 'points'}`)
   return out
 }
@@ -222,6 +261,13 @@ function grantsOf(
               spellLevel,
               // A bare list under `innate` is cast whenever, without a slot.
               uses: leaf.uses || (mode === 'innate' ? 'At will' : ''),
+              ...(leaf.limit && {
+                limit: {
+                  count: leaf.limit.count,
+                  rest: leaf.limit.rest,
+                  pool: `${source.id}:${b}:${mode}:${key}:${l}${leaf.limit.each ? `:${i}` : ''}`,
+                },
+              }),
               ability,
               abilityId,
               variant,
@@ -321,11 +367,7 @@ export function resolveSpellGrants(
       edition: entry.edition,
       blocks: entry.additionalSpells,
     })
-    const subclass = c.subclass
-      ? subclassesFor(loaded).find(
-          (s) => s.shortName === c.subclass?.shortName && s.source === c.subclass?.source,
-        )
-      : undefined
+    const subclass = subclassOf(loaded, c.subclass)
     if (subclass)
       sources.push({
         id: `subclass:${classKey}`,

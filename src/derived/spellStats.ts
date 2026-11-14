@@ -5,9 +5,10 @@
 
 import { ABILITY_NAMES, abilityMod, formatMod, type AbilityKey } from '../dice/dice'
 import { characterCasters } from '../character/spellcasting'
-import { resolveSpellGrants } from '../character/spellGrants'
+import { resolveSpellGrants, type SpellGrant } from '../character/spellGrants'
 import type { AbilityTotals } from './armorClass'
 import { itemBonus } from './itemBonus'
+import { chosenOptions } from './classOptions'
 import type { DeriveDeps, Sources } from './sources'
 import { BASE_SOURCE, quantity, type Line, type Quantity } from './types'
 
@@ -91,6 +92,17 @@ function row(
   }
 }
 
+/** The spells the character's sources grant, with the player's choices. */
+export function characterGrants(sources: Sources, deps: DeriveDeps): SpellGrant[] {
+  return resolveSpellGrants(sources.character, {
+    race: deps.race,
+    background: deps.background,
+    featSlots: sources.summary.slots,
+    classByKey: deps.classByKey,
+    options: chosenOptions(sources, deps),
+  }).grants
+}
+
 export function spellStats(
   sources: Sources,
   deps: DeriveDeps,
@@ -115,12 +127,7 @@ export function spellStats(
       rows.push(make(`spell|class|${caster.classKey}`, caster.name, caster.ability))
   }
 
-  const { grants } = resolveSpellGrants(character, {
-    race: deps.race,
-    background: deps.background,
-    featSlots: summary.slots,
-    classByKey: deps.classByKey,
-  })
+  const grants = characterGrants(sources, deps)
   const seen = new Set<string>()
   for (const grant of grants) {
     const a = grant.ability

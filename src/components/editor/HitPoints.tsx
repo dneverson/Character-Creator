@@ -5,7 +5,7 @@ import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
 import Spinner from 'react-bootstrap/Spinner'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { hitDiceGroups, hpBreakdown, levelDice, rollHitDice } from '../../character/hp'
 import { type HpState, type RollRecord } from '../../character/model'
 import { newRoll, rollAction, rollRecords, withCursor } from '../../character/rollHistory'
@@ -18,8 +18,8 @@ import { SignedInput } from './SignedInput'
 import { useFeatSummary } from './useFeatSummary'
 
 export function HitPoints() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   const { classByKey, summary, error, loading } = useFeatSummary()
   const perLevelId = useId()
   const flatId = useId()

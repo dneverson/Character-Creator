@@ -11,10 +11,10 @@ import { Abbr } from '../Abbr'
 import { DerivedNumber } from '../derived/DerivedNumber'
 import { SpellLines } from '../editor/SpellLines'
 import { useSpellLines } from '../editor/useSpellLines'
-import { useActiveCharacter } from '../../character/store'
+import { useCharacter } from '../../character/useCharacterDoc'
 import { useSheetRowDetail } from './SheetDetail'
 import { SlotPips } from './SheetPips'
-import { applyPlay } from './usePlay'
+import { useApplyPlay } from './usePlay'
 import { setConcentration } from '../../play/actions'
 import type { SpellLine } from '../editor/SpellLines'
 
@@ -34,6 +34,7 @@ function allowance(caster: ClassCaster, character: Character): string {
 
 /** The concentration spells get a button that starts or ends concentrating on them. */
 function concentrationAction(
+  applyPlay: ReturnType<typeof useApplyPlay>,
   line: SpellLine,
   current: Character['play']['concentration'],
 ) {
@@ -52,7 +53,8 @@ function concentrationAction(
 }
 
 export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
-  const character = useActiveCharacter()
+  const applyPlay = useApplyPlay()
+  const character = useCharacter()
   const { casters, lines, granted, loading } = useSpellLines()
   const detailTarget = useSheetRowDetail('spells')
   if (!character) return null
@@ -120,7 +122,8 @@ export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
               action={{
                 key: 'concentrate',
                 header: 'Concentrate',
-                of: (line) => concentrationAction(line, character.play.concentration),
+                of: (line) =>
+                  concentrationAction(applyPlay, line, character.play.concentration),
               }}
             />
           </section>

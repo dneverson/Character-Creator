@@ -24,6 +24,8 @@ export type RestEffect =
   | Effect<'endTempHp'>
   | Effect<'reduceExhaustion'>
   | Effect<'resetDeathSaves'>
+  /** The limited uses of features and items that this rest restores, as each one says. */
+  | (Effect<'rechargeUses'> & { on: RestKind })
 
 export type RestKind = 'short' | 'long'
 
@@ -46,6 +48,12 @@ export const REST_RULES: Record<Edition, RestRules> = {
         which: ['pact'],
         text: 'Pact Magic slots are regained',
         ruleRef: 'PHB Warlock: Pact Magic',
+      },
+      {
+        kind: 'rechargeUses',
+        on: 'short',
+        text: 'Uses that come back on a short rest are regained, as each feature says',
+        ruleRef: 'PHB p. 186, Short Rest',
       },
     ],
     long: [
@@ -87,6 +95,12 @@ export const REST_RULES: Record<Edition, RestRules> = {
         text: 'Exhaustion goes down by 1, if you have had food and drink',
         ruleRef: 'PHB Appendix A, Exhaustion',
       },
+      {
+        kind: 'rechargeUses',
+        on: 'long',
+        text: 'Uses that come back on a long rest are regained, as each feature says',
+        ruleRef: 'PHB p. 186, Long Rest',
+      },
     ],
   },
   one: {
@@ -107,6 +121,12 @@ export const REST_RULES: Record<Edition, RestRules> = {
         which: ['pact'],
         text: 'Pact Magic slots are regained',
         ruleRef: 'XPHB Warlock: Pact Magic',
+      },
+      {
+        kind: 'rechargeUses',
+        on: 'short',
+        text: 'Uses that come back on a short rest are regained, as each feature says',
+        ruleRef: 'XPHB Short Rest',
       },
     ],
     long: [
@@ -146,6 +166,12 @@ export const REST_RULES: Record<Edition, RestRules> = {
       {
         kind: 'reduceExhaustion',
         text: 'Exhaustion goes down by 1',
+        ruleRef: 'XPHB Long Rest',
+      },
+      {
+        kind: 'rechargeUses',
+        on: 'long',
+        text: 'Uses that come back on a long rest are regained, as each feature says',
         ruleRef: 'XPHB Long Rest',
       },
     ],

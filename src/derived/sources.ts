@@ -18,6 +18,16 @@ import type { Language } from '../data/languages'
 import type { Edition } from '../data/edition'
 import type { Holder } from '../rules/holder'
 import type { SourceRef } from './types'
+import {
+  featureChoiceSlots,
+  featureChoiceState,
+  heldOptions,
+  optionSlots,
+  type FeatureChoiceSlot,
+  type FeatureChoiceState,
+  type OptionSlot,
+} from './classOptions'
+import { holderId } from '../rules/holder'
 
 /** What the derivation reads: the loaded data a character's choices refer to. */
 export interface DeriveDeps {
@@ -30,8 +40,8 @@ export interface DeriveDeps {
   items?: readonly Item[]
   /** The languages of the books, for the language picks. */
   languages?: readonly Language[]
-  /** The fighting styles of the books, for the class option cards. */
-  fightingStyles?: readonly ClassOption[]
+  /** The optional features of the books (invocations, maneuvers...), for the class options. */
+  optionCatalog?: readonly ClassOption[]
   /** The rules edition of each book, from the books list; the 2024 books by name without it. */
   editionOf?: (source: string) => Edition
 }
@@ -70,10 +80,16 @@ export interface Sources {
   /** Every equipped item, in inventory order. */
   items: HeldItem[]
   /**
-   * The 2014 optional features the player picked ("Defense|PHB"), from the class
-   * options.
+   * The optional features the character holds ("Defense|PHB"): picked in a slot of a
+   * class, subclass, feat or option it has, or known outright.
    */
   options: ReadonlySet<string>
+  /** Every slot of optional features the character has. */
+  optionSlots: OptionSlot[]
+  /** Every feature that lists features to choose from. */
+  featureSlots: FeatureChoiceSlot[]
+  /** The features of those lists, and which were taken: only those are held. */
+  featureChoices: FeatureChoiceState
 }
 
 export function collectSources(character: Character, deps: DeriveDeps): Sources {
@@ -98,40 +114,41 @@ export function collectSources(character: Character, deps: DeriveDeps): Sources 
       },
     ]
   })
+  const classes: ClassSource[] = character.classes.map((row) => ({
+    row,
+    loaded: deps.classByKey.get(`${row.name}|${row.source}`),
+    level: Math.max(0, Math.floor(row.level || 0)),
+  }))
+  const feats: HeldFeat[] = summary.slots.flatMap((s) =>
+    s.feat
+      ? [
+          {
+            feat: s.feat,
+            source: {
+              kind: 'feat' as const,
+              tag: `feat:${s.slot.id}`,
+              label: s.feat.label,
+            },
+            increases: s.increases,
+          },
+        ]
+      : [],
+  )
+  const slots = optionSlots(character, classes, feats, deps.optionCatalog ?? [])
+  const featureSlots = featureChoiceSlots(classes)
   return {
     character,
     summary,
-    classes: character.classes.map((row) => ({
-      row,
-      loaded: deps.classByKey.get(`${row.name}|${row.source}`),
-      level: Math.max(0, Math.floor(row.level || 0)),
-    })),
+    classes,
     race: deps.race,
     background: deps.background,
-    feats: summary.slots.flatMap((s) =>
-      s.feat
-        ? [
-            {
-              feat: s.feat,
-              source: {
-                kind: 'feat' as const,
-                tag: `feat:${s.slot.id}`,
-                label: s.feat.label,
-              },
-              increases: s.increases,
-            },
-          ]
-        : [],
-    ),
+    feats,
     items,
-    // An option of a class the character no longer has is not held.
-    options: new Set(
-      Object.entries(character.classOptions)
-        .filter(([tag]) =>
-          character.classes.some((c) => tag.startsWith(`class:${c.name}|${c.source}|`)),
-        )
-        .flatMap(([, values]) => values),
-    ),
+    // An option of a class, feat or option the character no longer has is not held.
+    options: heldOptions(character, slots),
+    optionSlots: slots,
+    featureSlots,
+    featureChoices: featureChoiceState(character, featureSlots),
   }
 }
 
@@ -207,6 +224,11 @@ export function heldBy(sources: Sources, holder: Holder): Held | undefined {
   if ('item' in holder) {
     const held = sources.items.find((i) => i.item.key === holder.item)
     return held && { source: held.source }
+  }
+  // A feature of a list to choose from (Protector or Thaumaturge) is held once taken.
+  const id = holderId(holder)
+  if (sources.featureChoices.offered.has(id) && !sources.featureChoices.chosen.has(id)) {
+    return undefined
   }
   const className =
     'classFeature' in holder

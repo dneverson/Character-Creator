@@ -16,7 +16,7 @@ import {
 import { findPlayableRace, loadRaces } from '../../data/race'
 import { parseSkillGrants } from '../../data/skills'
 import type { BackgroundRef, Character } from '../../character/model'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { NonStandardBadge } from '../NonStandardBadge'
 import { PickOne } from '../table/PickOne'
@@ -56,8 +56,8 @@ const EDITION_MIX_REASON =
   'Standard play uses one edition’s origin rules, not both.'
 
 export function BackgroundSelection() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   const { data: backgrounds, error, loading } = useAsyncData(loadBackgrounds)
   // Only to tell whether the race follows the 2024 rules (no increases of its own).
   const { data: races } = useAsyncData(loadRaces)

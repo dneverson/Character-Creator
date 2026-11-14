@@ -1,11 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useCharacterStore } from './store'
+import { selectCanUndoLevelUp, useCharacterStore } from './store'
 import { createCharacter } from './model'
 import { newRoll, rollAction } from './rollHistory'
 
 function reset() {
   localStorage.clear()
-  useCharacterStore.setState({ characters: {}, order: [], activeId: null, view: 'list' })
+  useCharacterStore.setState({
+    characters: {},
+    order: [],
+    activeId: null,
+    view: 'list',
+    levelUpUndo: null,
+  })
 }
 
 describe('character store', () => {
@@ -277,6 +283,105 @@ describe('character store', () => {
         .getState()
         .replaceCharacter({ ...before, wildShapes: [{ name: 'Wolf', source: 'MM' }] })
       expect(active().history).toBe(before.history)
+    })
+  })
+
+  describe('level up', () => {
+    const LEVEL_UP = { type: 'level-up' as const, class: 'Fighter|PHB', from: 3, to: 4 }
+    const state = () => useCharacterStore.getState()
+    const active = () => state().characters[state().activeId!]
+
+    /** A finished level 3 Fighter, open on its sheet, with 5 damage taken. */
+    function finished(level = 3) {
+      const c = createCharacter('Brann')
+      c.classes = [{ name: 'Fighter', source: 'PHB', level }]
+      c.completedAt = 1
+      c.play = { ...c.play, damage: 5 }
+      useCharacterStore.setState({
+        characters: { [c.id]: c },
+        order: [c.id],
+        activeId: c.id,
+        view: 'sheet',
+      })
+      return c
+    }
+
+    it('opens only for a finished character below level 20', () => {
+      const c = finished()
+      state().setView('levelUp')
+      expect(state().view).toBe('levelUp')
+      state().setView('sheet')
+      state().updateActive({ classes: [{ name: 'Fighter', source: 'PHB', level: 20 }] })
+      state().setView('levelUp')
+      expect(state().view).toBe('sheet')
+      state().updateActive({ completedAt: undefined, classes: c.classes })
+      state().setView('levelUp')
+      expect(state().view).toBe('sheet')
+    })
+
+    it('shows the sheet for an address of Level up the character cannot open', () => {
+      const c = finished(20)
+      state().restoreLocation({ view: 'levelUp', id: c.id })
+      expect(state().view).toBe('sheet')
+      state().updateActive({ classes: [{ name: 'Fighter', source: 'PHB', level: 4 }] })
+      state().restoreLocation({ view: 'levelUp', id: c.id })
+      expect(state().view).toBe('levelUp')
+    })
+
+    it('applies the level as one history entry, keeps play and opens the sheet', () => {
+      const c = finished()
+      state().setView('levelUp')
+      const entries = c.history.length
+      state().confirmLevelUp(
+        { classes: [{ name: 'Fighter', source: 'PHB', level: 4 }] },
+        LEVEL_UP,
+      )
+      expect(active().history).toHaveLength(entries + 1)
+      expect(active().history.at(-1)?.action).toEqual(LEVEL_UP)
+      expect(active().classes[0].level).toBe(4)
+      expect(active().play.damage).toBe(5)
+      expect(state().view).toBe('sheet')
+    })
+
+    it('undoes the level, keeping what happened in play since', () => {
+      finished()
+      state().confirmLevelUp(
+        { classes: [{ name: 'Fighter', source: 'PHB', level: 4 }] },
+        LEVEL_UP,
+      )
+      state().updateActive({ play: { ...active().play, damage: 9 } })
+      expect(selectCanUndoLevelUp(state())).toBe(true)
+      state().undoLevelUp()
+      expect(active().classes[0].level).toBe(3)
+      expect(active().play.damage).toBe(9)
+      expect(active().history.at(-1)?.action).toEqual({ type: 'level-up-undone' })
+      expect(selectCanUndoLevelUp(state())).toBe(false)
+    })
+
+    it('offers no undo after another build change, or on another character', () => {
+      finished()
+      state().confirmLevelUp(
+        { classes: [{ name: 'Fighter', source: 'PHB', level: 4 }] },
+        LEVEL_UP,
+      )
+      state().updateActive({ name: 'Brannoch' })
+      expect(selectCanUndoLevelUp(state())).toBe(false)
+      state().undoLevelUp()
+      expect(active().classes[0].level).toBe(4)
+
+      finished()
+      expect(selectCanUndoLevelUp(state())).toBe(false)
+    })
+
+    it('forgets the undo on leaving the character', () => {
+      const c = finished()
+      state().confirmLevelUp(
+        { classes: [{ name: 'Fighter', source: 'PHB', level: 4 }] },
+        LEVEL_UP,
+      )
+      state().backToList()
+      state().openCharacter(c.id)
+      expect(selectCanUndoLevelUp(state())).toBe(false)
     })
   })
 })

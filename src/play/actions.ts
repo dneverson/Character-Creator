@@ -136,6 +136,28 @@ export function setHitDiceSpent(
   }
 }
 
+/** One use of a limited-use counter spent; `total` is how many the build gives. */
+export function spendUse(play: PlayState, id: string, total: number): PlayState {
+  return setUsesSpent(play, id, usesSpentOf(play, id, total) + 1, total)
+}
+
+export function restoreUse(play: PlayState, id: string, total: number): PlayState {
+  return setUsesSpent(play, id, usesSpentOf(play, id, total) - 1, total)
+}
+
+const usesSpentOf = (play: PlayState, id: string, total: number) =>
+  between(play.uses[id] ?? 0, 0, total)
+
+/** The uses spent of a counter, set to a count (kept between none and `total`). */
+export function setUsesSpent(
+  play: PlayState,
+  id: string,
+  spent: number,
+  total: number,
+): PlayState {
+  return { ...play, uses: { ...play.uses, [id]: between(spent, 0, total) } }
+}
+
 /** A condition put on, or taken off when the character already has it. */
 export function toggleCondition(play: PlayState, name: string): PlayState {
   const has = play.conditions.includes(name)

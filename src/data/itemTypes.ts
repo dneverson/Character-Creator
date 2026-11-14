@@ -124,6 +124,8 @@ export interface ItemCharges {
   max: string
   /** When they come back, in words: "at dawn". */
   recharge?: string
+  /** The data's code for when: "dawn", "restLong". */
+  on?: string
   /** How many come back: "1d6 + 4". */
   amount?: string
 }

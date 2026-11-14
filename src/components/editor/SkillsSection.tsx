@@ -5,10 +5,11 @@ import Button from 'react-bootstrap/Button'
 import Spinner from 'react-bootstrap/Spinner'
 import Table from 'react-bootstrap/Table'
 import { formatMod } from '../../dice/dice'
+import { loadClassOptions } from '../../data/classOptions'
 import { loadItems } from '../../data/items'
 import { loadSkillTexts, SKILLS, skillLabel } from '../../data/skills'
 import { useAsyncData } from '../../hooks/useAsyncData'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import {
   buildSkillSources,
   grantedLine,
@@ -19,6 +20,7 @@ import {
 } from '../../character/skills'
 import { skillPicks, togglePick } from '../../character/picks'
 import { skillTable } from '../../derived/expertise'
+import { optionSkillSources } from '../../derived/classOptions'
 import { collectSources } from '../../derived/sources'
 import { Abbr } from '../Abbr'
 import { NonStandardBadge } from '../NonStandardBadge'
@@ -29,13 +31,14 @@ import { ToggleChip } from './ToggleChip'
 import { useFeatSummary } from './useFeatSummary'
 
 export function SkillsSection() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   const { classByKey, background, race, feats, summary, loading, error } =
     useFeatSummary()
   const [otherOpen, setOtherOpen] = useState(false)
   const skillTexts = useAsyncData(loadSkillTexts)
   const items = useAsyncData(loadItems)
+  const options = useAsyncData(loadClassOptions)
   const detailOf = useMemo(
     () =>
       pickDetailOf({
@@ -46,29 +49,40 @@ export function SkillsSection() {
     [items.data, skillTexts.data],
   )
 
-  const sources = useMemo(
+  // What the character has, for the skills its options give and the expertise it has.
+  const held = useMemo(
     () =>
       character
+        ? collectSources(character, {
+            classByKey,
+            background,
+            race,
+            feats,
+            optionCatalog: options.data ?? undefined,
+          })
+        : undefined,
+    [character, classByKey, background, race, feats, options.data],
+  )
+
+  const sources = useMemo(
+    () =>
+      character && held
         ? [
             ...buildSkillSources(character, classByKey, background, race),
             ...summary.skillSources,
+            ...optionSkillSources(held, options.data ?? undefined),
           ]
         : [],
-    [character, classByKey, background, race, summary.skillSources],
+    [character, held, classByKey, background, race, summary.skillSources, options.data],
   )
 
   // The skill table with the expertise the character has, and the cards to pick it.
   const table = useMemo(
     () =>
-      character
-        ? skillTable(
-            character,
-            collectSources(character, { classByKey, background, race, feats }),
-            sources,
-            summary.abilityBonus,
-          )
+      character && held
+        ? skillTable(character, held, sources, summary.abilityBonus)
         : undefined,
-    [character, classByKey, background, race, feats, sources, summary.abilityBonus],
+    [character, held, sources, summary.abilityBonus],
   )
 
   if (!character || !table) return null

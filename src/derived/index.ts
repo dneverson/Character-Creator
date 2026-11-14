@@ -35,10 +35,11 @@ import { saveRows, type SaveRow } from './saves'
 import { skillTotals, type DerivedSkill } from './skillTotals'
 import { buildChecklist, type Checklist } from './checklist'
 import { combatNumbers, type CombatNumbers } from './combat'
-import { classOptionCards } from './classOptions'
+import { optionCards, optionSkillSources } from './classOptions'
 import { featureRows, type FeatureRow } from './features'
 import { collectSources, type DeriveDeps } from './sources'
-import { spellStats, type SpellStatRow } from './spellStats'
+import { characterGrants, spellStats, type SpellStatRow } from './spellStats'
+import { deriveResources, type DerivedResource } from './resources'
 import { BASE_SOURCE, quantity, type Quantity } from './types'
 
 export interface DerivedSheet {
@@ -65,6 +66,8 @@ export interface DerivedSheet {
   spellStats: SpellStatRow[]
   /** Every feature and trait: of the classes, the species, the background and the feats. */
   features: FeatureRow[]
+  /** The limited uses: of features, of spells cast per rest and of items with charges. */
+  resources: DerivedResource[]
   /** The beast forms the character can take with Wild Shape. */
   wildShapes: BeastRef[]
   proficiencies: Proficiencies
@@ -74,7 +77,7 @@ export interface DerivedSheet {
   expertise: ExpertiseState
   /** A card for each source that lets the player choose a language, tool, weapon or armor. */
   picks: PickCard[]
-  /** A card for each fighting style a class lets the player choose. */
+  /** A card for each set of options a class, subclass, feat or option lets the player choose. */
   classOptions: PickCard[]
   /** The grants with several alternatives, and which the player took. */
   alternatives: AltChoice[]
@@ -127,6 +130,7 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
   const skillSources = [
     ...buildSkillSources(character, deps.classByKey, deps.background, deps.race),
     ...sources.summary.skillSources,
+    ...optionSkillSources(sources, deps.optionCatalog),
   ]
   const table = skillTable(character, sources, skillSources, sources.summary.abilityBonus)
   const ac = armorClass(sources, totals, known)
@@ -135,9 +139,40 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
     items: deps.items ?? [],
     books: character.selectedBooks,
   }
-  const classOptions = classOptionCards(sources, deps.fightingStyles ?? [])
+  const classOptions = optionCards(sources, deps)
   const breakdown = hpBreakdown(character, deps.classByKey, sources.summary)
   const rolled = character.hp.method === 'rolled' && breakdown.rolledHP !== undefined
+  const features = featureRows(sources, deps.optionCatalog)
+  // The first row of a name is the feature's own text; later rows are its improvements.
+  const featureText = new Map(
+    [...features]
+      .reverse()
+      .flatMap((f) => (f.anchor ? [[f.anchor, f.entries] as const] : [])),
+  )
+  // A feature with no row of its own (Sorcery Points) shows on the row that takes it in.
+  const hostOf = new Map(
+    [...features]
+      .reverse()
+      .flatMap((f) =>
+        f.anchor ? (f.nested ?? []).map((n) => [n, f.anchor] as const) : [],
+      ),
+  )
+  const resources = deriveResources(
+    sources,
+    characterGrants(sources, deps),
+    totals,
+    prof.value,
+  ).map((r) => {
+    if (!r.anchor) return r
+    const anchor = featureText.has(r.anchor)
+      ? r.anchor
+      : (hostOf.get(r.anchor) ?? r.anchor)
+    return {
+      ...r,
+      anchor,
+      entries: r.entries.length > 0 ? r.entries : (featureText.get(anchor) ?? []),
+    }
+  })
   return {
     prof,
     totals,
@@ -152,7 +187,8 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
     combat: combatNumbers(sources, totals, table.rows, prof.value),
     attacks: attackRows(sources, totals, prof.value, known, ac.lines),
     spellStats: spellStats(sources, deps, totals, prof.value, ac.lines),
-    features: featureRows(sources),
+    features,
+    resources,
     wildShapes: character.wildShapes,
     proficiencies: known,
     skills: skillTotals(

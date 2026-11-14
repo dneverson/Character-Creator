@@ -9,7 +9,8 @@
 import { useMemo, useState } from 'react'
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
-import { editEquipment } from '../../character/inventoryEdit'
+import { useUpdateCharacter } from '../../character/useCharacterDoc'
+import { useEditEquipment } from '../../character/inventoryEdit'
 import type { HistoryEntry, InventoryItem, StartingPick } from '../../character/model'
 import type { StartingGoldRollRecord } from '../../character/model'
 import { newRoll, rollAction, rollRecords } from '../../character/rollHistory'
@@ -30,7 +31,6 @@ import {
   type StartingChoices,
   type StartingSelection,
 } from '../../character/startingEquipment'
-import { useCharacterStore } from '../../character/store'
 import type { LoadedClass } from '../../data/class'
 import type { PlayableBackground } from '../../data/background'
 import { goldLabel, type Item } from '../../data/items'
@@ -168,6 +168,8 @@ function SourceCard({
   stacks,
   rolls,
 }: SourceProps) {
+  const update = useUpdateCharacter()
+  const editEquipment = useEditEquipment()
   const choices = useMemo(
     () => startingChoices(source, blocks, catalog, goldAlternative),
     [source, blocks, catalog, goldAlternative],
@@ -232,7 +234,7 @@ function SourceCard({
     const { dice, sides, multiplier } = choices.goldRoll
     const values = rollDice(dice, sides)
     const total = values.reduce((sum, v) => sum + v, 0) * multiplier
-    useCharacterStore.getState().updateActive(
+    update(
       {},
       rollAction(
         newRoll({

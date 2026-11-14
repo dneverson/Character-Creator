@@ -1,6 +1,14 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance,
+} from 'vitest'
 import { BackgroundStory } from './BackgroundStory'
 import { ThemeProvider } from '../../theme/ThemeProvider'
 import { useCharacterStore } from '../../character/store'
@@ -65,10 +73,12 @@ const sage: PlayableBackground = {
   storyTables: [],
 }
 
+let random: MockInstance<Crypto['getRandomValues']> | undefined
+
 /** Each die in turn shows the next of these values. */
 function dice(...values: number[]) {
   let at = 0
-  vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation((array) => {
+  random = vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation((array) => {
     // randomInt(1, N) reads one byte and shows 1 + byte % N.
     ;(array as Uint8Array)[0] = values[at++] - 1
     return array
@@ -113,7 +123,13 @@ beforeEach(() => {
   useCharacterStore.setState({ characters: {}, order: [], activeId: null, view: 'list' })
 })
 
-afterEach(() => vi.restoreAllMocks())
+// Only the dice are restored. `vi.restoreAllMocks` would also empty the mocked
+// `loadBackgrounds` while the section is still mounted (the testing library unmounts it
+// after this hook), so an effect that ran in between got no promise from it.
+afterEach(() => {
+  random?.mockRestore()
+  random = undefined
+})
 
 describe('BackgroundStory', () => {
   it('renders nothing without an active character', async () => {

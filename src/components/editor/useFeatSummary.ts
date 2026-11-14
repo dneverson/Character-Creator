@@ -7,7 +7,7 @@ import { loadClasses, type LoadedClass } from '../../data/class'
 import { findBackground, loadBackgrounds } from '../../data/background'
 import { findPlayableRace, loadRaces } from '../../data/race'
 import { loadFeats } from '../../data/feats'
-import { useActiveCharacter } from '../../character/store'
+import { useCharacter } from '../../character/useCharacterDoc'
 import { resolveFeats, type FeatSummary } from '../../character/feats'
 import { useAsyncData } from '../../hooks/useAsyncData'
 
@@ -19,7 +19,7 @@ const EMPTY_SUMMARY: FeatSummary = {
 }
 
 export function useFeatSummary() {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const classes = useAsyncData(loadClasses)
   const backgrounds = useAsyncData(loadBackgrounds)
   const races = useAsyncData(loadRaces)

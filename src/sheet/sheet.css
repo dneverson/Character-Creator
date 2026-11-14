@@ -556,6 +556,40 @@ body.sheet-page {
   outline-offset: 2px;
 }
 
+/* Limited uses: the pips or the number of a counter, with what restores it beside them.
+   A counter stays on one line (3 pips never break 2 and 1); the words beside it wrap. */
+.sheet-uses {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+.sheet-uses--pool {
+  white-space: nowrap;
+  gap: 0.3rem;
+  font-variant-numeric: tabular-nums;
+}
+.sheet-uses-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.sheet-uses-cell__item {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.6rem;
+}
+.sheet-uses__note {
+  font-size: 0.75rem;
+  color: var(--sheet-muted-ink);
+}
+.sheet-uses__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 /* The number field of a hit die roll in the short rest window. */
 .sheet-rest__roll {
   width: 6rem;

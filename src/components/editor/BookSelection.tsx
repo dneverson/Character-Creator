@@ -9,7 +9,7 @@ import { loadBookContents } from '../../data/bookPages'
 import { coverPath } from '../../data/covers'
 import { coverUrls } from '../../content/covers'
 import { useCoverThumb } from '../../content/useCoverThumb'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { formatDateParts } from '../../ui/date'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { useVisible } from '../../hooks/useVisible'
@@ -406,8 +406,8 @@ function BookDetail({ book }: { book: Book }) {
 }
 
 export function BookSelection() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   const { data: books, error, loading } = useAsyncData(loadBooks)
 
   const selectedBooks = useMemo(

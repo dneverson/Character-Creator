@@ -12,7 +12,7 @@ import { loadFeats } from '../../data/feats'
 import { loadItems } from '../../data/items'
 import { loadSpells } from '../../data/spells'
 import { loadBeasts } from '../../data/beasts'
-import { loadFightingStyleOptions } from '../../data/classOptions'
+import { loadClassOptions } from '../../data/classOptions'
 import { loadLanguages } from '../../data/languages'
 import { FIGHTER, ITEMS, loadedClass, stack } from '../../test/derivedFixtures'
 import { listsOf, makeSpell } from '../../test/spellFixtures'
@@ -37,7 +37,7 @@ vi.mock('../../data/feats', async (importOriginal) => ({
 }))
 vi.mock('../../data/classOptions', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/classOptions')>()),
-  loadFightingStyleOptions: vi.fn(),
+  loadClassOptions: vi.fn(),
 }))
 vi.mock('../../data/languages', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/languages')>()),
@@ -149,7 +149,7 @@ beforeEach(() => {
   vi.mocked(loadBackgrounds).mockResolvedValue([])
   vi.mocked(loadRaces).mockResolvedValue([])
   vi.mocked(loadFeats).mockResolvedValue([])
-  vi.mocked(loadFightingStyleOptions).mockResolvedValue([])
+  vi.mocked(loadClassOptions).mockResolvedValue([])
   vi.mocked(loadLanguages).mockResolvedValue([])
   vi.mocked(loadItems).mockResolvedValue(ITEMS)
   vi.mocked(loadSpells).mockResolvedValue([sacredFlame])

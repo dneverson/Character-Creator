@@ -16,7 +16,7 @@ import {
 } from '../../dice/dice'
 import type { AbilityEntry, Character } from '../../character/model'
 import { characterAbilityBreakdown } from '../../character/derive'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { remainingPool, usesPool } from '../../character/stats'
 import { scoreColorClass } from '../../ui/scoreColor'
 import { PointBuyScale } from './PointBuyScale'
@@ -25,7 +25,7 @@ import { DraftInput } from './DraftInput'
 import { useFeatSummary } from './useFeatSummary'
 
 export function AbilityScores() {
-  const character = useActiveCharacter()
+  const character = useCharacter()
   const featBonus = useFeatSummary().summary.abilityBonus
   if (!character) return null
   return <Assignment character={character} featBonus={featBonus} />
@@ -38,7 +38,7 @@ function Assignment({
   character: Character
   featBonus: Partial<Record<AbilityKey, number>>
 }) {
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const updateActive = useUpdateCharacter()
   const { abilities, statMethod, statPool } = character
   const pool = usesPool(statMethod)
   const remaining = remainingPool(statPool, abilities)

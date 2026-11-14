@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import Nav from 'react-bootstrap/Nav'
+import { selectSheetTab, useCharacterStore } from '../../character/store'
 import type { DerivedSheet } from '../../derived'
 import { visibleTabs } from '../../sheet/tabs'
 import { ResizableSplit } from '../table/ResizableSplit'
@@ -7,7 +7,9 @@ import { SheetDetailPane, useSheetDetail, useWideSheet } from './SheetDetail'
 
 /** The switching box: a strip of tabs and the panel of the one that is open. */
 export function SheetTabs({ sheet, phone }: { sheet: DerivedSheet; phone: boolean }) {
-  const [openId, setOpenId] = useState<string | null>(null)
+  // Kept in the store, so the address can name the open tab.
+  const openId = useCharacterStore(selectSheetTab)
+  const setOpenId = useCharacterStore((s) => s.setSheetTab)
   const wide = useWideSheet()
   const { current, dismissRow } = useSheetDetail()
   const tabs = visibleTabs(sheet, phone)

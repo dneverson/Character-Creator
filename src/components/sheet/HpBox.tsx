@@ -9,7 +9,7 @@ import { damage, gainTemp, heal, setTempHp } from '../../play/actions'
 import { DerivedNumber } from '../derived/DerivedNumber'
 import { DraftInput } from '../editor/DraftInput'
 import { DeathSaves } from './SheetPips'
-import { applyPlay, usePlay } from './usePlay'
+import { useApplyPlay, usePlay } from './usePlay'
 
 const whole = (text: string) => {
   const n = Number.parseInt(text, 10)
@@ -17,6 +17,7 @@ const whole = (text: string) => {
 }
 
 export function HpBox({ sheet }: { sheet: DerivedSheet }) {
+  const applyPlay = useApplyPlay()
   const [amount, setAmount] = useState('')
   const current = usePlay(sheet)
   if (!current) return null

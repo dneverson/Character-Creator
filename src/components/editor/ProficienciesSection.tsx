@@ -12,7 +12,7 @@ import {
   togglePick,
   type PickChip,
 } from '../../character/picks'
-import { useActiveCharacter, useCharacterStore } from '../../character/store'
+import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import type { AltChoice, OptionalSwitch } from '../../derived/grantBlocks'
 import {
   OTHER_KINDS,
@@ -140,8 +140,8 @@ function OptionalToggle({
 
 /** Every proficiency the character has, from every source, and the picks still to make. */
 export function ProficienciesSection() {
-  const character = useActiveCharacter()
-  const updateActive = useCharacterStore((s) => s.updateActive)
+  const character = useCharacter()
+  const updateActive = useUpdateCharacter()
   const { sheet, catalog, loading, error } = useDerivedSheet()
   const [otherOpen, setOtherOpen] = useState(false)
   const detailOf = useMemo(() => pickDetailOf(catalog), [catalog])
