@@ -14,6 +14,7 @@ import {
 import type { AbilityIncreases } from '../data/abilityOptions'
 import type { ItemKind } from '../data/itemTypes'
 import type { GrantPicks, PickKind, PickMap } from './picks'
+import { normalizeFavorites, type Favorite } from './favorites'
 import { isPortrait } from './portrait'
 
 /** Default sources selected for a fresh character (2014 core), matching the legacy app. */
@@ -764,6 +765,13 @@ export interface Character {
    */
   portrait?: string
 
+  /**
+   * The sheet's Favorites: pointers to the attacks, spells, items, features and limited
+   * uses the player pinned, in the order shown. Absent means none, so no stored document
+   * needs migrating. Pinning is not a build change, so it is not recorded in the history.
+   */
+  favorites?: Favorite[]
+
   // --- History ---
   /** Everything done to the character, oldest first. Only ever added to. */
   history: HistoryEntry[]
@@ -1110,6 +1118,9 @@ export function ensureCharacterDefaults(raw: StoredCharacter | undefined): Chara
   else delete merged.completedAt
   if (isPortrait(raw.portrait)) merged.portrait = raw.portrait
   else delete merged.portrait
+  const favorites = normalizeFavorites(raw.favorites)
+  if (favorites.length > 0) merged.favorites = favorites
+  else delete merged.favorites
   Object.assign(merged, storedHistory(raw))
   merged.createdAt = raw?.createdAt ?? base.createdAt
   merged.updatedAt = raw?.updatedAt ?? base.updatedAt

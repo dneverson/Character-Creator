@@ -5,15 +5,9 @@
 
 import type { Spell } from '../../data/spells'
 import { BrowseTable, type BrowseTableProps } from '../table/BrowseTable'
-import { factColumn, type Describe, type Fact, type FactGroup } from '../table/facts'
-import type { Column, DetailTarget } from '../table/types'
-import {
-  describeSpells,
-  spellName,
-  spellSearchText,
-  spellSummaryColumns,
-  spellTags,
-} from './spellFacts'
+import type { DetailTarget } from '../table/types'
+import { spellName, spellSearchText, spellTags } from './spellFacts'
+import { describeLines, spellLineColumns } from './spellLineFacts'
 
 /** One spell the character has, and what it owes to whatever gives it. */
 export interface SpellLine {
@@ -30,56 +24,13 @@ export interface SpellLine {
   remove?: () => void
 }
 
-const fromFact: Fact<SpellLine> = {
-  key: 'from',
-  label: 'From',
-  text: (line) => line.from.join(', '),
-}
-const castFact: Fact<SpellLine> = {
-  key: 'cast',
-  label: 'How it is cast',
-  text: (line) => [line.cast, line.locked].filter(Boolean).join('; '),
-}
-
-const ofSpell =
-  <T,>(read: (spell: Spell) => T) =>
-  (line: SpellLine) =>
-    read(line.spell)
-
-const lineColumn = (column: Column<Spell>): Column<SpellLine> => ({
-  ...column,
-  render: ofSpell(column.render),
-  sortValue: column.sortValue && ofSpell(column.sortValue),
-  filterValue: column.filterValue && ofSpell(column.filterValue),
-})
-
-const lineFact = (fact: Fact<Spell>): Fact<SpellLine> => ({
-  ...fact,
-  text: ofSpell(fact.text),
-  render: fact.render && ofSpell(fact.render),
-})
-
-const describeLines: Describe<SpellLine> = (lines) => [
-  { key: 'source', title: 'On your character', facts: [fromFact, castFact] },
-  ...describeSpells(lines.map((l) => l.spell)).map((group): FactGroup<SpellLine> => ({
-    ...group,
-    entryTitle: group.entryTitle && ofSpell(group.entryTitle),
-    facts: group.facts.map(lineFact),
-  })),
-]
-
-/** How it is cast and from what come right after the name: they are why the spell is here. */
-const columns: Column<SpellLine>[] = (() => {
-  const [name, ...stats] = spellSummaryColumns.map(lineColumn)
-  return [name, factColumn(castFact), factColumn(fromFact), ...stats]
-})()
-
 export function SpellLines({
   tableId,
   lines,
   label,
   detailTarget,
   action,
+  pin,
 }: {
   tableId: string
   lines: SpellLine[]
@@ -88,12 +39,14 @@ export function SpellLines({
   detailTarget?: DetailTarget
   /** The action column, when it is not the removal of a spell (the sheet's concentration). */
   action?: BrowseTableProps<SpellLine>['action']
+  /** The cell of the Favorites pin column, when the table has one. */
+  pin?: BrowseTableProps<SpellLine>['pin']
 }) {
   return (
     <BrowseTable<SpellLine>
       tableId={tableId}
       rows={lines}
-      columns={columns}
+      columns={spellLineColumns}
       idOf={(line) => line.id}
       nameOf={(line) => spellName(line.spell)}
       tagsOf={(line) => spellTags(line.spell)}
@@ -117,6 +70,7 @@ export function SpellLines({
             }
           : undefined)
       }
+      pin={pin}
       compact
       tableShare={70}
       detailTarget={detailTarget}

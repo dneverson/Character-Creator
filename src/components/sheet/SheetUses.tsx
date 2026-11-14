@@ -5,30 +5,18 @@
 import Table from 'react-bootstrap/Table'
 import type { DerivedSheet } from '../../derived'
 import type { DerivedResource } from '../../derived/resources'
-import { Entries } from '../../text/Entries'
+import { PinButton } from './PinButton'
 import { IconButton } from './PlayStrip'
-import { PaneFrame, useSheetDetail } from './SheetDetail'
 import { UseCounter } from './UseCounter'
-import { rechargeShort, usesText } from './usesText'
+import { useOpenUse } from './useOpenUse'
+import { rechargeShort } from './usesText'
 import { usePlay } from './usePlay'
 
 export function SheetUses({ sheet }: { sheet: DerivedSheet }) {
-  const detail = useSheetDetail()
+  const open = useOpenUse()
   const current = usePlay(sheet)
   if (!current || sheet.resources.length === 0) return null
   const poolOf = (r: DerivedResource) => current.derived.uses.find((p) => p.id === r.id)
-  const open = (r: DerivedResource) =>
-    detail.toggle({
-      id: `uses:${r.id}`,
-      title: r.label,
-      tables: [],
-      content: (
-        <PaneFrame title={r.label}>
-          <p>{usesText(r)}</p>
-          <Entries entries={r.entries} />
-        </PaneFrame>
-      ),
-    })
   return (
     <Table
       responsive
@@ -38,6 +26,7 @@ export function SheetUses({ sheet }: { sheet: DerivedSheet }) {
     >
       <thead>
         <tr>
+          <th className="sheet-pin">Favorite</th>
           <th>Limited use</th>
           <th>Uses</th>
           <th>Restores</th>
@@ -47,6 +36,9 @@ export function SheetUses({ sheet }: { sheet: DerivedSheet }) {
       <tbody>
         {sheet.resources.map((r) => (
           <tr key={r.id}>
+            <td className="sheet-pin">
+              <PinButton kind="use" id={r.id} />
+            </td>
             <td>
               <span className="sheet-uses__name">
                 {r.label}

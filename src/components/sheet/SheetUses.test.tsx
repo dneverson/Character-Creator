@@ -217,7 +217,7 @@ describe('limited uses on the Actions tab', () => {
     const panel = await openTab(user, 'Actions')
     const table = await within(panel).findByRole('table', { name: 'Limited uses' })
     const rows = within(table).getAllByRole('row').slice(1)
-    expect(rows.map((r) => within(r).getAllByRole('cell')[0].textContent)).toEqual([
+    expect(rows.map((r) => within(r).getAllByRole('cell')[1].textContent)).toEqual([
       'Second Wind',
       'Action Surge',
       'Wand of Sparks',

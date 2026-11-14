@@ -33,7 +33,7 @@ export function IconButton({
   onClick,
 }: {
   label: string
-  icon: 'add' | 'minus' | 'remove' | 'info'
+  icon: 'add' | 'minus' | 'remove' | 'info' | 'moveUp' | 'moveDown'
   disabled?: boolean
   onClick: () => void
 }) {

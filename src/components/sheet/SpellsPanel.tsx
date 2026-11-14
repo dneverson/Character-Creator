@@ -12,11 +12,11 @@ import { DerivedNumber } from '../derived/DerivedNumber'
 import { SpellLines } from '../editor/SpellLines'
 import { useSpellLines } from '../editor/useSpellLines'
 import { useCharacter } from '../../character/useCharacterDoc'
+import { concentrationAction } from './concentrationAction'
+import { PinButton } from './PinButton'
 import { useSheetRowDetail } from './SheetDetail'
 import { SlotPips } from './SheetPips'
 import { useApplyPlay } from './usePlay'
-import { setConcentration } from '../../play/actions'
-import type { SpellLine } from '../editor/SpellLines'
 
 /** "Cantrips 3 of 4, prepared 5 of 8": what a class has chosen of what it may. */
 function allowance(caster: ClassCaster, character: Character): string {
@@ -30,26 +30,6 @@ function allowance(caster: ClassCaster, character: Character): string {
   ]
     .filter(Boolean)
     .join(', ')
-}
-
-/** The concentration spells get a button that starts or ends concentrating on them. */
-function concentrationAction(
-  applyPlay: ReturnType<typeof useApplyPlay>,
-  line: SpellLine,
-  current: Character['play']['concentration'],
-) {
-  if (!line.spell.concentration) return undefined
-  const { name, source } = line.spell
-  return current?.name === name && current.source === source
-    ? {
-        label: `Stop concentrating on ${name}`,
-        variant: 'danger' as const,
-        run: () => applyPlay((p) => setConcentration(p, null)),
-      }
-    : {
-        label: `Concentrate on ${name}`,
-        run: () => applyPlay((p) => setConcentration(p, { name, source })),
-      }
 }
 
 export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
@@ -119,6 +99,7 @@ export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
               lines={lines}
               label="Your spells"
               detailTarget={detailTarget}
+              pin={(line) => <PinButton kind="spell" id={line.id} />}
               action={{
                 key: 'concentrate',
                 header: 'Concentrate',

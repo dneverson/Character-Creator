@@ -1,6 +1,7 @@
 // What each tab of the sheet's switching box shows.
 
 import type { DerivedSheet } from '../../derived'
+import { FavoritesBlock } from './FavoritesBlock'
 import { SheetAttacks } from './SheetAttacks'
 import { SheetUses } from './SheetUses'
 import { ProficienciesPanel, SavesPanel, SensesPanel, SkillsPanel } from './SidePanels'
@@ -12,6 +13,7 @@ export interface SheetPanelProps {
 export function ActionsPanel({ sheet }: SheetPanelProps) {
   return (
     <>
+      <FavoritesBlock sheet={sheet} />
       <SheetAttacks attacks={sheet.attacks} />
       <SheetUses sheet={sheet} />
     </>

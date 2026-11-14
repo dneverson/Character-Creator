@@ -658,3 +658,93 @@ body.sheet-page {
   outline: 2px solid var(--sheet-accent);
   outline-offset: 1px;
 }
+
+/* The pin column of a table: one small button, the same narrow width in every table. */
+.sheet-pin {
+  width: 4.5rem;
+  min-width: 4.5rem;
+  max-width: 4.5rem;
+  text-align: center;
+}
+
+/* The Favorites block at the top of the Actions tab: one row per favorite, the things it
+   shows wrapping under its name, and the move and remove buttons at the end. */
+.sheet-favs {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: var(--sheet-panel-border-width) var(--sheet-panel-border-style)
+    var(--sheet-panel-border);
+}
+.sheet-favs__empty {
+  margin: 0;
+  color: var(--sheet-muted-ink);
+}
+.sheet-favs__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sheet-favs__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border: 2px solid transparent;
+  border-radius: var(--sheet-panel-radius);
+  background: var(--sheet-panel-bg);
+  box-shadow: inset 0 0 0 1px var(--sheet-panel-border);
+}
+.sheet-favs__row--link {
+  cursor: pointer;
+}
+.sheet-favs__row--open {
+  border-color: var(--sheet-accent);
+}
+.sheet-favs__main {
+  min-width: 0;
+}
+.sheet-favs__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 0.5rem;
+  font-weight: 600;
+}
+.sheet-favs__kind {
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: var(--sheet-label-transform);
+  font-variant: var(--sheet-label-variant);
+  color: var(--sheet-muted-ink);
+}
+.sheet-favs__cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1.25rem;
+  margin: 0.25rem 0 0;
+}
+.sheet-favs__cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.4rem;
+  min-width: 0;
+}
+.sheet-favs__cell dt {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--sheet-muted-ink);
+}
+.sheet-favs__cell dd {
+  margin: 0;
+  min-width: 0;
+}
+.sheet-favs__controls {
+  display: inline-flex;
+  gap: 0.25rem;
+}

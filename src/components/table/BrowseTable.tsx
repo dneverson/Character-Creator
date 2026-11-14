@@ -16,6 +16,7 @@ import { RowActionButton } from './RowActionButton'
 import { CompareModal } from './CompareModal'
 import { DataTable } from './DataTable'
 import { EntryDetail } from './EntryDetail'
+import { NON_STANDARD, reasonOf, withRulesGroup } from './rulesGroup'
 import { useShowUnavailable } from './useShowUnavailable'
 import type { Describe } from './facts'
 import type { Column, DetailTarget, RowMeta } from './types'
@@ -52,6 +53,11 @@ export interface BrowseTableProps<T> {
     header: string
     of: (row: T) => RowAction | undefined
   }
+  /**
+   * A button column of its own, after the action column (the sheet's Favorites pin): the
+   * cell it draws for a row.
+   */
+  pin?: (row: T) => ReactNode
   /**
    * Whether a row is a standard choice, and why not when it is not (`reason`).
    * Given, the table gains a Rules column and a Rules fact in the detail and
@@ -100,9 +106,6 @@ const STANDARD = { standard: true }
 const ALLOW_LABEL = 'Allow non-standard choices (DM approval)'
 /** The label of the switch that lists the greyed rows that cannot be chosen. */
 const SHOW_LABEL = 'Show choices that are not available'
-const NON_STANDARD = 'Non-standard'
-const reasonOf = (meta: Omit<RowMeta, 'id'>) => meta.reason ?? 'Not a standard choice'
-
 export function BrowseTable<T>({
   tableId,
   rows: allRows,
@@ -113,6 +116,7 @@ export function BrowseTable<T>({
   describe,
   searchText,
   action,
+  pin,
   rowMeta,
   allowNonStandard,
   onAllowNonStandardChange,
@@ -149,27 +153,8 @@ export function BrowseTable<T>({
     act.variant === 'danger' || allow || metaOf(row).standard
 
   // Says in the detail pane and the compare window why a row is non-standard.
-  const describeWithRules = useMemo<Describe<T>>(
-    () =>
-      rowMeta === undefined
-        ? describe
-        : (entries) => [
-            {
-              key: 'rules',
-              title: 'Rules',
-              facts: [
-                {
-                  key: 'non-standard',
-                  label: NON_STANDARD,
-                  text: (row) => {
-                    const meta = rowMeta(row)
-                    return meta.standard ? '' : reasonOf(meta)
-                  },
-                },
-              ],
-            },
-            ...describe(entries),
-          ],
+  const describeWithRules = useMemo(
+    () => withRulesGroup(describe, rowMeta),
     [describe, rowMeta],
   )
 
@@ -204,6 +189,20 @@ export function BrowseTable<T>({
               />
             )
           },
+        },
+      ]
+    : []
+  const pinColumn: Column<T>[] = pin
+    ? [
+        {
+          key: 'favorite',
+          action: true,
+          sortable: false,
+          filterable: false,
+          className: 'sheet-pin',
+          headerClassName: 'sheet-pin',
+          header: 'Favorite',
+          render: pin,
         },
       ]
     : []
@@ -256,6 +255,7 @@ export function BrowseTable<T>({
   // Rules sits right after the name so the action and the name stay together.
   const allColumns = [
     ...actionColumn,
+    ...pinColumn,
     ...flaggedName,
     ...rulesColumn,
     ...columns.slice(1),

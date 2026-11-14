@@ -21,9 +21,9 @@ import { useFeatSummary } from '../editor/useFeatSummary'
 import { BrowseTable } from '../table/BrowseTable'
 import type { Column } from '../table/types'
 import type { SheetPanelProps } from './SheetPanels'
+import { PinButton } from './PinButton'
 import { useSheetRowDetail } from './SheetDetail'
-import { UseCounter } from './UseCounter'
-import { RechargeNote } from './RechargeNote'
+import { ItemCharges } from './ItemCharges'
 import { usePlay } from './usePlay'
 
 export function InventoryPanel({ sheet }: SheetPanelProps) {
@@ -65,19 +65,7 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
       priority: 1,
       filterable: false,
       sortValue: (item) => Number(item.charges?.max) || 0,
-      render: (item) => {
-        const resource = resources.find((r) => r.id === `item:${item.key}`)
-        if (!resource) return item.charges?.max ?? ''
-        return (
-          <span className="sheet-uses-cell__item">
-            <UseCounter
-              resource={resource}
-              pool={pools?.find((p) => p.id === resource.id)}
-            />
-            <RechargeNote resource={resource} named={false} />
-          </span>
-        )
-      },
+      render: (item) => <ItemCharges item={item} resources={resources} pools={pools} />,
     }
     return [name, quantity, charges, ...rest]
   }, [editStack, stackOf, strength, classNames, resources, pools])
@@ -108,6 +96,7 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
           rowMeta={rowMeta}
           compact
           detailTarget={detailTarget}
+          pin={(item) => <PinButton kind="item" id={itemKey(item)} />}
           labels={{ compare: 'Compare items', search: 'Search items...', table: 'Items' }}
         />
       )}
