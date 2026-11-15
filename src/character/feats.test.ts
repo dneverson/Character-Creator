@@ -91,6 +91,7 @@ function race(featGrants: FeatGrant[]): PlayableRace {
     name: 'Human',
     baseName: 'Human',
     source: 'XPHB',
+    baseSource: 'XPHB',
     size: ['M'],
     abilityOptions: [],
     featGrants,

@@ -272,7 +272,7 @@ function spellResources(
   })
 }
 
-/** A counter for each equipped item with a number of charges. */
+/** A counter for each item in force (equipped, or carried when it works carried) with charges. */
 function itemResources(sources: Sources): DerivedResource[] {
   return sources.items.flatMap(({ item, source }) => {
     const charges = item.charges

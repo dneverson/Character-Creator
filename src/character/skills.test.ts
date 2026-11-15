@@ -114,6 +114,7 @@ const race: PlayableRace = {
   name: 'Half-Elf',
   baseName: 'Half-Elf',
   source: 'PHB',
+  baseSource: 'PHB',
   abilityOptions: [],
   skillProficiencies: [{ choose: { from: ['stealth', 'arcana'], count: 2 } }],
 }

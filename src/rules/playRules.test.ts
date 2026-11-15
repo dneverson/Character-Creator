@@ -90,6 +90,25 @@ describe.skipIf(!dataDir)('play rules against the data', () => {
     expect(rule.effects[rule.speedZeroAt - 1]).toBe('Speed reduced to 0')
   })
 
+  it('gives disadvantage on ability checks for exactly the conditions that say so', () => {
+    const CHECKS = /disadvantage on [^.]*ability checks/i
+    for (const rules of Object.values(PLAY_RULES)) {
+      const giving = conditions
+        .filter((r) => r.record.source === rules.conditionSource)
+        .filter((r) => r.record.name !== 'Exhaustion' && CHECKS.test(textOf(r.record)))
+        .map((r) => String(r.record.name))
+        .sort()
+      expect(rules.checkDisadvantage.map((r) => r.condition)).toEqual(giving)
+      for (const { condition, text } of rules.checkDisadvantage) {
+        expect(textOf(find(condition, rules.conditionSource) ?? {})).toContain(text)
+      }
+    }
+    const rule = PLAY_RULES.classic.exhaustion
+    expect(rule.kind === 'levels' && rule.effects[rule.checkDisadvantageAt - 1]).toBe(
+      'Disadvantage on ability checks',
+    )
+  })
+
   it('stops exactly the conditions whose text makes the speed 0, in each printing', () => {
     const STOPS = /Speed is 0 and can't increase|speed becomes 0|can't move/i
     for (const rules of Object.values(PLAY_RULES)) {

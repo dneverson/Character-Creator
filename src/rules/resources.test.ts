@@ -1,4 +1,12 @@
+import { readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import {
+  ownClassFeatures,
+  ownSubclassFeatures,
+  resolveClassFiles,
+  type LoadedClass,
+  type RawClassFile,
+} from '../data/class'
 import { stripTags } from '../text/tags'
 import { dataDir, records, recordId, textOf, type Rec } from '../test/dataAudit'
 import { holderId, type Holder } from './holder'
@@ -145,5 +153,87 @@ describe.skipIf(!dataDir)('resource rules against the data', () => {
         r.count.kind === 'column' && !columnsOf(all, r.holder).includes(r.count.column),
     )
     expect(missing.map((r) => holderId(r.holder))).toEqual([])
+  })
+})
+
+/** A resolved class or subclass that the data writes as a `_copy`, with what it copies. */
+interface Copied {
+  key: string
+  copies: string
+  ids: string[]
+}
+
+/**
+ * The ruled counters every class and subclass of the data gives, through the class loader's
+ * `_copy` resolution, keyed "Name|Source" (a subclass "Class|ShortName|Source").
+ */
+function classCounters(dir: string): { held: Map<string, string[]>; copied: Copied[] } {
+  const held = new Map<string, string[]>()
+  const copied: Copied[] = []
+  if (!dir) return { held, copied }
+  const ruled = new Set(RESOURCE_RULES.map((r) => holderId(r.holder)))
+  const names = readdirSync(`${dir}/class`).filter((n) => /^class-.*\.json$/.test(n))
+  const raw: RawClassFile[] = names.map((n) =>
+    JSON.parse(readFileSync(`${dir}/class/${n}`, 'utf8')),
+  )
+  const kept = (ids: string[]) => ids.filter((id) => ruled.has(id)).sort()
+  resolveClassFiles(raw).forEach((file, i) => {
+    ;(file.class ?? []).forEach((entry, j) => {
+      const loaded: LoadedClass = { entry, file }
+      const key = `${entry.name}|${entry.source}`
+      const ids = kept(
+        ownClassFeatures(loaded).map((f) =>
+          holderId({
+            classFeature: { className: f.className, source: f.source, name: f.name },
+          }),
+        ),
+      )
+      held.set(key, ids)
+      // A copy that writes its own feature list (the Death Knight) is a class of its own.
+      const copy = raw[i].class?.[j]?.classFeatures ? undefined : raw[i].class?.[j]?._copy
+      if (copy) copied.push({ key, copies: `${copy.name}|${copy.source}`, ids })
+    })
+    ;(file.subclass ?? []).forEach((subclass, j) => {
+      const key = `${subclass.className}|${subclass.shortName}|${subclass.source}`
+      const ids = kept(
+        ownSubclassFeatures(file, subclass).map((f) =>
+          holderId({
+            subclassFeature: {
+              className: f.className,
+              shortName: f.subclassShortName,
+              source: f.source,
+              name: f.name,
+            },
+          }),
+        ),
+      )
+      held.set(key, ids)
+      const copy = raw[i].subclass?.[j]?.subclassFeatures
+        ? undefined
+        : raw[i].subclass?.[j]?._copy
+      if (copy) {
+        const from = `${copy.className ?? subclass.className}|${copy.shortName ?? subclass.shortName}|${copy.source}`
+        copied.push({ key, copies: from, ids })
+      }
+    })
+  })
+  return { held, copied }
+}
+
+describe.skipIf(!dataDir)('resource rules on copied classes and subclasses', () => {
+  const { held, copied } = classCounters(dataDir ?? '')
+
+  it('gives every copy the counters of the class or subclass it copies', () => {
+    const wrong = copied
+      .filter((c) => (held.get(c.copies) ?? ['missing']).join() !== c.ids.join())
+      .map((c) => `${c.key} copies ${c.copies}`)
+    expect(wrong).toEqual([])
+    // The audit's reach: the WoW classes and the reprinted subclasses are copies.
+    expect(copied.length).toBeGreaterThan(20)
+  })
+
+  it('gives the WoW Druid the Wild Shape counter of the 2024 Druid', () => {
+    expect(held.get('Druid|WoW')).toContain('classFeature|Wild Shape|XPHB|Druid')
+    expect(held.get('Druid|WoW')).toEqual(held.get('Druid|XPHB'))
   })
 })

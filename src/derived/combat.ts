@@ -5,11 +5,15 @@
 
 import { abilityMod, formatMod, type AbilityKey } from '../dice/dice'
 import type { SkillRow } from '../character/skills'
+import type { Edition } from '../data/edition'
 import {
   INITIATIVE_RULES,
+  PASSIVE_EDGE,
+  PASSIVE_EDGE_RULES,
   PASSIVE_RULES,
   PASSIVE_SKILLS,
   type InitiativeRule,
+  type PassiveSkill,
 } from '../rules/combatRules'
 import type { AbilityTotals } from './armorClass'
 import { itemBonus } from './itemBonus'
@@ -21,7 +25,7 @@ export const INITIATIVE_MANUAL = 'initiative|manual'
 const MANUAL_SOURCE = { kind: 'manual', tag: 'manual', label: '' } as const
 
 export interface PassiveRow {
-  key: string
+  key: PassiveSkill
   label: string
   score: Quantity
 }
@@ -205,7 +209,85 @@ export function itemCheckLines(sources: Sources, idPrefix: string): Line[] {
   })
 }
 
-export function passives(sources: Sources, rows: SkillRow[], prof: number): PassiveRow[] {
+const ONCE = 'Advantage or disadvantage counts once, however many give it.'
+const CANCEL = 'Advantage and disadvantage cancel each other out.'
+
+/** Whether a line of a passive score is advantage or disadvantage on its checks. */
+export const isEdgeLine = (line: Line) => line.id.includes('|edge|')
+
+/**
+ * The passive score's lines with its advantage and disadvantage settled as for a roll: one
+ * of a kind counts, the others show as not counted, and one of each cancels both. Run again
+ * whenever a line of advantage or disadvantage is added (a condition in play).
+ */
+export function settleEdges(lines: readonly Line[]): Line[] {
+  const restored = lines.map((l): Line => {
+    if (!isEdgeLine(l) || (l.why !== ONCE && l.why !== CANCEL)) return l
+    const { why: _why, ...rest } = l
+    return { ...rest, status: 'applied' }
+  })
+  const counted = restored.filter((l) => isEdgeLine(l) && l.status === 'applied')
+  const both =
+    counted.some((l) => (l.amount ?? 0) > 0) && counted.some((l) => (l.amount ?? 0) < 0)
+  const first = new Set(
+    both
+      ? []
+      : [
+          counted.find((l) => (l.amount ?? 0) > 0),
+          counted.find((l) => (l.amount ?? 0) < 0),
+        ],
+  )
+  return restored.map((l): Line => {
+    if (!counted.includes(l) || first.has(l)) return l
+    return { ...l, status: 'inactive', why: both ? CANCEL : ONCE }
+  })
+}
+
+/** A line of advantage (+5) or disadvantage (-5) on the checks of a passive score. */
+export function edgeLine(
+  edition: Edition,
+  key: PassiveSkill,
+  edge: 'advantage' | 'disadvantage',
+  line: Pick<Line, 'label' | 'source' | 'text' | 'status' | 'when' | 'why'>,
+): Line {
+  const rule = PASSIVE_EDGE[edition]
+  return {
+    ...line,
+    id: `passive|${key}|edge|${line.source.tag}|${line.label}`,
+    amount: edge === 'advantage' ? rule.amount : -rule.amount,
+    op: 'add',
+    how: `${edge === 'advantage' ? 'Advantage' : 'Disadvantage'} on the check. ${rule.text}`,
+  }
+}
+
+/** The advantage and disadvantage on the checks of a passive score the character has. */
+function edgeLines(sources: Sources, key: PassiveSkill, edition: Edition): Line[] {
+  return PASSIVE_EDGE_RULES.flatMap((rule): Line[] => {
+    const found = rule.skills.includes(key) ? heldBy(sources, rule.holder) : undefined
+    if (!found) return []
+    const state: Pick<Line, 'status' | 'when' | 'why'> =
+      found.active === false
+        ? { status: 'inactive', why: 'Needs attunement, and you are not attuned.' }
+        : rule.when
+          ? { status: 'conditional', when: rule.when }
+          : { status: 'applied' }
+    return [
+      edgeLine(edition, key, rule.edge, {
+        label: rule.label,
+        source: found.source,
+        text: rule.text,
+        ...state,
+      }),
+    ]
+  })
+}
+
+export function passives(
+  sources: Sources,
+  rows: SkillRow[],
+  prof: number,
+  edition: Edition,
+): PassiveRow[] {
   const rules = held(sources, PASSIVE_RULES)
   return PASSIVE_SKILLS.flatMap((key) => {
     const row = rows.find((r) => r.key === key)
@@ -247,8 +329,9 @@ export function passives(sources: Sources, rows: SkillRow[], prof: number): Pass
         row.proficient,
       ),
       ...itemCheckLines(sources, `passive|${key}`),
+      ...edgeLines(sources, key, edition),
     )
-    return [{ key, label: row.label, score: quantity(lines) }]
+    return [{ key, label: row.label, score: quantity(settleEdges(lines)) }]
   })
 }
 
@@ -257,9 +340,10 @@ export function combatNumbers(
   totals: AbilityTotals,
   rows: SkillRow[],
   prof: number,
+  edition: Edition,
 ): CombatNumbers {
   return {
     initiative: initiative(sources, totals, prof),
-    passives: passives(sources, rows, prof),
+    passives: passives(sources, rows, prof, edition),
   }
 }

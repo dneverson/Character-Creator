@@ -3,7 +3,7 @@
 // rules their increases and languages.
 
 import { fetchData } from './dataClient'
-import { resolveCopy, type Copyable } from './copy'
+import { resolveCopy, type Copyable, type CopyRef } from './copy'
 import { parseAbilityOptions, type AbilityOption } from './abilityOptions'
 import { parseFeatGrants, type FeatGrant } from './feats'
 import { PROFICIENCY_FIELDS, type ProficiencyField } from './grants'
@@ -51,6 +51,9 @@ export interface PlayableRace extends Grants {
   key: string
   name: string
   baseName: string
+  /** The book of the base race; a subrace may come from another (the EGW Pallid Elf). */
+  baseSource: string
+  /** The book of the subrace when there is one, else of the race. */
   source: string
   subraceName?: string
   edition?: 'classic' | 'one'
@@ -173,6 +176,7 @@ function toPlayable(base: RaceEntry, subrace?: RaceEntry): PlayableRace {
     key: `${base.name}|${base.source}|${subraceName ?? ''}|${source}`,
     name: subraceName ? `${base.name} (${subraceName})` : base.name,
     baseName: base.name,
+    baseSource: base.source,
     source,
     subraceName,
     edition: race.edition,
@@ -192,15 +196,30 @@ function toPlayable(base: RaceEntry, subrace?: RaceEntry): PlayableRace {
   return playable
 }
 
+/** What names a subrace beyond its name and source, as a `_copy` gives it. */
+const COPY_IDENTITY = ['raceName', 'raceSource'] as const
+
+/**
+ * Finds the original a `_copy` names among records of its own kind (a race among races, a
+ * subrace among subraces), by name and source and by the race a subrace's reference also
+ * names: two races may each have an "Ixalan" subrace from the same book.
+ */
+function copyFinder(records: readonly RaceEntry[]) {
+  return (name: string, source: string, ref: CopyRef) =>
+    records.find(
+      (r) =>
+        r.name === name &&
+        r.source === source &&
+        COPY_IDENTITY.every((key) => !(key in ref) || r[key] === ref[key]),
+    )
+}
+
 /** Load all selectable races (base races and base+subrace combinations). */
 export async function loadRaces(): Promise<PlayableRace[]> {
   const data = await fetchData<RacesFile>('races.json')
-  const all: RaceEntry[] = [...data.race, ...(data.subrace ?? [])]
-  const find = (name: string, source: string) =>
-    all.find((e) => e.name === name && e.source === source)
-
-  const races = data.race.map((r) => resolveCopy(r, find))
-  const subraces = (data.subrace ?? []).map((s) => resolveCopy(s, find))
+  const races = data.race.map((r) => resolveCopy(r, copyFinder(data.race)))
+  const findSubrace = copyFinder(data.subrace ?? [])
+  const subraces = (data.subrace ?? []).map((s) => resolveCopy(s, findSubrace))
 
   const playable: PlayableRace[] = []
   for (const race of races) {
@@ -215,6 +234,29 @@ export async function loadRaces(): Promise<PlayableRace[]> {
   }
   playable.sort((a, b) => a.name.localeCompare(b.name))
   return playable
+}
+
+/** What a race rule names: a base race by its book, or one subrace by the subrace's book. */
+export interface RaceHolder {
+  baseName: string
+  source: string
+  subraceName?: string
+}
+
+/**
+ * Whether a character's race is one a race rule names. A rule of the base race holds for
+ * each of its subraces, from whatever book (the PHB Elf's for the EGW Pallid Elf); a rule
+ * of a subrace holds for that subrace. A record that lacks the base race's book (one saved
+ * before it was kept) is read as from the subrace's book.
+ */
+export function holdsRace(
+  race: Pick<RaceRef, 'baseName' | 'baseSource' | 'source' | 'subraceName'> | undefined,
+  want: RaceHolder,
+): boolean {
+  if (!race || race.baseName !== want.baseName) return false
+  if (want.subraceName === undefined)
+    return (race.baseSource ?? race.source) === want.source
+  return race.subraceName === want.subraceName && race.source === want.source
 }
 
 /** The playable race a character's race reference points to, if loaded. */

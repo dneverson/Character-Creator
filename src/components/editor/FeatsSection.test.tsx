@@ -66,6 +66,7 @@ const human: PlayableRace = {
   name: 'Human',
   baseName: 'Human',
   source: 'XPHB',
+  baseSource: 'XPHB',
   size: ['M'],
   abilityOptions: [],
   featGrants: [{ named: [], categories: ['O'] }],

@@ -658,6 +658,9 @@ export function defaultStory(): StoryState {
 export interface RaceRef {
   name: string
   baseName: string
+  /** The book of the base race, when it is not the subrace's (absent on older saves). */
+  baseSource?: string
+  /** The book of the subrace when there is one, else of the race. */
   source: string
   subraceName?: string
   /**

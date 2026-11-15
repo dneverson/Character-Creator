@@ -121,15 +121,38 @@ export function loadedClass(
   weaponWords: string[],
   extra: Partial<LoadedClass['file']> = {},
 ): LoadedClass {
+  // As in the data, the class names each of its features, and each subclass its own.
+  const classFeatures = (extra.classFeature ?? []).map(
+    (f) => `${f.name}|${f.className}|${f.classSource}|${f.level}|${f.source}`,
+  )
+  const named = new Set((extra.subclass ?? []).map((s) => `${s.shortName}|${s.source}`))
+  const subclass = [...(extra.subclass ?? [])]
+  for (const f of extra.subclassFeature ?? []) {
+    const key = `${f.subclassShortName}|${f.subclassSource}`
+    const ref = `${f.name}|${f.className}|${f.classSource}|${f.subclassShortName}|${f.subclassSource}|${f.level}`
+    let entry = subclass.find((s) => `${s.shortName}|${s.source}` === key)
+    if (!entry) {
+      entry = {
+        name: f.subclassShortName,
+        shortName: f.subclassShortName,
+        source: f.subclassSource,
+        className: name,
+        classSource: 'PHB',
+        subclassFeatures: [],
+      }
+      subclass.push(entry)
+    }
+    if (!named.has(key)) entry.subclassFeatures = [...entry.subclassFeatures, ref]
+  }
   return {
     entry: {
       name,
       source: 'PHB',
       hd: { number: 1, faces: 8 },
       startingProficiencies: { armor: armorWords, weapons: weaponWords },
-      classFeatures: [],
+      classFeatures,
     },
-    file: extra,
+    file: { ...extra, ...(subclass.length > 0 && { subclass }) },
   }
 }
 

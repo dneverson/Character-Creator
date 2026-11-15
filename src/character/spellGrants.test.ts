@@ -71,6 +71,7 @@ const race = (additionalSpells: unknown[]): PlayableRace => ({
   name: 'Tiefling',
   baseName: 'Tiefling',
   source: 'PHB',
+  baseSource: 'PHB',
   edition: 'classic',
   abilityOptions: [],
   featGrants: [],

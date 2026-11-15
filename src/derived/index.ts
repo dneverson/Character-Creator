@@ -29,7 +29,7 @@ import { characterEdition } from './edition'
 import { hitDice, type HitDie } from './hitDice'
 import { senseRows, type SenseRow } from './senses'
 import { deriveSlots, type DerivedSlots } from './slots'
-import { speedQuantity } from './speed'
+import { moveSpeeds, speedQuantity, type SpeedRow } from './speed'
 import { abilityQuantities } from './abilities'
 import { saveRows, type SaveRow } from './saves'
 import { skillTotals, type DerivedSkill } from './skillTotals'
@@ -50,8 +50,10 @@ export interface DerivedSheet {
   /** The six saving throws. */
   saves: Record<AbilityKey, SaveRow>
   ac: Quantity
-  /** Walking speed, with the other ways of moving as notes. */
+  /** Walking speed. */
   speed: Quantity
+  /** The speeds of the other ways of moving (fly, swim, climb, burrow) the character has. */
+  speeds: SpeedRow[]
   /** The senses, each with its range in feet. */
   senses: SenseRow[]
   /** The hit dice by die size. */
@@ -94,6 +96,7 @@ export interface DerivedSheet {
 
 export function deriveSheet(character: Character, deps: DeriveDeps): DerivedSheet {
   const sources = collectSources(character, deps)
+  const edition = characterEdition(character, deps.editionOf)
   const totals = characterAbilityTotals(character, sources.summary.abilityBonus)
   const level = totalLevel(character)
   const prof = quantity([
@@ -134,6 +137,7 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
   ]
   const table = skillTable(character, sources, skillSources, sources.summary.abilityBonus)
   const ac = armorClass(sources, totals, known)
+  const speed = speedQuantity(sources, totals.str, edition)
   const catalog = {
     languages: deps.languages ?? [],
     items: deps.items ?? [],
@@ -179,12 +183,13 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
     abilities: abilityQuantities(character, sources),
     saves: saveRows(sources, totals, prof.value, known),
     ac,
-    speed: speedQuantity(sources),
+    speed,
+    speeds: moveSpeeds(sources, speed, totals.str, edition),
     senses: senseRows(sources),
     hitDice: hitDice(character, deps.classByKey),
     slots: deriveSlots(character, deps.classByKey, sources),
-    edition: characterEdition(character, deps.editionOf),
-    combat: combatNumbers(sources, totals, table.rows, prof.value),
+    edition,
+    combat: combatNumbers(sources, totals, table.rows, prof.value, edition),
     attacks: attackRows(sources, totals, prof.value, known, ac.lines),
     spellStats: spellStats(sources, deps, totals, prof.value, ac.lines),
     features,

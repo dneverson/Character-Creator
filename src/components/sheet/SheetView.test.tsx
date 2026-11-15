@@ -341,6 +341,7 @@ describe('SheetView speed, senses and rules', () => {
         name: 'Dwarf',
         baseName: 'Dwarf',
         source: 'PHB',
+        baseSource: 'PHB',
         speed: 25,
         darkvision: 60,
         abilityOptions: [],
@@ -361,6 +362,36 @@ describe('SheetView speed, senses and rules', () => {
     await settle()
   })
 
+  it('names the other speeds under the speed, each with a table of its own', async () => {
+    const user = userEvent.setup()
+    setWide()
+    seed()
+    vi.mocked(loadRaces).mockResolvedValue([
+      {
+        key: 'dwarf|phb',
+        name: 'Dwarf',
+        baseName: 'Dwarf',
+        source: 'PHB',
+        baseSource: 'PHB',
+        speed: { walk: 25, fly: 30, swim: true, canHover: true },
+        abilityOptions: [],
+        featGrants: [],
+      },
+    ])
+    renderSheet()
+    const speed = await screen.findByRole('group', { name: 'Speed' })
+    await waitFor(() =>
+      expect(
+        within(speed).getByText('fly 30 ft. (hover), swim 25 ft.'),
+      ).toBeInTheDocument(),
+    )
+    await user.click(within(speed).getByRole('button', { name: 'How Speed adds up' }))
+    const pane = document.querySelector('.data-table-detail') as HTMLElement
+    expect(within(pane).getByRole('table', { name: 'Fly speed' })).toBeInTheDocument()
+    expect(within(pane).getByRole('table', { name: 'Swim speed' })).toBeInTheDocument()
+    await settle()
+  })
+
   it('shows a speed of 0 as 0, and a dash only when there is no species', async () => {
     seed()
     vi.mocked(loadRaces).mockResolvedValue([
@@ -369,6 +400,7 @@ describe('SheetView speed, senses and rules', () => {
         name: 'Dwarf',
         baseName: 'Dwarf',
         source: 'PHB',
+        baseSource: 'PHB',
         speed: 0,
         abilityOptions: [],
         featGrants: [],
@@ -423,6 +455,7 @@ describe('SheetView speed, senses and rules', () => {
         name: 'Dwarf',
         baseName: 'Dwarf',
         source: 'PHB',
+        baseSource: 'PHB',
         speed: 25,
         abilityOptions: [],
         featGrants: [],

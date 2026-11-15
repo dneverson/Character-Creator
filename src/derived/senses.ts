@@ -1,7 +1,8 @@
 // The senses a character has, each a Quantity of its range in feet. A species, a feat, a
 // feature or an option gives a sense outright (the largest range is used; the others show
 // as not used); a bonus sense (Keenness of the Stone Giant) adds to it, and so does a
-// feature that grows a sense the character already has (Umbral Sight).
+// feature that grows a sense the character already has (Umbral Sight). An item gives its
+// sense while equipped, and attuned when it needs attunement.
 
 import { SENSE_RULES } from '../rules/senseRules'
 import { titleCase } from '../text/titleCase'
@@ -22,6 +23,8 @@ interface Given {
   label: string
   text?: string
   how?: string
+  /** Not counted: the item is not attuned, or a condition the sheet cannot check. */
+  state?: Pick<Line, 'status' | 'when' | 'why'>
 }
 
 /** The sense blocks of the data ({ darkvision: 60 }) as ranges. */
@@ -62,8 +65,15 @@ function givenSenses(sources: Sources): Given[] {
         (g) =>
           g.sense === rule.sense &&
           !g.bonus &&
+          !g.state &&
           (!increase.fromRace || g.source.kind === 'race'),
       )
+    const state: Given['state'] =
+      held.active === false
+        ? { status: 'inactive', why: 'Needs attunement, and you are not attuned.' }
+        : rule.when
+          ? { status: 'conditional', when: rule.when }
+          : undefined
     given.push({
       sense: rule.sense,
       range: had ? increase.range : rule.range,
@@ -71,6 +81,7 @@ function givenSenses(sources: Sources): Given[] {
       bonus: had === true,
       label: rule.label,
       text: rule.text,
+      ...(state ? { state } : {}),
       ...(had
         ? {
             how: `${increase.range} ft. more, as you already have ${rule.sense}${increase.fromRace ? ' from your species' : ''}`,
@@ -85,7 +96,10 @@ export function senseRows(sources: Sources): SenseRow[] {
   const given = givenSenses(sources)
   return [...new Set(given.map((g) => g.sense))].map((sense) => {
     const ofSense = given.filter((g) => g.sense === sense)
-    const best = Math.max(0, ...ofSense.filter((g) => !g.bonus).map((g) => g.range))
+    const best = Math.max(
+      0,
+      ...ofSense.filter((g) => !g.bonus && !g.state).map((g) => g.range),
+    )
     let used = false
     const lines = ofSense.map((g, i): Line => {
       const base = {
@@ -96,6 +110,7 @@ export function senseRows(sources: Sources): SenseRow[] {
         ...(g.text ? { text: g.text } : {}),
         ...(g.how ? { how: g.how } : {}),
       }
+      if (g.state) return { ...base, op: g.bonus ? 'add' : 'base', ...g.state }
       if (g.bonus) return { ...base, op: 'add', status: 'applied' }
       if (g.range === best && !used) {
         used = true

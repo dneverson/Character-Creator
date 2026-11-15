@@ -69,6 +69,7 @@ describe('exportCharacterPdf', () => {
       baseName: 'Elf',
       subraceName: 'High',
       source: 'PHB',
+      baseSource: 'PHB',
       abilityOptions: [],
       skillProficiencies: [],
     }
@@ -124,6 +125,7 @@ describe('exportCharacterPdf', () => {
       name: 'Human',
       baseName: 'Human',
       source: 'PHB',
+      baseSource: 'PHB',
       abilityOptions: [],
       skillProficiencies: [],
     }

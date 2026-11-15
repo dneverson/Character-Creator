@@ -107,6 +107,9 @@ export interface ClassEntry extends SpellcastingFields, Copyable {
    * needed (Monk: `[{ dex: true, wis: true }]`). */
   primaryAbility?: Partial<Record<AbilityKey, true>>[]
   subclassTitle?: string
+  /** Other classes whose subclasses this class may also take, as "Name|Source" (the WoW
+   * Priest takes the Cleric's: `["Cleric|XPHB"]`). */
+  includeSubclassesFrom?: string[]
 }
 
 /** The score a 2024 multiclass needs in each primary ability. */
@@ -250,7 +253,9 @@ export async function loadClasses(): Promise<LoadedClass[]> {
  * (the Priest copies the Cleric), a subclass (a book's version of another class's)
  * and a feature. The original may sit in another file. A file also gets the
  * features its records name that live in another file, so every record's features
- * resolve from its own file. The given files are not changed.
+ * resolve from its own file, and the subclasses (with their features) of each class a
+ * class of the file takes subclasses from (`includeSubclassesFrom`). The given files are
+ * not changed.
  */
 export function resolveClassFiles(files: readonly RawClassFile[]): ClassFile[] {
   const findClass = copyFinder(files.flatMap((f) => f.class ?? []))
@@ -270,23 +275,37 @@ export function resolveClassFiles(files: readonly RawClassFile[]): ClassFile[] {
   }))
   const classPool = ownFeatures.flatMap((f) => f.classFeature)
   const subclassPool = ownFeatures.flatMap((f) => f.subclassFeature)
-  return files.map((file, i) => {
-    const ownClasses = file.class?.map((c) => resolveCopy(c, findClass))
-    const ownSubclasses = file.subclass?.map((s) => {
+  const resolvedSubclasses = files.map((file) =>
+    file.subclass?.map((s) => {
       const resolved = resolveCopy(s, findSubclass)
       return { ...resolved, subclassFeatures: resolved.subclassFeatures ?? [] }
-    })
+    }),
+  )
+  const allSubclasses = resolvedSubclasses.flatMap((subs) => subs ?? [])
+  return files.map((file, i) => {
+    const ownClasses = file.class?.map((c) => resolveCopy(c, findClass))
+    const included = new Set((ownClasses ?? []).flatMap(includedOwners))
+    const fileSubclasses = resolvedSubclasses[i] ?? []
+    const borrowedSubclasses = allSubclasses.filter(
+      (s) => included.has(ownerKey(s)) && !fileSubclasses.includes(s),
+    )
+    const ownSubclasses =
+      file.subclass || borrowedSubclasses.length > 0
+        ? [...fileSubclasses, ...borrowedSubclasses]
+        : undefined
     const classFeature = withBorrowed(
       ownFeatures[i].classFeature,
       classPool,
       (ownClasses ?? []).flatMap((c) => (c.classFeatures ?? []).map(classFeatureRefOf)),
       (f, ref) => isClassFeature(f, parseFeatureRef(ref)),
+      'refClassFeature',
     )
     const subclassFeature = withBorrowed(
       ownFeatures[i].subclassFeature,
       subclassPool,
       (ownSubclasses ?? []).flatMap((s) => s.subclassFeatures),
       (f, ref) => isSubclassFeature(f, parseSubclassFeatureRef(ref)),
+      'refSubclassFeature',
     )
     return {
       ...(ownClasses && { class: ownClasses }),
@@ -294,6 +313,19 @@ export function resolveClassFiles(files: readonly RawClassFile[]): ClassFile[] {
       ...(classFeature.length > 0 && { classFeature }),
       ...(subclassFeature.length > 0 && { subclassFeature }),
     }
+  })
+}
+
+/** The class a subclass belongs to, as "Name|Source". */
+const ownerKey = (s: { className: string; classSource: string }) =>
+  `${s.className}|${s.classSource}`
+
+/** The classes whose subclasses a class also takes, as "Name|Source" (a source left out
+ * means the PHB, as 5etools reads it). */
+function includedOwners(entry: ClassEntry): string[] {
+  return (entry.includeSubclassesFrom ?? []).map((ref) => {
+    const [name = '', source = ''] = ref.split('|')
+    return ownerKey({ className: name, classSource: source || DEFAULT_REF_SOURCE })
   })
 }
 
@@ -322,19 +354,26 @@ function copyFinder<T extends Copyable>(records: readonly T[]) {
     )
 }
 
-/** A file's own features, then each named one it lacks, found in every file. */
-function withBorrowed<F>(
+/**
+ * A file's own features, then each named one it lacks, found in every file, with the ones
+ * a borrowed feature's text takes in (a copied Battle Master's Combat Superiority).
+ */
+function withBorrowed<F extends { entries: Entry[] }>(
   own: readonly F[],
   all: readonly F[],
   refs: readonly string[],
   matches: (feature: F, ref: string) => boolean,
+  type: 'refClassFeature' | 'refSubclassFeature',
 ): F[] {
   const borrowed = new Set<F>()
-  for (const ref of refs) {
-    if (own.some((f) => matches(f, ref))) continue
+  const borrow = (ref: string) => {
+    if (own.some((f) => matches(f, ref))) return
     const found = all.find((f) => matches(f, ref))
-    if (found) borrowed.add(found)
+    if (!found || borrowed.has(found)) return
+    borrowed.add(found)
+    referencedRefs(found.entries, type).forEach(borrow)
   }
+  refs.forEach(borrow)
   return [...own, ...borrowed]
 }
 
@@ -471,6 +510,85 @@ export function resolveSubclassFeatures(
   return byLevel
 }
 
+/** The refs of the features a feature's text takes in (the options of Divine Order). */
+function referencedRefs(
+  entries: unknown,
+  type: 'refClassFeature' | 'refSubclassFeature',
+) {
+  const key = type === 'refClassFeature' ? 'classFeature' : 'subclassFeature'
+  const out: string[] = []
+  const walk = (e: unknown) => {
+    if (Array.isArray(e)) return e.forEach(walk)
+    if (e === null || typeof e !== 'object') return
+    const ref: unknown = Reflect.get(e, key)
+    if (Reflect.get(e, 'type') === type && typeof ref === 'string') out.push(ref)
+    walk(Reflect.get(e, 'entries'))
+    walk(Reflect.get(e, 'items'))
+  }
+  walk(entries)
+  return out
+}
+
+/** The features named by the refs, and the ones their text takes in, each once. */
+function withReferenced<F extends { entries: Entry[] }>(
+  refs: readonly string[],
+  find: (ref: string) => F | undefined,
+  type: 'refClassFeature' | 'refSubclassFeature',
+): F[] {
+  const own = new Set<F>()
+  const add = (ref: string) => {
+    const found = find(ref)
+    if (!found || own.has(found)) return
+    own.add(found)
+    referencedRefs(found.entries, type).forEach(add)
+  }
+  refs.forEach(add)
+  return [...own]
+}
+
+const classFeatureCache = new WeakMap<LoadedClass, ClassFeatureEntry[]>()
+
+/**
+ * The class features a class gives, as the data's records: the ones its feature list
+ * names, and the ones their text takes in (Protector, an option of Divine Order). A
+ * `_copy` class (the WoW Druid) names its original's, so it gives those, books and all; a
+ * class never gives the features of another class that shares its file.
+ */
+export function ownClassFeatures(loaded: LoadedClass): ClassFeatureEntry[] {
+  const cached = classFeatureCache.get(loaded)
+  if (cached) return cached
+  const pool = loaded.file.classFeature ?? []
+  const own = withReferenced(
+    (loaded.entry.classFeatures ?? []).map(classFeatureRefOf),
+    (ref) => pool.find((f) => isClassFeature(f, parseFeatureRef(ref))),
+    'refClassFeature',
+  )
+  classFeatureCache.set(loaded, own)
+  return own
+}
+
+const subclassFeatureCache = new WeakMap<SubclassEntry, SubclassFeatureEntry[]>()
+
+/**
+ * The subclass features a subclass gives, as the data's records, with the ones their text
+ * takes in (the totems of the Totem Warrior); a copy gives its original's.
+ */
+export function ownSubclassFeatures(
+  file: ClassFile,
+  subclass: SubclassEntry,
+): SubclassFeatureEntry[] {
+  const cached = subclassFeatureCache.get(subclass)
+  if (cached) return cached
+  const pool = file.subclassFeature ?? []
+  const own = withReferenced(
+    subclass.subclassFeatures,
+    (ref) => pool.find((f) => isSubclassFeature(f, parseSubclassFeatureRef(ref))),
+    'refSubclassFeature',
+  )
+  subclassFeatureCache.set(subclass, own)
+  return own
+}
+
 /**
  * The class level at which the subclass is chosen - the first level that grants
  * a subclass feature (`gainSubclassFeature`). Paladins pick at 3, Clerics at 1,
@@ -488,18 +606,25 @@ export function subclassUnlockLevel(loaded: LoadedClass): number {
 }
 
 /**
- * Subclasses available for a given class entry: its own, but not one marked for
- * the other edition (a 2014 subclass the data also lists under the 2024 class).
- * A subclass the data marks with no edition (the 2024 Artificer's) is the class's.
+ * Subclasses available for a given class entry: its own, then those of each class it takes
+ * subclasses from (`includeSubclassesFrom`) that it has no version of its own of (the WoW
+ * Rogue's Swashbuckler, not the one the same book gives the 2024 Rogue), but not one marked
+ * for the other edition (a 2014 subclass the data also lists under the 2024 class). A
+ * subclass the data marks with no edition (the 2024 Artificer's) is the class's.
  */
 export function subclassesFor(loaded: LoadedClass): SubclassEntry[] {
   const { entry, file } = loaded
-  return (file.subclass ?? []).filter(
-    (s) =>
-      s.className === entry.name &&
-      s.classSource === entry.source &&
-      (!entry.edition || !s.edition || s.edition === entry.edition),
+  const ofEdition = (file.subclass ?? []).filter(
+    (s) => !entry.edition || !s.edition || s.edition === entry.edition,
   )
+  const self = ownerKey({ className: entry.name, classSource: entry.source })
+  const own = ofEdition.filter((s) => ownerKey(s) === self)
+  const named = new Set(own.map((s) => `${s.shortName}|${s.source}`))
+  const included = new Set(includedOwners(entry))
+  const taken = ofEdition.filter(
+    (s) => included.has(ownerKey(s)) && !named.has(`${s.shortName}|${s.source}`),
+  )
+  return [...own, ...taken]
 }
 
 /** The subclass a character's class names, among those its class offers. */

@@ -3,6 +3,7 @@ import { deriveSheet, type DerivedSheet } from '../derived'
 import { BASE_SOURCE, quantity, type Line, type Quantity } from '../derived/types'
 import type { Edition } from '../data/edition'
 import { build, deps, FIGHTER, stack } from '../test/derivedFixtures'
+import { moveRow } from '../derived/speed'
 import { applyPlayEffects } from './playEffects'
 
 const base = (id: string, amount: number): Line => ({
@@ -64,7 +65,7 @@ describe('exhaustion in the 2024 rules', () => {
     }
     expect(after.spellStats[0].attack.value).toBe(-1)
     expect(after.spellStats[0].dc.value).toBe(13)
-    expect(after.combat.passives).toBe(before.combat.passives)
+    expect(after.combat.passives).toEqual(before.combat.passives)
     expect(after.hp.value).toBe(45)
   })
 
@@ -144,5 +145,82 @@ describe('conditions that make the speed 0', () => {
     expect(after.speed).toBe(before.speed)
     expect(after.hp).toBe(before.hp)
     expect(after.combat.initiative).toBe(before.combat.initiative)
+  })
+})
+
+describe('play effects on the other speeds', () => {
+  const sheetWith = (edition: Edition): DerivedSheet => {
+    const sheet = sheetOf(edition)
+    const fly = moveRow('fly', [base('speed|fly|own', 60)], {}, [], sheet.speed.value)
+    const climb = moveRow(
+      'climb',
+      [base('speed|climb|walk', 0)],
+      { 'speed|climb|walk': 1 },
+      [],
+      sheet.speed.value,
+    )
+    return { ...sheet, speeds: [fly, climb] }
+  }
+
+  it('halves a speed of its own and has one equal to walking follow the walking speed', () => {
+    const after = applyPlayEffects(sheetWith('classic'), play(2))
+    const [fly, climb] = after.speeds
+    expect(after.speed.value).toBe(15)
+    expect(added(fly.speed)).toEqual([['Exhaustion 2', -30, 'Speed halved']])
+    expect(fly.speed.value).toBe(30)
+    expect(added(climb.speed)).toEqual([])
+    expect(climb.speed.value).toBe(15)
+  })
+
+  it('makes every speed 0 while grappled', () => {
+    const after = applyPlayEffects(sheetWith('one'), play(0, ['Grappled']))
+    expect(after.speeds.map((row) => row.speed.value)).toEqual([0, 0])
+  })
+})
+
+describe('disadvantage on the checks of a passive score', () => {
+  const passive = (sheet: DerivedSheet, key: string) =>
+    sheet.combat.passives.find((r) => r.key === key)?.score
+
+  it('takes 5 off every passive score while poisoned, as each printing words it', () => {
+    for (const edition of ['classic', 'one'] as const) {
+      const before = sheetOf(edition)
+      const after = applyPlayEffects(before, play(0, ['Poisoned']))
+      for (const key of ['perception', 'investigation', 'insight']) {
+        expect(passive(after, key)?.value).toBe((passive(before, key)?.value ?? 0) - 5)
+      }
+      expect(passive(after, 'perception')?.lines.at(-1)).toMatchObject({
+        label: 'Poisoned',
+        amount: -5,
+        status: 'applied',
+      })
+    }
+  })
+
+  it('shows fear as disadvantage only while its source is in sight', () => {
+    const before = sheetOf('classic')
+    const after = applyPlayEffects(before, play(0, ['Frightened']))
+    expect(passive(after, 'insight')?.value).toBe(passive(before, 'insight')?.value)
+    expect(passive(after, 'insight')?.lines.at(-1)).toMatchObject({
+      status: 'conditional',
+      when: 'Only while the source of your fear is within line of sight.',
+    })
+  })
+
+  it('takes 5 off from 2014 exhaustion level 1, and counts it once with poison', () => {
+    const before = sheetOf('classic')
+    const one = applyPlayEffects(before, play(1))
+    expect(passive(one, 'perception')?.value).toBe(
+      (passive(before, 'perception')?.value ?? 0) - 5,
+    )
+    const both = applyPlayEffects(before, play(1, ['Poisoned']))
+    expect(passive(both, 'perception')?.value).toBe(
+      (passive(before, 'perception')?.value ?? 0) - 5,
+    )
+    expect(passive(both, 'perception')?.lines.at(-1)).toMatchObject({
+      label: 'Poisoned',
+      status: 'inactive',
+      why: 'Advantage or disadvantage counts once, however many give it.',
+    })
   })
 })

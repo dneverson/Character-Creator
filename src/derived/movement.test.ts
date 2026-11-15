@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { deriveSheet } from '.'
 import type { Item } from '../data/items'
 import type { PlayableRace } from '../data/race'
-import { build, deps, featOf, loadedClass, stack } from '../test/derivedFixtures'
+import { ITEMS, build, deps, featOf, loadedClass, stack } from '../test/derivedFixtures'
 import { makeItem } from '../test/itemFixtures'
 import { characterEdition } from './edition'
 import { hitDice } from './hitDice'
 import { senseRows } from './senses'
 import { deriveSlots } from './slots'
-import { collectSources } from './sources'
-import { speedQuantity } from './speed'
+import { collectSources, type Sources } from './sources'
+import { moveSpeeds, speedQuantity } from './speed'
 import type { SourceRef } from './types'
 
 const feature = (name: string, className: string, level: number, source = 'PHB') => ({
@@ -26,6 +26,7 @@ const elf: PlayableRace = {
   name: 'Wood Elf',
   baseName: 'Elf',
   source: 'PHB',
+  baseSource: 'PHB',
   speed: { walk: 35, fly: 30 },
   darkvision: 60,
   abilityOptions: [],
@@ -56,45 +57,61 @@ function sourcesOf(
   }
 }
 
+/** The walking speed under the 2014 rules, with the character's Strength score. */
+const walkOf = (sources: Sources) =>
+  speedQuantity(sources, sources.character.abilities.str.base ?? 10, 'classic')
+
+/** The other speeds, after that walking speed. */
+const movesOf = (sources: Sources) =>
+  moveSpeeds(
+    sources,
+    walkOf(sources),
+    sources.character.abilities.str.base ?? 10,
+    'classic',
+  )
+
 describe('speed', () => {
-  it('starts from the species and lists the other ways of moving as notes', () => {
+  it('starts from the species, and gives each other way of moving a speed of its own', () => {
     const c = build('Barbarian', 1, {}, [])
-    const speed = speedQuantity(sourcesOf(c, [barbarian], elf))
+    const speed = walkOf(sourcesOf(c, [barbarian], elf))
     expect(speed.value).toBe(35)
-    expect(speed.lines.map((l) => l.label)).toEqual(['Walking speed', 'Fly 30 ft.'])
-    expect(speed.lines[1].op).toBe('note')
+    expect(speed.lines.map((l) => l.label)).toEqual(['Walking speed'])
+    const [fly] = movesOf(sourcesOf(c, [barbarian], elf))
+    expect(fly).toMatchObject({ mode: 'fly', label: 'Fly', equalsWalk: false })
+    expect(fly.speed.value).toBe(30)
+    expect(fly.speed.lines[0]).toMatchObject({ label: 'Wood Elf', op: 'base' })
   })
 
   it('has no lines without a species', () => {
     const c = build('Barbarian', 1, {}, [])
-    expect(speedQuantity(sourcesOf(c)).lines).toEqual([])
+    expect(walkOf(sourcesOf(c)).lines).toEqual([])
   })
 
   it('adds Unarmored Movement to no speed when the species is not found', () => {
     // A multiclass Barbarian 3, Bard 3, Monk 2 showed a speed of 10 ft.: the bonus alone.
     const c = build('Monk', 2, {}, [])
-    const speed = speedQuantity(sourcesOf(c, [monk]))
+    const speed = walkOf(sourcesOf(c, [monk]))
     expect(speed.value).toBe(0)
     expect(speed.lines).toEqual([])
   })
 
   it('adds Fast Movement unless heavy armor is worn', () => {
     const open = build('Barbarian', 5, {}, [])
-    expect(speedQuantity(sourcesOf(open, [barbarian], elf)).value).toBe(45)
-    const heavy = build('Barbarian', 5, {}, [stack('Chain Mail')])
-    const worn = speedQuantity(sourcesOf(heavy, [barbarian], elf))
+    expect(walkOf(sourcesOf(open, [barbarian], elf)).value).toBe(45)
+    const heavy = build('Barbarian', 5, { str: 13 }, [stack('Chain Mail')])
+    const worn = walkOf(sourcesOf(heavy, [barbarian], elf))
     expect(worn.value).toBe(35)
     expect(worn.lines.at(-1)).toMatchObject({
       status: 'inactive',
       why: 'You are wearing heavy armor.',
     })
     const light = build('Barbarian', 5, {}, [stack('Leather Armor')])
-    expect(speedQuantity(sourcesOf(light, [barbarian], elf)).value).toBe(45)
+    expect(walkOf(sourcesOf(light, [barbarian], elf)).value).toBe(45)
   })
 
   it('grows Unarmored Movement with the Monk level and stops with armor or a shield', () => {
     const at = (level: number, items: ReturnType<typeof stack>[] = []) =>
-      speedQuantity(sourcesOf(build('Monk', level, {}, items), [monk], elf)).value
+      walkOf(sourcesOf(build('Monk', level, {}, items), [monk], elf)).value
     expect(at(2)).toBe(45)
     expect(at(6)).toBe(50)
     expect(at(18)).toBe(65)
@@ -102,10 +119,157 @@ describe('speed', () => {
     expect(at(6, [stack('Shield')])).toBe(35)
   })
 
+  it('takes 10 feet off for armor whose Strength requirement is not met', () => {
+    const weak = walkOf(
+      sourcesOf(build('Fighter', 1, { str: 14 }, [stack('Plate Armor')]), [], elf),
+    )
+    expect(weak.value).toBe(25)
+    expect(weak.lines.at(-1)).toMatchObject({
+      id: 'speed|armor-strength|Plate Armor|PHB',
+      amount: -10,
+      status: 'applied',
+      how: 'Needs Strength 15, you have 14',
+    })
+    expect(weak.lines.at(-1)?.text).toMatch(/PHB 2014/)
+    const strong = build('Fighter', 1, { str: 15 }, [stack('Plate Armor')])
+    expect(walkOf(sourcesOf(strong, [], elf)).value).toBe(35)
+    const edition = speedQuantity(
+      sourcesOf(build('Fighter', 1, {}, [stack('Chain Mail')]), [], elf),
+      10,
+      'one',
+    )
+    expect(edition.lines.at(-1)?.text).toMatch(/PHB 2024/)
+  })
+
+  it('spares a 2014 dwarf the armor slowdown, and says why', () => {
+    const dwarf: PlayableRace = { ...elf, name: 'Dwarf', baseName: 'Dwarf', speed: 25 }
+    const c = build('Fighter', 1, { str: 10 }, [stack('Plate Armor')])
+    c.race = {
+      name: 'Dwarf',
+      baseName: 'Dwarf',
+      source: 'PHB',
+      abilityFixed: {},
+      abilityChoices: {},
+    }
+    const speed = walkOf(sourcesOf(c, [], dwarf))
+    expect(speed.value).toBe(25)
+    expect(speed.lines.at(-1)).toMatchObject({
+      status: 'inactive',
+      why: 'Dwarf, Speed: your speed is not reduced by wearing heavy armor.',
+    })
+  })
+
   it('adds the feats Mobile and Speedy', () => {
     const c = build('Barbarian', 1, {}, [])
-    expect(speedQuantity(sourcesOf(c, [barbarian], elf, ['Mobile|PHB'])).value).toBe(45)
-    expect(speedQuantity(sourcesOf(c, [barbarian], elf, ['Speedy|XPHB'])).value).toBe(45)
+    expect(walkOf(sourcesOf(c, [barbarian], elf, ['Mobile|PHB'])).value).toBe(45)
+    expect(walkOf(sourcesOf(c, [barbarian], elf, ['Speedy|XPHB'])).value).toBe(45)
+  })
+})
+
+describe('speeds of the other ways of moving', () => {
+  const rangerPhb = loadedClass('Ranger', [], [], {
+    classFeature: [feature('Roving', 'Ranger', 6, 'XPHB')],
+  })
+  const ranger = { ...rangerPhb, entry: { ...rangerPhb.entry, source: 'XPHB' } }
+  const seaElf: PlayableRace = {
+    ...elf,
+    name: 'Sea Elf',
+    speed: { walk: 30, swim: true },
+  }
+  const fairy: PlayableRace = {
+    ...elf,
+    name: 'Fairy',
+    baseName: 'Fairy',
+    source: 'MPMM',
+    baseSource: 'MPMM',
+    speed: { walk: 30, fly: true },
+  }
+  const asRace = (c: ReturnType<typeof build>, race: PlayableRace) => {
+    c.race = {
+      name: race.name,
+      baseName: race.baseName,
+      source: race.source,
+      abilityFixed: {},
+      abilityChoices: {},
+    }
+    return c
+  }
+
+  it('has a speed equal to walking follow the final walking speed', () => {
+    const c = build('Barbarian', 5, {}, [])
+    const [swim] = movesOf(sourcesOf(c, [barbarian], seaElf))
+    expect(swim.speed.value).toBe(40)
+    expect(swim.speed.lines[0]).toMatchObject({ how: 'Equal to your walking speed' })
+  })
+
+  it('gives a 2024 Ranger a climb and a swim speed equal to walking with Roving', () => {
+    const c = build('Ranger', 6, {}, [])
+    c.classes = [{ name: 'Ranger', source: 'XPHB', level: 6 }]
+    const rows = movesOf(sourcesOf(c, [ranger], seaElf))
+    expect(rows.map((r) => [r.mode, r.speed.value])).toEqual([
+      ['swim', 40],
+      ['climb', 40],
+    ])
+    expect(rows[0].speed.lines.filter((l) => l.status === 'inactive')).toHaveLength(1)
+  })
+
+  it('switches off a fairy flight in medium or heavy armor, and says why', () => {
+    const light = asRace(build('Fighter', 1, {}, [stack('Leather Armor')]), fairy)
+    expect(movesOf(sourcesOf(light, [], fairy))[0].speed.value).toBe(30)
+    const medium = asRace(build('Fighter', 1, {}, [stack('Half Plate Armor')]), fairy)
+    const [fly] = movesOf(sourcesOf(medium, [], fairy))
+    expect(fly.speed.value).toBe(0)
+    expect(fly.speed.lines[0]).toMatchObject({
+      status: 'inactive',
+      why: 'You are wearing medium armor.',
+      text: expect.stringMatching(/^Fairy, Flight/),
+    })
+  })
+
+  it('slows a speed of its own for heavy armor, and one equal to walking only once', () => {
+    const c = build('Fighter', 1, { str: 10 }, [stack('Plate Armor')])
+    const [fly] = movesOf(sourcesOf(c, [], elf))
+    expect(fly.speed.value).toBe(20)
+    const [swim] = movesOf(sourcesOf(c, [], seaElf))
+    expect(swim.speed.value).toBe(20)
+    expect(swim.speed.lines.at(-1)).toMatchObject({
+      status: 'inactive',
+      why: 'Already in the walking speed this speed equals.',
+    })
+  })
+
+  it('shows a speed that needs an action as holding only after it, at its level', () => {
+    const totem = loadedClass('Barbarian', [], [], {
+      subclassFeature: [
+        {
+          name: 'Eagle',
+          source: 'PHB',
+          className: 'Barbarian',
+          classSource: 'PHB',
+          subclassShortName: 'Totem Warrior',
+          subclassSource: 'PHB',
+          level: 3,
+          entries: [],
+        },
+      ],
+    })
+    const at = (level: number) => {
+      const c = build('Barbarian', level, {}, [])
+      c.classes[0].subclass = {
+        name: 'Path of the Totem Warrior',
+        shortName: 'Totem Warrior',
+        source: 'PHB',
+      }
+      return movesOf(sourcesOf(c, [totem], { ...elf, speed: 30 }))
+    }
+    expect(at(13)).toEqual([])
+    const [fly] = at(14)
+    expect(fly.speed.value).toBe(0)
+    expect(fly.speed.lines[0]).toMatchObject({
+      label: 'Eagle',
+      amount: 30,
+      status: 'conditional',
+    })
   })
 })
 
@@ -158,10 +322,18 @@ describe('speed from items', () => {
   const dwarf: PlayableRace = { ...elf, name: 'Dwarf', speed: 25 }
   const held = (name: string, source: string, attuned = true) =>
     stack(name, { source, attuned })
-  const speedOf = (race: PlayableRace, ...stacks: ReturnType<typeof stack>[]) => {
-    const c = build('Barbarian', 1, {}, stacks)
-    return speedQuantity(collectSources(c, { ...deps([barbarian], catalog), race }))
-  }
+  const sourcesWith = (race: PlayableRace, ...stacks: ReturnType<typeof stack>[]) =>
+    collectSources(build('Barbarian', 1, {}, stacks), {
+      ...deps([barbarian], catalog),
+      race,
+    })
+  const speedOf = (race: PlayableRace, ...stacks: ReturnType<typeof stack>[]) =>
+    walkOf(sourcesWith(race, ...stacks))
+  const moveOf = (
+    mode: string,
+    race: PlayableRace,
+    ...stacks: ReturnType<typeof stack>[]
+  ) => movesOf(sourcesWith(race, ...stacks)).find((row) => row.mode === mode)
 
   it('raises a walking speed below 30 to 30 with Boots of Striding and Springing', () => {
     const speed = speedOf(dwarf, held('Boots of Striding and Springing', 'DMG'))
@@ -181,6 +353,32 @@ describe('speed from items', () => {
       status: 'inactive',
       why: 'Your walking speed is already 30 ft. or more.',
     })
+  })
+
+  it('spares the wearer of attuned Boots of Striding and Springing the armor slowdown', () => {
+    const c = build('Barbarian', 1, {}, [
+      held('Boots of Striding and Springing', 'DMG'),
+      stack('Plate Armor'),
+    ])
+    const sources = collectSources(c, {
+      ...deps([barbarian], [...catalog, ...ITEMS]),
+      race: elf,
+    })
+    const plate = walkOf(sources).lines.find((l) =>
+      l.id.startsWith('speed|armor-strength'),
+    )
+    expect(plate).toMatchObject({
+      status: 'inactive',
+      why: expect.stringMatching(/^Boots/),
+    })
+    c.equipment.items[0] = held('Boots of Striding and Springing', 'DMG', false)
+    const unattuned = collectSources(c, {
+      ...deps([barbarian], [...catalog, ...ITEMS]),
+      race: elf,
+    })
+    expect(walkOf(unattuned).lines.find((l) => l.id === plate?.id)?.status).toBe(
+      'applied',
+    )
   })
 
   it('needs the attunement the item asks for', () => {
@@ -203,24 +401,30 @@ describe('speed from items', () => {
   })
 
   it('gives a climb speed equal to the walking speed and a swim speed of its own', () => {
-    const speed = speedOf(
-      dwarf,
+    const stacks = [
       held('Boots of Striding and Springing', 'DMG'),
       held('Slippers of Spider Climbing', 'DMG'),
       stack('Ring of Swimming', { source: 'XDMG' }),
-    )
-    const notes = speed.lines.filter((l) => l.source.kind === 'item' && l.op === 'note')
-    expect(notes.map((l) => [l.label, l.status, l.how])).toEqual([
-      ['Climb 30 ft.', 'applied', 'Equal to your walking speed'],
-      ['Swim 40 ft.', 'applied', undefined],
-    ])
+    ]
+    const climb = moveOf('climb', dwarf, ...stacks)
+    expect(climb?.speed.value).toBe(30)
+    expect(climb?.equalsWalk).toBe(true)
+    expect(climb?.speed.lines[0]).toMatchObject({
+      label: 'Slippers of Spider Climbing',
+      how: 'Equal to your walking speed',
+      status: 'applied',
+    })
+    expect(moveOf('swim', dwarf, ...stacks)?.speed.value).toBe(40)
   })
 
   it('shows a fly speed that needs an action as holding only after it', () => {
-    const speed = speedOf(elf, held('Wings of Flying', 'XDMG'))
-    expect(speed.lines.at(-1)).toMatchObject({
-      label: 'Fly 60 ft.',
-      op: 'note',
+    const fly = moveOf('fly', elf, held('Wings of Flying', 'XDMG'))
+    // The elf's own 30 ft. is in force; the wings' 60 ft. holds only after the action.
+    expect(fly?.speed.value).toBe(30)
+    expect(fly?.speed.lines.at(-1)).toMatchObject({
+      label: 'Wings of Flying',
+      amount: 60,
+      op: 'base',
       status: 'conditional',
     })
   })
@@ -232,9 +436,20 @@ describe('speed from items', () => {
       how: '5 ft. to every speed',
       status: 'conditional',
     })
-    const whistled = speedOf(elf, stack('Eagle Whistle', { source: 'TftYP' }))
-    expect(whistled.lines.at(-1)).toMatchObject({
-      label: 'Fly 70 ft.',
+    const pennantFly = moveOf(
+      'fly',
+      elf,
+      stack('Pennant of the Vind Rune', { source: 'SKT' }),
+    )
+    expect(pennantFly?.speed.lines.at(-1)).toMatchObject({
+      amount: 5,
+      how: '5 ft. to every speed',
+      status: 'conditional',
+    })
+    const whistled = moveOf('fly', elf, stack('Eagle Whistle', { source: 'TftYP' }))
+    expect(whistled?.speed.lines.at(-1)).toMatchObject({
+      label: 'Eagle Whistle',
+      amount: 70,
       how: 'Walking speed times 2',
     })
   })
@@ -242,15 +457,15 @@ describe('speed from items', () => {
   it('names a multiplied speed the character may not have', () => {
     const odd = speedItem('Odd Charm', 'PHB', { multiply: { swim: 2 } })
     const c = build('Barbarian', 1, {}, [stack('Odd Charm')])
-    const speed = speedQuantity(
+    const [swim] = movesOf(
       collectSources(c, { ...deps([barbarian], [odd]), race: elf }),
-    )
-    expect(speed.lines.at(-1)?.label).toBe('Swim speed times 2')
+    ).filter((row) => row.mode === 'swim')
+    expect(swim.speed.lines.at(-1)?.label).toBe('Swim speed times 2')
   })
 
   it('needs a species to move at all', () => {
     const c = build('Barbarian', 1, {}, [held('Boots of Striding and Springing', 'DMG')])
-    expect(speedQuantity(collectSources(c, deps([barbarian], catalog))).lines).toEqual([])
+    expect(walkOf(collectSources(c, deps([barbarian], catalog))).lines).toEqual([])
   })
 })
 
@@ -393,6 +608,81 @@ describe('senses from features and options', () => {
       ['darkvision', 120],
       ['blindsight', 10],
     ])
+  })
+})
+
+describe('senses from items', () => {
+  const goggles = makeItem({ name: 'Goggles of Night', source: 'DMG', magic: true })
+  const robe = makeItem({
+    name: 'Robe of Eyes',
+    source: 'XDMG',
+    magic: true,
+    attunement: { required: true, optional: false, classes: [] },
+  })
+  const scourge = makeItem({
+    name: 'Scourge of Shadow',
+    source: 'CoA',
+    magic: true,
+    attunement: { required: true, optional: false, classes: [] },
+  })
+  const sensesWith = (
+    race: PlayableRace | undefined,
+    ...stacks: ReturnType<typeof stack>[]
+  ) =>
+    senseRows(
+      collectSources(build('Barbarian', 1, {}, stacks), {
+        ...deps([barbarian], [goggles, robe, scourge]),
+        race,
+      }),
+    )
+  const range = (rows: ReturnType<typeof senseRows>, key: string) =>
+    rows.find((r) => r.key === key)?.range
+
+  it('give the sense of an equipped item that needs no attunement', () => {
+    const dark = range(
+      sensesWith(undefined, stack('Goggles of Night', { source: 'DMG' })),
+      'darkvision',
+    )
+    expect(dark?.value).toBe(60)
+    expect(dark?.lines[0]).toMatchObject({ label: 'Goggles of Night', status: 'applied' })
+  })
+
+  it('grow the darkvision the character already has, as the goggles say', () => {
+    const dark = range(
+      sensesWith(elf, stack('Goggles of Night', { source: 'DMG' })),
+      'darkvision',
+    )
+    expect(dark?.value).toBe(120)
+    expect(dark?.lines[1]).toMatchObject({ op: 'add', amount: 60 })
+  })
+
+  it('give each sense of an item that gives two, only while attuned', () => {
+    const attuned = sensesWith(
+      undefined,
+      stack('Robe of Eyes', { source: 'XDMG', attuned: true }),
+    )
+    expect(attuned.map((r) => [r.key, r.range.value])).toEqual([
+      ['darkvision', 120],
+      ['truesight', 120],
+    ])
+    const unattuned = sensesWith(undefined, stack('Robe of Eyes', { source: 'XDMG' }))
+    expect(range(unattuned, 'truesight')?.value).toBe(0)
+    expect(range(unattuned, 'truesight')?.lines[0]).toMatchObject({
+      status: 'inactive',
+      why: 'Needs attunement, and you are not attuned.',
+    })
+  })
+
+  it('show a sense the sheet cannot check the condition of, without counting it', () => {
+    const blind = range(
+      sensesWith(undefined, stack('Scourge of Shadow', { source: 'CoA', attuned: true })),
+      'blindsight',
+    )
+    expect(blind?.value).toBe(0)
+    expect(blind?.lines[0]).toMatchObject({
+      status: 'conditional',
+      when: 'Only while you are in dim light or darkness.',
+    })
   })
 })
 

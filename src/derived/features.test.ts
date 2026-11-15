@@ -3,7 +3,7 @@ import { build, deps, featOf, loadedClass } from '../test/derivedFixtures'
 import type { PlayableBackground } from '../data/background'
 import type { PlayableRace } from '../data/race'
 import { featureRows } from './features'
-import { collectSources } from './sources'
+import { collectSources, heldBy } from './sources'
 
 const fighter = () => {
   const loaded = loadedClass('Fighter', [], [], {
@@ -35,6 +35,7 @@ const race: PlayableRace = {
   name: 'Dwarf',
   baseName: 'Dwarf',
   source: 'PHB',
+  baseSource: 'PHB',
   abilityOptions: [],
   featGrants: [],
   entries: [
@@ -121,5 +122,56 @@ describe('featureRows', () => {
       entries: ['You cannot be surprised.'],
       anchor: 'feat:one',
     })
+  })
+})
+
+describe('a feature taken from a list to choose from', () => {
+  const order = (name: string) => ({
+    name,
+    source: 'XPHB',
+    className: 'Cleric',
+    classSource: 'XPHB',
+    level: 1,
+    entries: [`${name} text.`],
+  })
+  const cleric = loadedClass('Cleric', [], [], {
+    classFeature: [
+      {
+        ...order('Divine Order'),
+        entries: [
+          {
+            type: 'options',
+            count: 1,
+            entries: [
+              { type: 'refClassFeature', classFeature: 'Protector|Cleric|XPHB|1|XPHB' },
+              { type: 'refClassFeature', classFeature: 'Thaumaturge|Cleric|XPHB|1|XPHB' },
+            ],
+          },
+        ],
+      },
+      order('Protector'),
+      order('Thaumaturge'),
+    ],
+  })
+  cleric.entry = {
+    ...cleric.entry,
+    source: 'XPHB',
+    classFeatures: ['Divine Order|Cleric|XPHB|1'],
+  }
+
+  it('has the anchor its counters take, so they show on its row', () => {
+    const c = build('Cleric', 1, {}, [])
+    c.classes = [{ name: 'Cleric', source: 'XPHB', level: 1 }]
+    c.classOptions = {
+      'class:Cleric|XPHB|feature:Divine Order|1': ['Protector|Cleric|XPHB|1|XPHB'],
+    }
+    const sources = collectSources(c, deps([cleric]))
+    const picked = featureRows(sources).find((r) => r.name === 'Protector (Divine Order)')
+    // The tag heldBy gives the feature, then its name: what a counter of it anchors to.
+    const held = heldBy(sources, {
+      classFeature: { className: 'Cleric', source: 'XPHB', name: 'Protector' },
+    })
+    expect(picked?.anchor).toBe(`${held?.source.tag}#Protector`)
+    expect(picked?.anchor).toBe('class:Cleric|XPHB#Protector')
   })
 })

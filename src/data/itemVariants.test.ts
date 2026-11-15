@@ -191,10 +191,10 @@ describe('applyVariant', () => {
       requires: [{ type: 'MA' }, { type: 'HA' }],
       inherits: { namePrefix: 'Mithral ', source: 'DMG', strength: '0', stealth: false },
     })
+    // Mithral clears the field: the made armor asks no Strength and does not hinder Stealth.
     expect(applyVariant(mithral, plate).armor).toEqual({
       base: 18,
-      strength: 15,
-      stealth: true,
+      stealth: false,
       class: 'heavy',
     })
     const adamantine = variant({

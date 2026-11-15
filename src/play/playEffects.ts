@@ -1,12 +1,16 @@
 // What exhaustion and the conditions do to the numbers of the sheet in play. Each effect is
-// one line, named for its cause, added to the number it changes; advantage and disadvantage
-// are not numbers and stay in the words of the exhaustion and conditions details. Only the
-// sheet's play view reads this: the build and the PDF keep the numbers without it.
+// one line, named for its cause, added to the number it changes (every speed alike).
+// Advantage and disadvantage are not numbers and stay in the words of the exhaustion and
+// conditions details, save on a passive score, where disadvantage is -5. Only the sheet's
+// play view reads this: the build and the PDF keep the numbers without it.
 
 import type { PlayState } from '../character/model'
 import { ABILITIES } from '../dice/dice'
 import type { DerivedSheet } from '../derived'
+import { edgeLine, settleEdges } from '../derived/combat'
+import { moveRow } from '../derived/speed'
 import { quantity, type Line, type Quantity, type SourceRef } from '../derived/types'
+import type { PassiveSkill } from '../rules/combatRules'
 import { PLAY_RULES } from '../rules/playRules'
 
 const EXHAUSTION: SourceRef = { kind: 'base', tag: 'play:exhaustion', label: '' }
@@ -46,11 +50,15 @@ function speedZeroHow(text: string): string {
 /** Half, rounded down, as the rules round. */
 const halfCut = (value: number) => value - Math.floor(value / 2)
 
-/** The lines that change the speed, each worked out on what the ones before it left. */
+/**
+ * The lines that change a speed, each worked out on what the ones before it left; `id`
+ * names the speed ("speed", "speed|fly").
+ */
 function speedLines(
   speed: number,
   play: Pick<PlayState, 'exhaustion' | 'conditions'>,
   edition: DerivedSheet['edition'],
+  id = 'speed',
 ): Line[] {
   const rules = PLAY_RULES[edition]
   const rule = rules.exhaustion
@@ -67,7 +75,7 @@ function speedLines(
     cut(
       (n) =>
         cutLine(
-          'speed|exhaustion',
+          `${id}|exhaustion`,
           label,
           EXHAUSTION,
           n,
@@ -78,25 +86,62 @@ function speedLines(
   }
   if (rule.kind === 'levels' && level >= rule.speedHalvedAt) {
     cut(
-      (n) => cutLine('speed|exhaustion|half', label, EXHAUSTION, n, 'Speed halved'),
+      (n) => cutLine(`${id}|exhaustion|half`, label, EXHAUSTION, n, 'Speed halved'),
       halfCut(left),
     )
   }
   if (rule.kind === 'levels' && level >= rule.speedZeroAt) {
-    cut((n) => cutLine('speed|exhaustion|zero', label, EXHAUSTION, n, 'Speed 0'), left)
+    cut((n) => cutLine(`${id}|exhaustion|zero`, label, EXHAUSTION, n, 'Speed 0'), left)
   }
   for (const { condition, text } of rules.speedZero) {
     if (!play.conditions.includes(condition)) continue
     cut(
       (n) =>
         cutLine(
-          `speed|condition|${condition}`,
+          `${id}|condition|${condition}`,
           condition,
           conditionSource(condition),
           n,
           speedZeroHow(text),
         ),
       left,
+    )
+  }
+  return lines
+}
+
+/**
+ * The disadvantage on ability checks that exhaustion (2014, from level 1) and the conditions
+ * give, as lines of a passive score: -5 each, settled with the score's other advantage and
+ * disadvantage.
+ */
+function passiveLines(
+  key: PassiveSkill,
+  play: Pick<PlayState, 'exhaustion' | 'conditions'>,
+  edition: DerivedSheet['edition'],
+): Line[] {
+  const rules = PLAY_RULES[edition]
+  const rule = rules.exhaustion
+  const lines: Line[] = []
+  if (rule.kind === 'levels' && play.exhaustion >= rule.checkDisadvantageAt) {
+    lines.push(
+      edgeLine(edition, key, 'disadvantage', {
+        label: `Exhaustion ${play.exhaustion}`,
+        source: EXHAUSTION,
+        text: `Exhaustion: ${rule.effects[rule.checkDisadvantageAt - 1]}.`,
+        status: 'applied',
+      }),
+    )
+  }
+  for (const { condition, text, when } of rules.checkDisadvantage) {
+    if (!play.conditions.includes(condition)) continue
+    lines.push(
+      edgeLine(edition, key, 'disadvantage', {
+        label: condition,
+        source: conditionSource(condition),
+        text: `${condition}: ${text}.`,
+        ...(when ? { status: 'conditional', when } : { status: 'applied' }),
+      }),
     )
   }
   return lines
@@ -138,7 +183,16 @@ export function applyPlayEffects(
         ]
       : []
 
-  const speed = speedLines(sheet.speed.value, play, sheet.edition)
+  const speed = withLines(sheet.speed, speedLines(sheet.speed.value, play, sheet.edition))
+  // A speed equal to walking follows the walking speed left; one of its own number takes
+  // the same effects itself.
+  const speeds = sheet.speeds.map((row) => {
+    const again = moveRow(row.mode, row.speed.lines, row.follows, row.hovers, speed.value)
+    if (again.equalsWalk) return again
+    const id = `speed|${row.mode}`
+    const lines = speedLines(again.speed.value, play, sheet.edition, id)
+    return { ...again, speed: withLines(again.speed, lines) }
+  })
   const saves = { ...sheet.saves }
   for (const key of ABILITIES) {
     saves[key] = { ...saves[key], total: withLines(saves[key].total, d20(`save|${key}`)) }
@@ -147,7 +201,8 @@ export function applyPlayEffects(
   return {
     ...sheet,
     hp: withLines(sheet.hp, hp),
-    speed: withLines(sheet.speed, speed),
+    speed,
+    speeds,
     saves,
     skills: sheet.skills.map((s) => ({
       ...s,
@@ -156,6 +211,12 @@ export function applyPlayEffects(
     combat: {
       ...sheet.combat,
       initiative: withLines(sheet.combat.initiative, d20('initiative')),
+      passives: sheet.combat.passives.map((row) => {
+        const lines = passiveLines(row.key, play, sheet.edition)
+        return lines.length === 0
+          ? row
+          : { ...row, score: quantity(settleEdges([...row.score.lines, ...lines])) }
+      }),
     },
     attacks: sheet.attacks.map((a) => ({
       ...a,

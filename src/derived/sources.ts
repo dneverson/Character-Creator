@@ -1,16 +1,22 @@
 // What a character has to derive from: its classes with their subclass, race, taken
-// feats and equipped items. This is the only place that knows how a character names
-// its sources; every derived number asks here who holds a rule (`heldBy`) and what is
-// worn or wielded, so no derivation reads the character's shape on its own.
+// feats, equipped items and the carried items that work while carried. This is the only
+// place that knows how a character names its sources; every derived number asks here who
+// holds a rule (`heldBy`) and what is worn or wielded, so no derivation reads the
+// character's shape on its own.
 
 import type { AbilityKey } from '../dice/dice'
 import type { Character, ClassRef, InventoryItem } from '../character/model'
 import { resolveFeats, type FeatSummary } from '../character/feats'
 import { indexItems, resolveInventoryItem } from '../character/inventory'
 import type { LoadedClass } from '../data/class'
-import { subclassUnlockLevel } from '../data/class'
+import {
+  ownClassFeatures,
+  ownSubclassFeatures,
+  subclassOf,
+  subclassUnlockLevel,
+} from '../data/class'
 import type { PlayableBackground } from '../data/background'
-import type { PlayableRace } from '../data/race'
+import { holdsRace, type PlayableRace } from '../data/race'
 import type { Feat } from '../data/feats'
 import type { Item } from '../data/items'
 import type { ClassOption } from '../data/classOptions'
@@ -27,6 +33,7 @@ import {
   type FeatureChoiceState,
   type OptionSlot,
 } from './classOptions'
+import { worksWhileCarried } from '../rules/carryRules'
 import { holderId } from '../rules/holder'
 
 /** What the derivation reads: the loaded data a character's choices refer to. */
@@ -59,7 +66,7 @@ export interface HeldFeat {
   increases?: Partial<Record<AbilityKey, number>>
 }
 
-/** An equipped item, and whether its effects are in force. */
+/** An equipped item, or one that works while carried, and whether its effects are in force. */
 export interface HeldItem {
   stack: InventoryItem
   item: Item
@@ -77,7 +84,7 @@ export interface Sources {
   race?: PlayableRace
   background?: PlayableBackground
   feats: HeldFeat[]
-  /** Every equipped item, in inventory order. */
+  /** Every equipped item and every carried one that works while carried, in inventory order. */
   items: HeldItem[]
   /**
    * The optional features the character holds ("Defense|PHB"): picked in a slot of a
@@ -101,9 +108,9 @@ export function collectSources(character: Character, deps: DeriveDeps): Sources 
   })
   const catalog = indexItems(deps.items ?? [])
   const items = character.equipment.items.flatMap((stack): HeldItem[] => {
-    if (!stack.equipped) return []
     const item = resolveInventoryItem(stack, catalog)
-    if (!item) return []
+    if (!item || !(stack.equipped || worksWhileCarried(item.kind, item.entries)))
+      return []
     return [
       {
         stack,
@@ -157,35 +164,45 @@ export interface Held {
   source: SourceRef
   /** The class level the character is at in the holder's class, for a class feature. */
   classLevel?: number
+  /** For an item: false while it needs attunement the character has not made. */
+  active?: boolean
 }
 
-/** The level a class or subclass feature arrives at, read from the data. */
+/**
+ * The level a class or subclass feature arrives at, when the class (and its chosen
+ * subclass) gives it: read from the features they name, so a `_copy` class or subclass
+ * (the WoW Druid, its Circle of the Moon) holds the features of what it copies.
+ */
 function featureLevel(
   loaded: LoadedClass,
   holder: Holder,
-  classSource: string,
+  row: ClassRef,
 ): number | undefined {
+  const own = ownClassFeatures(loaded)
   if ('classFeature' in holder) {
     const h = holder.classFeature
-    return loaded.file.classFeature?.find(
+    return own.find(
       (f) => f.name === h.name && f.source === h.source && f.className === h.className,
     )?.level
   }
   if ('subclassFeature' in holder) {
     const h = holder.subclassFeature
-    const level = loaded.file.subclassFeature?.find(
-      (f) =>
-        f.name === h.name &&
-        f.source === h.source &&
-        f.className === h.className &&
-        f.subclassShortName === h.shortName,
-    )?.level
+    const subclass = subclassOf(loaded, row.subclass)
+    const feature =
+      subclass &&
+      ownSubclassFeatures(loaded.file, subclass).find(
+        (f) =>
+          f.name === h.name &&
+          f.source === h.source &&
+          f.className === h.className &&
+          f.subclassShortName === h.shortName,
+      )
+    if (!feature) return undefined
     // A 2014 subclass on a 2024 class arrives when that class's subclass does.
-    return level === undefined
-      ? undefined
-      : classSource === h.source
-        ? level
-        : Math.max(level, subclassUnlockLevel(loaded))
+    const book = own[0]?.classSource ?? loaded.entry.source
+    return feature.classSource === book
+      ? feature.level
+      : Math.max(feature.level, subclassUnlockLevel(loaded))
   }
   return undefined
 }
@@ -199,12 +216,8 @@ export function heldBy(sources: Sources, holder: Holder): Held | undefined {
   }
   if ('race' in holder) {
     const want = holder.race
-    const race = sources.character.race
-    if (
-      race?.baseName === want.baseName &&
-      race.source === want.source &&
-      (want.subraceName === undefined || race.subraceName === want.subraceName)
-    ) {
+    // The loaded race knows its base race's book even where an older save does not.
+    if (holdsRace(sources.race ?? sources.character.race, want)) {
       const name = want.subraceName ?? want.baseName
       return { source: { kind: 'race', tag: 'race', label: name } }
     }
@@ -223,7 +236,7 @@ export function heldBy(sources: Sources, holder: Holder): Held | undefined {
   }
   if ('item' in holder) {
     const held = sources.items.find((i) => i.item.key === holder.item)
-    return held && { source: held.source }
+    return held && { source: held.source, active: held.active }
   }
   // A feature of a list to choose from (Protector or Thaumaturge) is held once taken.
   const id = holderId(holder)
@@ -234,18 +247,9 @@ export function heldBy(sources: Sources, holder: Holder): Held | undefined {
     'classFeature' in holder
       ? holder.classFeature.className
       : holder.subclassFeature.className
-  const source =
-    'classFeature' in holder ? holder.classFeature.source : holder.subclassFeature.source
   for (const c of sources.classes) {
     if (c.row.name !== className || !c.loaded) continue
-    if ('classFeature' in holder && c.row.source !== source) continue
-    if ('subclassFeature' in holder) {
-      const sub = c.row.subclass
-      if (sub?.shortName !== holder.subclassFeature.shortName || sub.source !== source) {
-        continue
-      }
-    }
-    const level = featureLevel(c.loaded, holder, c.row.source)
+    const level = featureLevel(c.loaded, holder, c.row)
     if (level === undefined || c.level < level) continue
     const label =
       'subclassFeature' in holder && c.row.subclass

@@ -107,6 +107,33 @@ describe.skipIf(!dataDir)('classes and subclasses against the data', async () =>
     expect([...counts].filter(([, n]) => n > 1)).toEqual([])
   })
 
+  it('offers every class the subclasses of each class it takes subclasses from', () => {
+    const missing: string[] = []
+    let including = 0
+    for (const loaded of classes) {
+      const named = loaded.entry.includeSubclassesFrom ?? []
+      if (named.length > 0) including += 1
+      const offered = new Set(subclassesFor(loaded))
+      for (const ref of named) {
+        const [name = '', source = ''] = ref.split('|')
+        const other = byKey(`${name}|${source || 'PHB'}`)
+        for (const s of subclassesFor(other)) {
+          const sameRecord = [...offered].some(
+            (o) => o.shortName === s.shortName && o.source === s.source,
+          )
+          if (!sameRecord)
+            missing.push(`${classKey(loaded)} lacks ${s.shortName}|${s.source}`)
+        }
+      }
+    }
+    expect(missing).toEqual([])
+    // The 13 classes of the WoW book each take the subclasses of a 2024 class.
+    expect(including).toBe(13)
+    expect(
+      subclassesFor(byKey('Priest|WoW')).map((s) => `${s.shortName}|${s.source}`),
+    ).toEqual(expect.arrayContaining(['Shadow|WoW', 'Life|XPHB', 'Trickery|XPHB']))
+  })
+
   it('offers the 2024 Artificer its own subclasses', () => {
     expect(subclassesFor(byKey('Artificer|EFA')).map((s) => s.shortName)).toContain(
       'Alchemist',

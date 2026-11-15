@@ -92,7 +92,8 @@ export function featureRows(
         })
       })
   }
-  // The feature taken from a list to choose from (a Totem Spirit, a Divine Order).
+  // The feature taken from a list to choose from (a Totem Spirit, a Divine Order). Its
+  // anchor is the one its counters take: the class's tag and the feature's own name.
   for (const slot of sources.featureSlots) {
     for (const option of slot.options) {
       if (!sources.featureChoices.chosen.has(holderId(option.holder))) continue
@@ -103,6 +104,7 @@ export function featureRows(
         kind: 'Class',
         level: option.level,
         entries: option.entries,
+        anchor: `${slot.owner.tag}#${option.name}`,
       })
     }
   }

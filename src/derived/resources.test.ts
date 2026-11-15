@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SpellGrant } from '../character/spellGrants'
+import { resolveClassFiles } from '../data/class'
 import type { Item } from '../data/items'
 import { ability, byLevel, column, fixed, perLevel, prof } from '../rules/resources'
 import { build, deps, featOf, loadedClass } from '../test/derivedFixtures'
@@ -231,5 +232,45 @@ describe('deriveResources', () => {
       { max: 7, recharge: 'none', restores: 'Regains 1d6 + 1 at dawn' },
       { max: 7, recharge: 'long', restores: 'All on a long rest' },
     ])
+  })
+})
+
+describe('counters of a copied class', () => {
+  it('gives a class that copies the 2024 Druid its Wild Shape counter', () => {
+    const [file] = resolveClassFiles([
+      {
+        class: [
+          {
+            name: 'Druid',
+            source: 'XPHB',
+            hd: { number: 1, faces: 8 },
+            classFeatures: ['Wild Shape|Druid|XPHB|2'],
+            classTableGroups: [
+              {
+                colLabels: ['Wild Shape'],
+                rows: Array.from({ length: 20 }, (_, i) => [i === 0 ? '-' : 2]),
+              },
+            ],
+          },
+          { name: 'Druid', source: 'WoW', _copy: { name: 'Druid', source: 'XPHB' } },
+        ],
+        classFeature: [
+          {
+            name: 'Wild Shape',
+            source: 'XPHB',
+            className: 'Druid',
+            classSource: 'XPHB',
+            level: 2,
+            entries: ['You can shape-shift.'],
+          },
+        ],
+      },
+    ])
+    const wow = file.class?.find((c) => c.source === 'WoW')
+    if (!wow) throw new Error('no copy')
+    const c = build('Druid', 2, {}, [])
+    c.classes = [{ name: 'Druid', source: 'WoW', level: 2 }]
+    const sheet = deriveSheet(c, deps([{ entry: wow, file }]))
+    expect(sheet.resources.map((r) => [r.label, r.max])).toEqual([['Wild Shape', 2]])
   })
 })

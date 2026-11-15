@@ -107,6 +107,7 @@ const human2024: PlayableRace = {
   name: 'Human',
   baseName: 'Human',
   source: 'XPHB',
+  baseSource: 'XPHB',
   edition: 'one',
   abilityOptions: [],
 }
@@ -340,6 +341,66 @@ describe('BackgroundSelection', () => {
     await user.click(increase('+2', 'Wisdom'))
     await waitFor(() => expect(active(c.id).background?.abilityChoices.wis).toBe(2))
     expect(screen.getByRole('note')).toHaveTextContent('Non-standard')
+  })
+
+  it.each([
+    [
+      'a 2014 race and a 2024 background',
+      acolyte,
+      "a 2014 race and a 2024 background. Standard play uses one edition's origin rules",
+    ],
+    [
+      'a 2014 race and a 2014 background that gives increases',
+      { ...acolyte, edition: 'classic' as const },
+      'a 2014 race and a 2014 background. Standard play takes them from one of the two',
+    ],
+  ])('names what is mixed for %s', async (_, background, reason) => {
+    const user = userEvent.setup()
+    mockBackgrounds.mockResolvedValue([background])
+    mockRaces.mockResolvedValue([
+      {
+        ...human2024,
+        key: 'Elf|PHB||PHB',
+        name: 'Elf',
+        baseName: 'Elf',
+        source: 'PHB',
+        baseSource: 'PHB',
+        edition: 'classic',
+      },
+    ])
+    seedActive((ch) => {
+      ch.race = elf
+      ch.background = {
+        name: 'Acolyte',
+        source: background.source,
+        abilityOption: 0,
+        abilityChoices: { wis: 2 },
+      }
+    })
+    renderSection()
+    await user.hover(await screen.findByRole('note'))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      `This character gets ability bonuses from both ${reason}`,
+    )
+  })
+
+  it('names the race without its edition while the races are not loaded', async () => {
+    const user = userEvent.setup()
+    mockRaces.mockReturnValue(new Promise(() => {}))
+    seedActive((ch) => {
+      ch.race = elf
+      ch.background = {
+        name: 'Acolyte',
+        source: 'XPHB',
+        abilityOption: 0,
+        abilityChoices: { wis: 2 },
+      }
+    })
+    renderSection()
+    await user.hover(await screen.findByRole('note'))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'from both its race and a 2024 background.',
+    )
   })
 
   it('says a 2014 background leaves the increases to the race', async () => {

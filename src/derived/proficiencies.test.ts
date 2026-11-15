@@ -125,6 +125,7 @@ describe('proficiencies', () => {
       name: 'Half-Elf',
       baseName: 'Half-Elf',
       source: 'PHB',
+      baseSource: 'PHB',
       abilityOptions: [],
       featGrants: [],
       ...extra,

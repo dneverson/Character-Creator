@@ -2,7 +2,7 @@
 // template, not an item. It is one row of the item table; a made item is the
 // template laid over the base item it is applied to (applyVariant).
 
-import { codeOf } from './itemText'
+import { codeOf, strengthOf } from './itemText'
 import { readItem, type ItemLookups, type RawItem } from './itemRead'
 import type { Item, ItemKind, ItemProperty, VariantClause } from './itemTypes'
 import { DAMAGE_TYPE_LABELS, ITEM_KIND_LABELS } from './labels'
@@ -167,6 +167,10 @@ export function readVariant(
       nameRemove: isText(nameRemove) ? nameRemove : undefined,
       valueExpression: isText(valueExpression) ? valueExpression : undefined,
       weightExpression: isText(weightExpression) ? weightExpression : undefined,
+      drops: {
+        strength: 'strength' in facts && strengthOf(facts.strength) === undefined,
+        stealth: facts.stealth === false,
+      },
       propertyAdd: texts(propertyAdd).flatMap((reference): ItemProperty[] => {
         const property = lookups.property(reference)
         return property
@@ -227,8 +231,12 @@ export function applyVariant(template: Item, base: Item): Item {
   const armor = base.armor
     ? {
         ...base.armor,
-        strength: template.armor?.strength ?? base.armor.strength,
-        stealth: base.armor.stealth || template.armor?.stealth === true,
+        strength: variant.drops?.strength
+          ? undefined
+          : (template.armor?.strength ?? base.armor.strength),
+        stealth: variant.drops?.stealth
+          ? false
+          : base.armor.stealth || template.armor?.stealth === true,
       }
     : undefined
   return {

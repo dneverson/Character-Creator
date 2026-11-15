@@ -6,6 +6,7 @@
 
 import { totalLevel } from '../character/derive'
 import type { Character } from '../character/model'
+import { holdsRace } from '../data/race'
 
 type Origin = 'Feat' | 'Race' | 'Subclass'
 
@@ -189,12 +190,7 @@ export function hpSources(character: Character, featKeys: readonly string[]): Hp
     if ('feat' in m) {
       if (taken.has(m.feat)) lines.push(lineOf(rule, 'Feat', 'character', level))
     } else if ('race' in m) {
-      const r = m.race
-      if (
-        race?.baseName === r.baseName &&
-        race.source === r.source &&
-        (r.subraceName === undefined || race.subraceName === r.subraceName)
-      ) {
+      if (holdsRace(race, m.race)) {
         lines.push(lineOf(rule, 'Race', 'character', level))
       }
     } else {

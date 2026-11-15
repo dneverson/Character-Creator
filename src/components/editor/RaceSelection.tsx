@@ -32,6 +32,7 @@ function raceRef(race: PlayableRace, abilityOption = 0): RaceRef {
   return {
     name: race.name,
     baseName: race.baseName,
+    baseSource: race.baseSource,
     source: race.source,
     subraceName: race.subraceName,
     abilityOption,

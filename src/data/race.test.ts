@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { findPlayableRace, loadRaces, type PlayableRace } from './race'
+import { findPlayableRace, holdsRace, loadRaces, type PlayableRace } from './race'
 import { fetchData } from './dataClient'
 import { ABILITIES } from '../dice/dice'
 
@@ -377,6 +377,7 @@ describe('findPlayableRace', () => {
     name,
     baseName: name,
     source: 'PHB',
+    baseSource: 'PHB',
     subraceName,
     abilityOptions: [],
     featGrants: [],
@@ -402,5 +403,92 @@ describe('findPlayableRace', () => {
   it('returns undefined without a reference or loaded races', () => {
     expect(findPlayableRace([race('Human')], undefined)).toBeUndefined()
     expect(findPlayableRace(null, ref('Human'))).toBeUndefined()
+  })
+})
+
+describe('subraces from other books, and copies of a subrace', () => {
+  it('keeps the base race book apart from the subrace book', async () => {
+    mockFetch.mockResolvedValue({
+      race: [{ name: 'Elf', source: 'PHB', speed: 30 }],
+      subrace: [{ name: 'Pallid', source: 'EGW', raceName: 'Elf', raceSource: 'PHB' }],
+    })
+    const [pallid] = await loadRaces()
+    expect(pallid).toMatchObject({ baseName: 'Elf', baseSource: 'PHB', source: 'EGW' })
+  })
+
+  it('copies the subrace of the race the copy names, not one of the same name', async () => {
+    mockFetch.mockResolvedValue({
+      race: [
+        { name: 'Goblin', source: 'PSZ', speed: 30 },
+        { name: 'Vampire', source: 'PSZ', speed: 30 },
+        // A race named like the subrace is not what a subrace copy means.
+        { name: 'Ixalan', source: 'PSX', speed: 25 },
+      ],
+      subrace: [
+        {
+          name: 'Ixalan',
+          source: 'PSX',
+          raceName: 'Goblin',
+          raceSource: 'PSZ',
+          darkvision: 60,
+        },
+        {
+          name: 'Ixalan',
+          source: 'PSX',
+          raceName: 'Vampire',
+          raceSource: 'PSZ',
+          darkvision: 120,
+        },
+        {
+          name: 'Copied',
+          source: 'TST',
+          _copy: {
+            name: 'Ixalan',
+            source: 'PSX',
+            raceName: 'Vampire',
+            raceSource: 'PSZ',
+          },
+        },
+      ],
+    })
+    const copied = (await loadRaces()).find((r) => r.subraceName === 'Copied')
+    expect(copied).toMatchObject({
+      baseName: 'Vampire',
+      baseSource: 'PSZ',
+      darkvision: 120,
+    })
+  })
+})
+
+describe('holdsRace', () => {
+  const pallid = {
+    baseName: 'Elf',
+    baseSource: 'PHB',
+    source: 'EGW',
+    subraceName: 'Pallid',
+  }
+
+  it('holds the base race rules for a subrace from another book', () => {
+    expect(holdsRace(pallid, { baseName: 'Elf', source: 'PHB' })).toBe(true)
+    expect(holdsRace(pallid, { baseName: 'Elf', source: 'EGW' })).toBe(false)
+  })
+
+  it('holds a subrace rule by the subrace book and name', () => {
+    expect(
+      holdsRace(pallid, { baseName: 'Elf', source: 'EGW', subraceName: 'Pallid' }),
+    ).toBe(true)
+    expect(
+      holdsRace(pallid, { baseName: 'Elf', source: 'PHB', subraceName: 'Pallid' }),
+    ).toBe(false)
+    expect(
+      holdsRace(pallid, { baseName: 'Elf', source: 'EGW', subraceName: 'Sea' }),
+    ).toBe(false)
+  })
+
+  it('reads a saved race without the base book as from the subrace book', () => {
+    const saved = { baseName: 'Elf', source: 'PHB', subraceName: 'High' }
+    expect(holdsRace(saved, { baseName: 'Elf', source: 'PHB' })).toBe(true)
+    expect(holdsRace(saved, { baseName: 'Dwarf', source: 'PHB' })).toBe(false)
+    expect(holdsRace(undefined, { baseName: 'Elf', source: 'PHB' })).toBe(false)
   })
 })

@@ -6,7 +6,7 @@ import { selectCanUndoLevelUp, useCharacterStore } from '../../character/store'
 import { useCharacter } from '../../character/useCharacterDoc'
 import { ABILITIES, ABILITY_NAMES, formatMod, abilityMod } from '../../dice/dice'
 import { editionYear } from '../../data/labels'
-import type { Quantity } from '../../derived/types'
+import type { SpeedRow } from '../../derived/speed'
 import { useContentNames } from '../../hooks/useContentNames'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { applyPlayEffects } from '../../play/playEffects'
@@ -28,11 +28,13 @@ import '../../sheet/sheet.css'
  * Under the speed: the other ways of moving in force ("fly 30 ft."), or the unit when there
  * are none. One that holds only after an action (a potion of flying) is in the breakdown.
  */
-const speedSub = (speed: Quantity) =>
-  speed.lines
-    .filter((l) => l.op === 'note' && l.status === 'applied')
-    .map((l) => l.label.toLowerCase())
+const speedSub = (speeds: readonly SpeedRow[]) =>
+  speeds
+    .filter((row) => row.speed.value > 0)
+    .map((row) => `${row.mode} ${feet(row.speed.value)}${row.hover ? ' (hover)' : ''}`)
     .join(', ') || 'feet'
+
+const feet = (n: number) => `${n} ft.`
 
 /** Below this width the left column becomes two tabs (Bootstrap's md breakpoint). */
 const PHONE = '(max-width: 767.98px)'
@@ -117,14 +119,20 @@ export function SheetView() {
                     label="Speed"
                     // A speed of 0 is a speed (grappled, exhausted); only no species has no value.
                     value={sheet.speed.lines.length > 0 ? sheet.speed.value : NO_VALUE}
-                    sub={speedSub(sheet.speed)}
+                    sub={speedSub(sheet.speeds)}
                     breakdown={{
                       id: 'speed',
                       label: 'Speed',
                       quantity: sheet.speed,
-                      format: (n) => `${n} ft.`,
+                      format: feet,
                       amountHeader: 'Feet',
                       totalLabel: 'Walking speed',
+                      also: sheet.speeds.map((row) => ({
+                        label: `${row.label} speed`,
+                        quantity: row.speed,
+                        format: feet,
+                        amountHeader: 'Feet',
+                      })),
                     }}
                   />
                   <StatBox

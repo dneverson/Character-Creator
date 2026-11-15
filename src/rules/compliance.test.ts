@@ -245,6 +245,7 @@ describe('checkOriginIncreases', () => {
     baseName: 'Dwarf',
     subraceName: 'Hill',
     source: 'PHB',
+    baseSource: 'PHB',
     speed: 25,
     abilityOptions: [{ fixed: { con: 2, wis: 1 }, amounts: [], from: [] }],
     featGrants: [],

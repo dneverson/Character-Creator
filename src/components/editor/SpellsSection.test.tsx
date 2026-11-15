@@ -816,6 +816,7 @@ const raceOf = (name: string, additionalSpells: unknown[]): PlayableRace => ({
   name,
   baseName: name,
   source: 'PHB',
+  baseSource: 'PHB',
   edition: 'classic',
   abilityOptions: [],
   featGrants: [],

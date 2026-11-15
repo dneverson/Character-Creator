@@ -69,6 +69,7 @@ describe('ability quantities', () => {
       name: 'Human',
       baseName: 'Human',
       source: 'PHB',
+      baseSource: 'PHB',
       speed: 30,
       abilityOptions: [
         {
@@ -180,6 +181,28 @@ describe('item bonuses to ability checks', () => {
         expect(passive.score.value).toBe(10 + (skill?.total.value ?? 0))
       }
     }
+  })
+
+  it('count while the item is only carried when its text says it works on your person', () => {
+    const onPerson = {
+      ...stone,
+      entries: [
+        'While this polished agate is on your person, you gain a +1 bonus to ability checks and saving throws.',
+      ],
+    }
+    const worn = {
+      ...onPerson,
+      key: 'Cloak|DMG',
+      name: 'Cloak',
+      entries: ['While you wear it.'],
+    }
+    const c = build('Fighter', 1, { dex: 14 }, [
+      stack('Stone of Good Luck', { source: 'DMG', attuned: true, equipped: false }),
+      stack('Cloak', { source: 'DMG', attuned: true, equipped: false }),
+    ])
+    const sheet = deriveSheet(c, deps([fighter], [...ITEMS, onPerson, worn]))
+    expect(sheet.combat.initiative.value).toBe(3)
+    expect(sheet.combat.initiative.lines.map((l) => l.label)).not.toContain('Cloak')
   })
 
   it('need the attunement the item asks for', () => {

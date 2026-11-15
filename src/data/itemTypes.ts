@@ -175,6 +175,11 @@ export interface VariantTemplate {
   weightExpression?: string
   /** Properties the made item gains. */
   propertyAdd: ItemProperty[]
+  /**
+   * The made armor has no Strength requirement, or no disadvantage on Stealth, whatever
+   * the base armor has (mithral): the data clears the field (`strength: null`).
+   */
+  drops?: { strength: boolean; stealth: boolean }
 }
 
 export interface Item {

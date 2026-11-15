@@ -21,6 +21,7 @@ function bare(name: string, extra: Partial<PlayableRace> = {}): PlayableRace {
     name,
     baseName: name,
     source: 'TST',
+    baseSource: 'TST',
     abilityOptions: [],
     featGrants: [],
     ...extra,

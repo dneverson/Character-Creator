@@ -53,6 +53,7 @@ const elf: PlayableRace = {
   baseName: 'Elf',
   subraceName: 'Wood',
   source: 'PHB',
+  baseSource: 'PHB',
   edition: 'classic',
   size: ['M'],
   speed: { walk: 35 },
@@ -68,6 +69,7 @@ const human: PlayableRace = {
   name: 'Human',
   baseName: 'Human',
   source: 'PHB',
+  baseSource: 'PHB',
   edition: 'classic',
   size: ['M'],
   speed: { walk: 30 },
@@ -283,7 +285,11 @@ describe('SkillsSection', () => {
   it('picks expertise from the skills the character has and doubles the bonus', async () => {
     const user = userEvent.setup()
     const expert: LoadedClass = {
-      entry: { ...rogue.entry, startingProficiencies: {} },
+      entry: {
+        ...rogue.entry,
+        startingProficiencies: {},
+        classFeatures: ['Expertise|Rogue|PHB|1'],
+      },
       file: {
         classFeature: [
           {

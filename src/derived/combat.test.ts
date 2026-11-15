@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { combatNumbers } from './combat'
+import { combatNumbers, isEdgeLine, passives, settleEdges } from './combat'
 import { collectSources } from './sources'
 import { characterAbilityTotals } from '../character/derive'
 import type { Character } from '../character/model'
 import { buildSkillSources, skillRows } from '../character/skills'
 import { proficiencyBonus } from '../data/skills'
 import type { LoadedClass } from '../data/class'
-import { build, deps, featOf, loadedClass } from '../test/derivedFixtures'
-import { sumLines } from './types'
+import { build, deps, featOf, loadedClass, stack } from '../test/derivedFixtures'
+import { makeItem } from '../test/itemFixtures'
+import { BASE_SOURCE, sumLines, type Line } from './types'
 
 const feature = (name: string, className: string, level: number, source = 'PHB') => ({
   name,
@@ -61,7 +62,7 @@ function numbers(
   const totals = characterAbilityTotals(c)
   const prof = proficiencyBonus(c.classes.reduce((n, r) => n + r.level, 0))
   const rows = skillRows(c, buildSkillSources(c, d.classByKey), {})
-  return combatNumbers(sources, totals, rows, prof)
+  return combatNumbers(sources, totals, rows, prof, 'classic')
 }
 
 describe('initiative', () => {
@@ -141,5 +142,86 @@ describe('passive scores', () => {
     const c = build('Bard', 5, {}, [])
     const { passives } = numbers(c, [bard], [], ['insight'])
     expect(passives.map((p) => p.score.value)).toEqual([11, 11, 13])
+  })
+})
+
+describe('advantage and disadvantage on a passive score', () => {
+  const fighter = loadedClass('Fighter', [], [])
+  const shield = makeItem({ name: 'Sentinel Shield', source: 'DMG', magic: true })
+  const rod = makeItem({
+    name: 'Rod of Alertness',
+    source: 'DMG',
+    magic: true,
+    attunement: { required: true, optional: false, classes: [] },
+  })
+  const perceptionOf = (c: Character) => {
+    const sources = collectSources(c, deps([fighter], [shield, rod]))
+    const rows = skillRows(c, buildSkillSources(c, deps([fighter]).classByKey), {})
+    return passives(sources, rows, 2, 'classic')[0].score
+  }
+  const edges = (q: ReturnType<typeof perceptionOf>) =>
+    q.lines.filter(isEdgeLine).map((l) => [l.label, l.amount, l.status, l.why])
+
+  it('adds 5 for advantage, and counts a second advantage once', () => {
+    const c = build('Fighter', 1, {}, [stack('Sentinel Shield', { source: 'DMG' })])
+    expect(perceptionOf(c).value).toBe(15)
+    c.equipment.items.push(stack('Rod of Alertness', { source: 'DMG', attuned: true }))
+    expect(perceptionOf(c).value).toBe(15)
+    expect(edges(perceptionOf(c))).toEqual([
+      ['Rod of Alertness', 5, 'applied', undefined],
+      [
+        'Sentinel Shield',
+        5,
+        'inactive',
+        'Advantage or disadvantage counts once, however many give it.',
+      ],
+    ])
+  })
+
+  it('needs the attunement the item asks for', () => {
+    const c = build('Fighter', 1, {}, [stack('Rod of Alertness', { source: 'DMG' })])
+    expect(perceptionOf(c).value).toBe(10)
+    expect(edges(perceptionOf(c))).toEqual([
+      ['Rod of Alertness', 5, 'inactive', 'Needs attunement, and you are not attuned.'],
+    ])
+  })
+
+  it('shows sunlight sensitivity as a disadvantage that holds only in sunlight', () => {
+    const c = build('Fighter', 1, {}, [])
+    c.race = {
+      name: 'Drow',
+      baseName: 'Elf',
+      subraceName: 'Drow',
+      source: 'PHB',
+      abilityFixed: {},
+      abilityChoices: {},
+    }
+    const score = perceptionOf(c)
+    expect(score.value).toBe(10)
+    expect(score.lines.at(-1)).toMatchObject({
+      label: 'Sunlight Sensitivity',
+      amount: -5,
+      status: 'conditional',
+      when: 'Only for checks that rely on sight, in direct sunlight.',
+    })
+  })
+
+  it('cancels one advantage against one disadvantage, and settles again the same way', () => {
+    const line = (label: string, amount: number): Line => ({
+      id: `passive|perception|edge|${label}`,
+      label,
+      source: BASE_SOURCE,
+      amount,
+      op: 'add',
+      status: 'applied',
+    })
+    const settled = settleEdges([line('Advantage', 5), line('Poisoned', -5)])
+    expect(settled.map((l) => [l.status, l.why])).toEqual([
+      ['inactive', 'Advantage and disadvantage cancel each other out.'],
+      ['inactive', 'Advantage and disadvantage cancel each other out.'],
+    ])
+    expect(sumLines(settled)).toBe(0)
+    const again = settleEdges([...settled.slice(0, 1)])
+    expect(again.map((l) => [l.status, l.amount])).toEqual([['applied', 5]])
   })
 })

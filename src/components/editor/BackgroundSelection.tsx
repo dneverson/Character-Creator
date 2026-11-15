@@ -13,7 +13,8 @@ import {
   loadBackgrounds,
   type PlayableBackground,
 } from '../../data/background'
-import { findPlayableRace, loadRaces } from '../../data/race'
+import { editionYear } from '../../data/labels'
+import { findPlayableRace, loadRaces, type PlayableRace } from '../../data/race'
 import { parseSkillGrants } from '../../data/skills'
 import type { BackgroundRef, Character } from '../../character/model'
 import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
@@ -40,7 +41,7 @@ function backgroundRef(bg: PlayableBackground, abilityOption = 0): BackgroundRef
   return { name: bg.name, source: bg.source, abilityOption, abilityChoices: {} }
 }
 
-// Off-standard: ability increases from both a 2014 race and a 2024 background.
+// Off-standard: ability increases from both the race and the background.
 function editionMix(character: Character): boolean {
   const race = character.race
   const raceGrants =
@@ -51,9 +52,29 @@ function editionMix(character: Character): boolean {
   return raceGrants && !!bg && Object.keys(bg.abilityChoices).length > 0
 }
 
-const EDITION_MIX_REASON =
-  'This character gets ability bonuses from both a 2014 race and a 2024 background. ' +
-  'Standard play uses one edition’s origin rules, not both.'
+/**
+ * Marks ability increases taken from both origins, naming the edition of each as its record
+ * has it: the 2014 rules give them to the race, the 2024 rules to the background. A race
+ * not loaded yet is named without its edition.
+ */
+function EditionMixBadge({
+  race,
+  background,
+}: {
+  race: PlayableRace | undefined
+  background: PlayableBackground
+}) {
+  const raceYear = race && editionYear(race.edition)
+  const bgYear = editionYear(background.edition)
+  const mixed =
+    `This character gets ability bonuses from both ${raceYear ? `a ${raceYear} race` : 'its race'} ` +
+    `and a ${bgYear} background. `
+  const why =
+    raceYear === bgYear
+      ? 'Standard play takes them from one of the two, not both.'
+      : "Standard play uses one edition's origin rules, not both."
+  return <NonStandardBadge reason={mixed + why} />
+}
 
 export function BackgroundSelection() {
   const character = useCharacter()
@@ -85,7 +106,8 @@ export function BackgroundSelection() {
   )
 
   if (!character) return null
-  const species2024 = findPlayableRace(races, character.race)?.edition === 'one'
+  const race = findPlayableRace(races, character.race)
+  const species2024 = race?.edition === 'one'
 
   const placeIncreases = (abilityChoices: AbilityIncreases) => {
     if (ref) updateActive({ background: { ...ref, abilityChoices } })
@@ -148,7 +170,7 @@ export function BackgroundSelection() {
               <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
                 <h4 className="h6 mb-0">Ability score increases</h4>
                 {editionMix(character) && (
-                  <NonStandardBadge reason={EDITION_MIX_REASON} />
+                  <EditionMixBadge race={race} background={picked} />
                 )}
                 <OriginIncreaseFlags character={character} background={picked} />
               </div>

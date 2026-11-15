@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dataDir, findIds, records, recordId } from '../test/dataAudit'
-import { INITIATIVE_RULES, PASSIVE_RULES } from './combatRules'
+import { INITIATIVE_RULES, PASSIVE_EDGE_RULES, PASSIVE_RULES } from './combatRules'
 import { holderId } from './holder'
 
 /** What changes initiative or a passive score in text. */
@@ -70,5 +70,65 @@ describe.skipIf(!dataDir)('combat rules against the data', () => {
       (r) => !all.has(holderId(r.holder)),
     )
     expect(missing.map((r) => holderId(r.holder))).toEqual([])
+  })
+})
+
+/** What the books say about advantage or disadvantage on the checks of a passive score. */
+const EDGE_ON_PASSIVE =
+  /(advantage|disadvantage) on [^.]{0,80}?\((perception|investigation|insight)\)|\((perception|investigation|insight)\)[^.]{0,40} checks? (are|is) made with (advantage|disadvantage)/i
+
+const DIM_LIGHT = 'Removes the disadvantage of dim light; it gives no advantage.'
+
+/** Advantage or disadvantage the passive scores do not take, with the reason. */
+const EDGES_NOT_APPLIED: Readonly<Record<string, string>> = {
+  'charoption|Watchers|VRGR': 'Holds only for the duration of a power used in play.',
+  'subclassFeature|Eagle|PHB|Barbarian|Totem Warrior': DIM_LIGHT,
+  'feat|Skulker|PHB': DIM_LIGHT,
+  'subclassFeature|Spirit Totem|XGE|Druid|Shepherd':
+    'Holds only in the aura of a spirit summoned with a bonus action.',
+  'subclassFeature|Visage of the Astral Self|TCE|Monk|Astral Self':
+    'Holds only while the astral visage is summoned.',
+  'subclassFeature|Lunar Empowerment|DSotDQ|Sorcerer|Lunar':
+    'Holds only in the Full Moon phase, within light shed with a bonus action.',
+  'subclassFeature|Wild Magic Surge|PHB|Sorcerer|Wild': 'One result of a random roll.',
+  'subclassFeature|Wild Magic Surge|XPHB|Sorcerer|Wild Magic':
+    'One result of a random roll.',
+  'feat|Illusion Adept|AU': "Disadvantage on other creatures' checks.",
+  'item|Devil Mask|FRHoF': "Disadvantage on other creatures' checks.",
+  'item|Teeth of Dahlver-Nar|TCE':
+    'Comes with one of the eight teeth, which the sheet does not track.',
+  'reward|Draconic Senses|FTD':
+    'A reward (a blessing or charm), which the sheet does not hold.',
+  'reward|Sight of the Earth-Warder|WoW':
+    'A reward (a blessing or charm), which the sheet does not hold.',
+}
+
+describe.skipIf(!dataDir)('passive advantage and disadvantage against the data', () => {
+  const collections = [
+    'classFeature',
+    'subclassFeature',
+    'optionalfeature',
+    'feat',
+    'race',
+    'subrace',
+    'item',
+    'charoption',
+    'reward',
+  ]
+  const found = findIds(dataDir ?? '', collections, (text) => EDGE_ON_PASSIVE.test(text))
+  const rows = new Set(PASSIVE_EDGE_RULES.map((r) => holderId(r.holder)))
+
+  it('applies or explains every record that gives such advantage or disadvantage', () => {
+    const unknown = [...found].filter((id) => !rows.has(id) && !(id in EDGES_NOT_APPLIED))
+    expect(unknown).toEqual([])
+  })
+
+  it('names only records that say so, each once', () => {
+    const named = [...rows, ...Object.keys(EDGES_NOT_APPLIED)]
+    expect(named.filter((id) => !found.has(id))).toEqual([])
+    const keys = PASSIVE_EDGE_RULES.map((r) => holderId(r.holder))
+    expect(new Set(keys).size).toBe(keys.length)
+    for (const rule of PASSIVE_EDGE_RULES)
+      expect(rule.text.startsWith(rule.label)).toBe(true)
   })
 })

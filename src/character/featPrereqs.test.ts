@@ -46,6 +46,7 @@ function halfling(size?: string[]): PlayableRace {
     name: 'Halfling',
     baseName: 'Halfling',
     source: 'PHB',
+    baseSource: 'PHB',
     size,
     abilityOptions: [],
     featGrants: [],

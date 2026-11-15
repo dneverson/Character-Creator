@@ -16,6 +16,8 @@ export type ExhaustionRule =
       speedHalvedAt: number
       hpMaxHalvedAt: number
       speedZeroAt: number
+      /** The level from which ability checks have disadvantage. */
+      checkDisadvantageAt: number
     }
   /** 2024: every level takes the same amount off d20 tests and off speed. */
   | { kind: 'perLevel'; d20Test: number; speedFeet: number; deathAt: number }
@@ -28,7 +30,14 @@ export interface PlayRules {
   exhaustion: ExhaustionRule
   /** The conditions that make the character's speed 0, as that printing words it. */
   speedZero: readonly { condition: string; text: string }[]
+  /**
+   * The conditions that give disadvantage on ability checks, as that printing words it;
+   * `when` is a condition the sheet cannot check (the source of fear in sight).
+   */
+  checkDisadvantage: readonly { condition: string; text: string; when?: string }[]
 }
+
+const FEAR_IN_SIGHT = 'Only while the source of your fear is within line of sight.'
 
 export const PLAY_RULES: Record<Edition, PlayRules> = {
   classic: {
@@ -47,6 +56,7 @@ export const PLAY_RULES: Record<Edition, PlayRules> = {
       speedHalvedAt: 2,
       hpMaxHalvedAt: 4,
       speedZeroAt: 5,
+      checkDisadvantageAt: 1,
     },
     speedZero: [
       { condition: 'Grappled', text: 'speed becomes 0' },
@@ -56,6 +66,14 @@ export const PLAY_RULES: Record<Edition, PlayRules> = {
       { condition: 'Stunned', text: "can't move" },
       { condition: 'Unconscious', text: "can't move" },
     ],
+    checkDisadvantage: [
+      {
+        condition: 'Frightened',
+        text: 'disadvantage on ability checks and attack rolls while the source of its fear is within line of sight',
+        when: FEAR_IN_SIGHT,
+      },
+      { condition: 'Poisoned', text: 'disadvantage on attack rolls and ability checks' },
+    ],
   },
   one: {
     inspiration: 'Heroic Inspiration',
@@ -64,6 +82,14 @@ export const PLAY_RULES: Record<Edition, PlayRules> = {
     speedZero: ['Grappled', 'Paralyzed', 'Petrified', 'Restrained', 'Unconscious'].map(
       (condition) => ({ condition, text: 'Speed is 0' }),
     ),
+    checkDisadvantage: [
+      {
+        condition: 'Frightened',
+        text: 'Disadvantage on ability checks and attack rolls while the source of fear is within line of sight',
+        when: FEAR_IN_SIGHT,
+      },
+      { condition: 'Poisoned', text: 'Disadvantage on attack rolls and ability checks' },
+    ],
   },
 }
 

@@ -250,3 +250,53 @@ describe('subclassesFor and subclassOf', () => {
     expect(subclassOf(loadedCleric, undefined)).toBeUndefined()
   })
 })
+
+describe('subclasses a class takes from another class (includeSubclassesFrom)', () => {
+  // A class in its own file that may also take the Cleric's subclasses, as the WoW Priest
+  // does; the second ref leaves its source out, so it names a PHB class not in the data.
+  const chaplain: RawClassFile = {
+    class: [
+      {
+        name: 'Chaplain',
+        source: 'WoW',
+        includeSubclassesFrom: ['Cleric|XPHB', 'Cleric'],
+        _copy: { name: 'Cleric', source: 'XPHB' },
+      },
+    ],
+    // Its own version of a subclass the Cleric also has, from the same book.
+    subclass: [
+      {
+        name: 'Order Domain',
+        shortName: 'Order',
+        source: 'EFA',
+        className: 'Chaplain',
+        classSource: 'WoW',
+        subclassFeatures: [],
+      },
+    ],
+  }
+  const [, chaplainFile] = resolveClassFiles([cleric, chaplain])
+  const loadedChaplain: LoadedClass = {
+    entry: chaplainFile.class![0],
+    file: chaplainFile,
+  }
+
+  it('offers its own version first, then the named class subclasses of its edition', () => {
+    expect(
+      subclassesFor(loadedChaplain).map(
+        (s) => `${s.className} ${s.shortName}|${s.source}`,
+      ),
+    ).toEqual(['Chaplain Order|EFA', 'Cleric Life|XPHB'])
+    const features = featuresForClass(loadedChaplain, {
+      name: 'Chaplain',
+      source: 'WoW',
+      level: 3,
+      subclass: { name: 'Life Domain', shortName: 'Life', source: 'XPHB' },
+    })
+    expect(features.at(-1)?.entries).toEqual(['2024 text', 'more'])
+  })
+
+  it('does not give the subclasses to a class that names no other class', () => {
+    expect(subclassesFor(loadedPriest).map((s) => s.source)).not.toContain('XPHB')
+  })
+})
