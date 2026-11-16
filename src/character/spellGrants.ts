@@ -205,6 +205,8 @@ interface Source {
   level: number
   edition?: Spell['edition']
   blocks: unknown[] | undefined
+  /** The named block the source has taken already (a 2024 elf's lineage): no choice. */
+  taken?: string
 }
 
 /** One source's grants, in the order the data lists them. */
@@ -219,8 +221,10 @@ function grantsOf(
   const named = blocks.length > 1 && blocks.every((b) => typeof b.name === 'string')
   const variantId = `${source.id}:variant`
   let taken: string | undefined
-  if (named) {
-    const names = blocks.map((b) => String(b.name))
+  const names = named ? blocks.map((b) => String(b.name)) : []
+  const fixed = source.taken !== undefined && names.includes(source.taken)
+  if (fixed) taken = source.taken
+  else if (named) {
     taken = chosen[variantId]?.variant
     if (taken !== undefined && !names.includes(taken)) taken = undefined
     variants.push({
@@ -231,7 +235,7 @@ function grantsOf(
       options: names.map((name) => ({ name, grants: [] })),
     })
   }
-  const offered = named ? variants[variants.length - 1].options : []
+  const offered = named && !fixed ? variants[variants.length - 1].options : []
 
   const out: SpellGrant[] = []
   blocks.forEach((block, b) => {
@@ -333,6 +337,7 @@ export function resolveSpellGrants(
       level,
       edition: race.edition,
       blocks: race.additionalSpells,
+      taken: race.spellSet,
     })
   if (background)
     sources.push({

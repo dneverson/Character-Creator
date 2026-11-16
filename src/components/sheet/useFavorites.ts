@@ -11,15 +11,18 @@ import {
   type Favorite,
 } from '../../character/favorites'
 import {
-  useCharacter,
+  useCharacterPart,
   useLatestCharacter,
   useUpdateCharacter,
 } from '../../character/useCharacterDoc'
+import type { Character } from '../../character/model'
 
 const NONE: readonly Favorite[] = []
 
+const selectFavorites = (character: Character) => character.favorites
+
 export function useFavorites() {
-  const favorites = useCharacter()?.favorites ?? NONE
+  const favorites = useCharacterPart(selectFavorites) ?? NONE
   const latest = useLatestCharacter()
   const update = useUpdateCharacter()
   // Each change reads the list as it is now, so quick clicks add up.

@@ -6,7 +6,7 @@
 // sheet and the picks cannot disagree.
 
 import { picksCharged, type GrantPicks } from '../character/picks'
-import type { SkillSourceKind } from '../character/skills'
+import { REPEAT_LABEL, repeatTag, type SkillSourceKind } from '../character/skills'
 import {
   readGrant,
   valueText,
@@ -17,6 +17,7 @@ import {
 } from '../data/grants'
 import type { ClassEntry } from '../data/class'
 import type { GrantValue } from '../data/grants'
+import { originValueText, swapPick, swapRowOf, swapTag } from '../rules/customOrigin'
 import { SAVE_RULES } from '../rules/saveRules'
 import { featureGrantFields, heldFeatureGrants } from './featureGrants'
 import { heldBy, type Sources } from './sources'
@@ -137,6 +138,7 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
       { tag: 'race', label: `Race · ${sources.race.name}`, name: 'Race', kind: 'race' },
       sources.race,
     )
+    swapBlocks(sources, out)
   }
   if (sources.background) {
     const source: SourceRef = {
@@ -163,6 +165,7 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
       increases,
     )
   }
+  repeatBlocks(sources, out)
   featureSaveBlocks(sources, out)
   for (const held of heldFeatureGrants(sources)) {
     const { id, fields } = featureGrantFields(held)
@@ -187,6 +190,80 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
     }
   }
   return out
+}
+
+/** The kinds a repeated grant is replaced in, with the free pick that replaces it. */
+const REPEAT_ANY = { tool: 'anyTool', language: 'anyLanguage' } as const
+type RepeatKind = keyof typeof REPEAT_ANY
+const isRepeatKind = (kind: GrantKind): kind is RepeatKind => kind in REPEAT_ANY
+
+/**
+ * A tool or language a source gives outright that an earlier source already gave: the
+ * later source gives a different one of the same kind instead (PHB p.125), picked on a
+ * card of its own.
+ */
+function repeatBlocks(sources: Sources, out: GrantBlock[]) {
+  const choices = { picks: sources.character.grantPicks, alt: sources.character.grantAlt }
+  const firstTag = new Map<string, string>()
+  const repeats = new Map<GrantBlock, Map<RepeatKind, number>>()
+  for (const block of [...out]) {
+    for (const part of activeParts(block, choices))
+      for (const value of part.fixed) {
+        const kind = value.kind
+        if (!isRepeatKind(kind) || value.filter !== undefined) continue
+        const key = `${kind}:${value.key}`
+        const first = firstTag.get(key)
+        if (first === undefined) firstTag.set(key, block.source.tag)
+        else if (first !== block.source.tag) {
+          const counts = repeats.get(block) ?? new Map<RepeatKind, number>()
+          counts.set(kind, (counts.get(kind) ?? 0) + 1)
+          repeats.set(block, counts)
+        }
+      }
+  }
+  for (const [block, counts] of repeats) {
+    const tag = repeatTag(block.card.tag)
+    const picks = [...counts].map(([kind, count]): PickSpec => ({
+      id: `${tag}:${kind}`,
+      count,
+      kinds: [kind],
+      from: [],
+      any: [REPEAT_ANY[kind]],
+      text: `${count} other ${kind}${count === 1 ? '' : 's'}, for one you already have`,
+    }))
+    out.push({
+      id: `${tag}|${block.field}`,
+      source: { ...block.source, tag },
+      card: { ...block.card, tag, label: `${block.card.label} · ${REPEAT_LABEL}` },
+      field: block.field,
+      kind: block.kind,
+      read: { alternatives: [{ fixed: [], picks }], optional: [], unknown: [] },
+    })
+  }
+}
+
+/**
+ * Customizing Your Origin: each proficiency or language of the race the player swapped is
+ * a pick of its own, of what its row of the Proficiency Swaps table allows. A swapped
+ * skill is a free skill pick of the race instead (rules/customOrigin.ts `withSwaps`).
+ */
+function swapBlocks(sources: Sources, out: GrantBlock[]) {
+  const race = sources.race
+  for (const value of race?.originSwaps ?? []) {
+    if (!race || value.kind === 'skill') continue
+    const tag = swapTag(value)
+    const row = swapRowOf(value, sources.weaponCategory)
+    const name = `Swap for ${originValueText(value)}`
+    const spec = { ...swapPick(row, value), id: `${tag}:0` }
+    out.push({
+      id: `${tag}|skillToolLanguageProficiencies`,
+      source: { kind: 'race', tag, label: race.name },
+      card: { tag, label: `Race - ${race.name} - ${name}`, name, kind: 'race' },
+      field: 'skillToolLanguageProficiencies',
+      kind: 'mixed',
+      read: { alternatives: [{ fixed: [], picks: [spec] }], optional: [], unknown: [] },
+    })
+  }
 }
 
 /** Whether the grants so far, or a feature's own grant, give this saving throw. */

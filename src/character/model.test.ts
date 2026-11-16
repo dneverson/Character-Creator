@@ -69,6 +69,24 @@ describe('ensureCharacterDefaults', () => {
     expect(c.hp.method).toBe('average')
   })
 
+  it('reads the lineage an older save took as spells as the option of the race', () => {
+    const race = {
+      name: 'Elf',
+      baseName: 'Elf',
+      source: 'XPHB',
+      abilityFixed: {},
+      abilityChoices: {},
+    }
+    const spellGrants = { 'race:variant': { picks: [], variant: 'Drow' } }
+    expect(ensureCharacterDefaults({ race, spellGrants }).race?.trait).toBe('Drow')
+    // One taken as the option stays.
+    const taken = { ...race, trait: 'Drow Lineage' }
+    expect(ensureCharacterDefaults({ race: taken, spellGrants }).race?.trait).toBe(
+      'Drow Lineage',
+    )
+    expect(ensureCharacterDefaults({ race }).race?.trait).toBeUndefined()
+  })
+
   it('preserves supplied values and keeps the provided id/timestamps', () => {
     const raw = {
       id: 'fixed-id',

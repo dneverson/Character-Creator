@@ -6,9 +6,16 @@
 import { ABILITIES, ABILITY_NAMES } from '../../dice/dice'
 import { summarizeAbilityOptions } from '../../data/abilityOptions'
 import { featGrantLabel } from '../../data/feats'
-import { CHOICE_VALUE, grantSets, listedGrants, spellGrants } from '../../data/grants'
+import {
+  CHOICE_VALUE,
+  grantSets,
+  grantText,
+  listedGrants,
+  spellGrants,
+  type GrantSet,
+} from '../../data/grants'
 import { editionYear, feet, sizeLabel, speedLabel, walkingSpeed } from '../../data/labels'
-import type { PlayableRace } from '../../data/race'
+import { raceSpells, type PlayableRace } from '../../data/race'
 import { Entries, type Entry } from '../../text/Entries'
 import { titleCase } from '../../text/titleCase'
 import { AbbrText } from '../Abbr'
@@ -43,8 +50,25 @@ const otherProficiencies = grantFact<PlayableRace>(
   'Other proficiencies',
   (r) => grantSets(r.skillToolLanguageProficiencies, 'mixed'),
 )
-const resistances = grantFact<PlayableRace>('resist', 'Resistances', (r) =>
-  listedGrants(r.resist),
+/**
+ * What a race gives, or, while the option of its trait is open and the race gives none,
+ * what its options give, each the one or the other (the 2024 Tiefling's legacies).
+ */
+function orOptions(read: (race: PlayableRace) => GrantSet[]) {
+  return (race: PlayableRace): GrantSet[] => {
+    const own = read(race)
+    if (own.length > 0 || race.trait || !race.traitChoice) return own
+    const sets = race.traitChoice.options.flatMap((o) => read(o.race))
+    return sets.filter(
+      (set, i) => sets.findIndex((s) => grantText([s]) === grantText([set])) === i,
+    )
+  }
+}
+
+const resistances = grantFact<PlayableRace>(
+  'resist',
+  'Resistances',
+  orOptions((r) => listedGrants(r.resist)),
 )
 const immunities = grantFact<PlayableRace>('immune', 'Immunities', (r) =>
   listedGrants(r.immune),
@@ -57,8 +81,10 @@ const conditionImmunities = grantFact<PlayableRace>(
 const vulnerabilities = grantFact<PlayableRace>('vulnerable', 'Vulnerabilities', (r) =>
   listedGrants(r.vulnerable),
 )
-const spells = grantFact<PlayableRace>('spells', 'Spells', (r) =>
-  spellGrants(r.additionalSpells),
+const spells = grantFact<PlayableRace>(
+  'spells',
+  'Spells',
+  orOptions((r) => spellGrants(raceSpells(r))),
 )
 
 const size: Fact<PlayableRace> = {

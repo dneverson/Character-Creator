@@ -242,7 +242,7 @@ const STYLE_ELSEWHERE: Record<string, string> = {
     'Automatic: the cantrips it gives are listed in your spell grants, where you choose them.',
   senses: 'Automatic: the sense it gives is listed with your senses.',
   'a maneuver and a superiority die, in play':
-    'You apply it in play: you learn a maneuver and gain a superiority die to spend at the table.',
+    'Automatic: the maneuver it teaches is offered on a card of its own, and its superiority die (a d6) is added to your Superiority Dice counter.',
 }
 
 /** The applied note of the style held as this holder id, when the table covers it. */

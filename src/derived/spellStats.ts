@@ -9,6 +9,7 @@ import { resolveSpellGrants, type SpellGrant } from '../character/spellGrants'
 import type { AbilityTotals } from './armorClass'
 import { itemBonus } from './itemBonus'
 import { chosenOptions } from './classOptions'
+import { heldOptionEffects, spellAttackEffectLines } from './optionEffects'
 import type { DeriveDeps, Sources } from './sources'
 import { BASE_SOURCE, quantity, type Line, type Quantity } from './types'
 
@@ -87,6 +88,7 @@ function row(
       profLine('attack'),
       abilityLine('attack'),
       ...itemLines(sources, `${id}|attack|item`, 'bonusSpellAttack'),
+      ...spellAttackEffectLines(sources, heldOptionEffects(sources), `${id}|attack`),
       ...flags,
     ]),
   }

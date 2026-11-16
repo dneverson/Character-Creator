@@ -11,6 +11,7 @@ import { characterCasters } from '../character/spellcasting'
 import { resolveSpellGrants } from '../character/spellGrants'
 import { cardGrantsOf, hasRoom, spellRooms } from '../character/spellTiers'
 import { subclassesFor, subclassUnlockLevel } from '../data/class'
+import { raceSize } from '../data/race'
 import type { OpenPick } from './grantBlocks'
 import { cardChoiceWord, chosenOptions, isFightingStyleCard } from './classOptions'
 import type { DeriveDeps, Sources } from './sources'
@@ -96,6 +97,12 @@ export function buildChecklist({
   )
   add('class', 'class', hasClass(character) ? 0 : 1, 'Choose a class')
   add('race', 'race', character.race ? 0 : 1, 'Choose a race or species')
+  const race = sources.race
+  if (race?.traitChoice && !race.trait)
+    add('race-trait', 'race', 1, `${race.traitChoice.title} not chosen`)
+  // A race of several sizes is none of them until the player takes one.
+  if (race && raceSize(race) === undefined && (race.size?.length ?? 0) > 1)
+    add('race-size', 'race', 1, 'Size not chosen')
   add('background', 'background', character.background ? 0 : 1, 'Choose a background')
 
   const unassigned = ABILITIES.filter((key) => character.abilities[key].base === null)

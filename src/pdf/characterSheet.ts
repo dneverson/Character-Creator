@@ -24,6 +24,7 @@ import { unassignedAbilities } from '../character/stats'
 import { deriveSheet, type DerivedSheet } from '../derived'
 import type { DeriveDeps } from '../derived/sources'
 import type { Listing } from '../derived/types'
+import { raceSize } from '../data/race'
 
 /** What the sheet is built from: the same loaded data every derived number reads. */
 export type SheetDeps = DeriveDeps
@@ -409,7 +410,7 @@ export async function buildCharacterSheet(
     9,
   )
   y2 -= 14
-  const carry = equipmentLines(character, deps.items, s.totals.str, deps.race?.size?.[0])
+  const carry = equipmentLines(character, deps.items, s.totals.str, raceSize(deps.race))
   if (carry.carried) {
     drawText(p2, ctx, carry.carried, MARGIN, y2, 9)
     y2 -= 14

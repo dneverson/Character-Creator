@@ -5,11 +5,11 @@
 
 import { useCallback, useMemo } from 'react'
 import {
-  useCharacter,
+  useCharacterPart,
   useLatestCharacter,
   useUpdateCharacter,
 } from '../../character/useCharacterDoc'
-import type { HistoryAction, PlayState } from '../../character/model'
+import type { Character, HistoryAction, PlayState } from '../../character/model'
 import type { DerivedSheet } from '../../derived'
 import { derivePlay } from '../../play/derivePlay'
 
@@ -26,9 +26,11 @@ export function useApplyPlay() {
   )
 }
 
+const selectPlay = (character: Character) => character.play
+
 /** The play state and what is left of it against the build; undefined without a character. */
 export function usePlay(sheet: DerivedSheet) {
-  const play = useCharacter()?.play
+  const play = useCharacterPart(selectPlay)
   const derived = useMemo(
     () => (play ? derivePlay(sheet, play) : undefined),
     [sheet, play],

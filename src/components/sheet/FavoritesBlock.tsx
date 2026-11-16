@@ -7,7 +7,8 @@
 import { useMemo, type ReactNode } from 'react'
 import Button from 'react-bootstrap/Button'
 import type { Favorite, FavoriteKind } from '../../character/favorites'
-import { useCharacter } from '../../character/useCharacterDoc'
+import type { Character, InventoryItem } from '../../character/model'
+import { useCharacterPart } from '../../character/useCharacterDoc'
 import { loadItems, type Item } from '../../data/items'
 import type { DerivedSheet } from '../../derived'
 import { useAsyncData } from '../../hooks/useAsyncData'
@@ -157,6 +158,9 @@ function FavoriteRow({
   )
 }
 
+const NO_STACKS: InventoryItem[] = []
+const selectStacks = (character: Character) => character.equipment.items
+
 function FavoritesList({
   sheet,
   favorites,
@@ -164,7 +168,7 @@ function FavoritesList({
   sheet: DerivedSheet
   favorites: readonly Favorite[]
 }) {
-  const character = useCharacter()
+  const stacks = useCharacterPart(selectStacks) ?? NO_STACKS
   const applyPlay = useApplyPlay()
   const current = usePlay(sheet)
   const detail = useSheetDetail()
@@ -174,7 +178,6 @@ function FavoritesList({
   const featureDetail = useSheetRowDetail('features')
   const { lines, loading: spellsLoading } = useSpellLines()
   const { data: items, loading: itemsLoading } = useAsyncData(loadItems)
-  const stacks = useMemo(() => character?.equipment.items ?? [], [character])
   const { owned, stackOf } = useOwnedItems(items, stacks)
   const featureUses = useFeatureUses(sheet)
   const rowMeta = useMemo(() => itemRowMeta(sheet.edition), [sheet.edition])
@@ -215,7 +218,7 @@ function FavoritesList({
             const concentrate = concentrationAction(
               applyPlay,
               line,
-              character?.play.concentration ?? null,
+              current?.play.concentration ?? null,
             )
             const detailOf = (row: SpellLine) => (
               <EntryDetail

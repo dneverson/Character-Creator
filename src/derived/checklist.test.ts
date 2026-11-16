@@ -62,6 +62,59 @@ describe('the build checklist', () => {
     ])
   })
 
+  it('asks for the option of the race trait and the size the race leaves open', () => {
+    const lineage = {
+      key: 'custom|tce',
+      name: 'Custom Lineage',
+      baseName: 'Custom Lineage',
+      baseSource: 'TCE',
+      source: 'TCE',
+      size: ['S', 'M'],
+      abilityOptions: [],
+      featGrants: [],
+    }
+    const choosing = {
+      ...lineage,
+      traitChoice: {
+        title: 'Variable Trait',
+        options: [
+          { name: 'Darkvision', text: [], race: { ...lineage, trait: 'Darkvision' } },
+        ],
+      },
+    }
+    const open = itemsOf(finished(), { ...deps([FIGHTER]), race: choosing })
+    expect(open).toEqual([
+      { id: 'race-trait', section: 'race', count: 1, label: 'Variable Trait not chosen' },
+      { id: 'race-size', section: 'race', count: 1, label: 'Size not chosen' },
+    ])
+    const taken = {
+      ...choosing,
+      trait: 'Darkvision',
+      size: ['S'],
+      sizeOptions: ['S', 'M'],
+    }
+    expect(itemsOf(finished(), { ...deps([FIGHTER]), race: taken })).toEqual([])
+  })
+
+  it('asks for another skill for each one a later source gives again', () => {
+    const elf = {
+      key: 'elf|phb',
+      name: 'Elf',
+      baseName: 'Elf',
+      baseSource: 'PHB',
+      source: 'PHB',
+      abilityOptions: [],
+      featGrants: [],
+      skillProficiencies: [{ perception: true }],
+    }
+    const scout = { ...guild, skillProficiencies: [{ perception: true }] }
+    const d = { ...deps([FIGHTER]), race: elf, background: scout }
+    const items = itemsOf(finished(), d).filter((i) => i.section !== 'proficiencies')
+    expect(items).toEqual([
+      { id: 'skills', section: 'skills', count: 1, label: '1 skill choice to make' },
+    ])
+  })
+
   it('is empty for a finished build', () => {
     expect(deriveSheet(finished(), deps([FIGHTER])).checklist.items).toEqual([])
   })

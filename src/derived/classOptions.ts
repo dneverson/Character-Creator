@@ -35,7 +35,13 @@ import {
   VARIANT_OF_BUILD,
 } from '../rules/featureChoices'
 import { holderId, type Holder } from '../rules/holder'
+import { AC_RULES } from '../rules/acRules'
+import { INITIATIVE_RULES, PASSIVE_EDGE_RULES } from '../rules/combatRules'
+import { FEATURE_PICKS } from '../rules/featurePicks'
+import { OPTION_EFFECTS, SUPERIORITY_TYPES } from '../rules/optionEffects'
+import { RESOURCE_RULES } from '../rules/resources'
 import { SENSE_RULES } from '../rules/senseRules'
+import { MOVE_RULES, SPEED_RULES } from '../rules/speedRules'
 import type { Entry } from '../text/Entries'
 import { optionPrereqs } from './optionPrereqs'
 import { featurePickCards, featurePickWord } from './featurePicks'
@@ -696,19 +702,59 @@ export function typeWords(types: readonly string[], title: string): TypeWords {
   return { one, many: one.endsWith('s') ? one : `${one}s` }
 }
 
+/** What a rules table does with an option it has a row for, in the words of its card. */
+const APPLIED_BY: { holders: readonly { holder: Holder }[]; text: string }[] = [
+  { holders: SENSE_RULES, text: 'the sense it gives is listed with your senses' },
+  { holders: MOVE_RULES, text: 'the speed it gives is listed with your speeds' },
+  { holders: SPEED_RULES, text: 'it is added to your walking speed' },
+  { holders: AC_RULES, text: 'it is added to your armor class' },
+  {
+    holders: PASSIVE_EDGE_RULES,
+    text: 'its advantage is counted in your passive scores',
+  },
+  { holders: INITIATIVE_RULES, text: 'it is counted in your initiative' },
+  {
+    holders: OPTION_EFFECTS,
+    text: 'what it adds is shown on the numbers it changes and on its row of the Features & Traits tab',
+  },
+  {
+    holders: RESOURCE_RULES,
+    text: 'its uses are counted on the sheet, beside its row of the Features & Traits tab',
+  },
+]
+
+/**
+ * What the app does with an option, each part by the table or the data field that applies
+ * it: none when the player applies it in play.
+ */
+export function optionAppliedParts(option: ClassOption): string[] {
+  const id = holderId({ option: option.key })
+  const parts = APPLIED_BY.filter((a) =>
+    a.holders.some((r) => holderId(r.holder) === id),
+  ).map((a) => a.text)
+  if (FEATURE_PICKS.some((p) => p.holders.some((h) => holderId(h) === id)))
+    parts.push('what it asks you to choose is a card of its own in Class Features')
+  if (option.additionalSpells?.length)
+    parts.push('the spells it gives are listed in your spell grants, in Spells')
+  if (option.skillProficiencies?.length)
+    parts.push('the skill proficiencies it gives are on your skill list')
+  if (option.optionalfeatureProgression?.length)
+    parts.push('what it teaches is offered on a card of its own')
+  if (option.featProgression?.length)
+    parts.push('the feat it gives is a feat slot of its own, in Feats')
+  if (option.types.some((t) => SUPERIORITY_TYPES.includes(t)))
+    parts.push(
+      'the size of your superiority dice is shown on its row of the Features & Traits tab',
+    )
+  return parts
+}
+
 /** Options the app applies, and how. */
 export function optionApplied(option: ClassOption): string {
   const style = styleAppliedFor({ option: option.key })
   if (style) return style
-  const id = holderId({ option: option.key })
-  if (SENSE_RULES.some((r) => holderId(r.holder) === id))
-    return 'Automatic: the sense it gives is listed with your senses.'
-  if (option.additionalSpells?.length)
-    return 'Automatic: the spells it gives are listed in your spell grants, in Spells.'
-  if (option.skillProficiencies?.length)
-    return 'Automatic: the skill proficiencies it gives are on your skill list.'
-  if (option.optionalfeatureProgression?.length)
-    return 'Automatic: what it teaches is offered on a card of its own.'
+  const parts = optionAppliedParts(option)
+  if (parts.length > 0) return `Automatic: ${parts.join('; ')}.`
   return 'You apply it in play: its full text is on the Features & Traits tab of the sheet.'
 }
 

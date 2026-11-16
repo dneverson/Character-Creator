@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { findPlayableRace, holdsRace, loadRaces, type PlayableRace } from './race'
 import { fetchData } from './dataClient'
 import { ABILITIES } from '../dice/dice'
+import type { RaceRef } from '../character/model'
 
 vi.mock('./dataClient', () => ({ fetchData: vi.fn() }))
 const mockFetch = vi.mocked(fetchData)
@@ -404,6 +405,15 @@ describe('findPlayableRace', () => {
     expect(findPlayableRace([race('Human')], undefined)).toBeUndefined()
     expect(findPlayableRace(null, ref('Human'))).toBeUndefined()
   })
+
+  it('takes the size chosen of a race of several sizes, and only one of them', () => {
+    const lineage = { ...race('Lineage'), size: ['S', 'M'] }
+    expect(findPlayableRace([lineage], { ...ref('Lineage'), size: 'S' })).toMatchObject({
+      size: ['S'],
+      sizeOptions: ['S', 'M'],
+    })
+    expect(findPlayableRace([lineage], { ...ref('Lineage'), size: 'L' })).toBe(lineage)
+  })
 })
 
 describe('subraces from other books, and copies of a subrace', () => {
@@ -490,5 +500,146 @@ describe('holdsRace', () => {
     expect(holdsRace(saved, { baseName: 'Elf', source: 'PHB' })).toBe(true)
     expect(holdsRace(saved, { baseName: 'Dwarf', source: 'PHB' })).toBe(false)
     expect(holdsRace(undefined, { baseName: 'Elf', source: 'PHB' })).toBe(false)
+  })
+})
+
+describe('a race trait with options', () => {
+  const lineage = {
+    name: 'Custom Lineage',
+    source: 'TCE',
+    size: ['S', 'M'],
+    speed: 30,
+    darkvision: 60,
+    skillProficiencies: [{ any: 1 }],
+    entries: [
+      { type: 'entries', name: 'Variable Trait', entries: ['Darkvision or a skill.'] },
+    ],
+    _versions: [
+      {
+        name: 'Custom Lineage; Darkvision',
+        source: 'TCE',
+        _mod: {
+          entries: {
+            mode: 'replaceArr',
+            replace: 'Variable Trait',
+            items: {
+              name: 'Variable Trait; Darkvision',
+              type: 'entries',
+              entries: ['Darkvision 60.'],
+            },
+          },
+        },
+        skillProficiencies: null,
+      },
+      {
+        name: 'Custom Lineage; Skill Proficiency',
+        source: 'TCE',
+        _mod: {
+          entries: {
+            mode: 'replaceArr',
+            replace: 'Variable Trait',
+            items: {
+              name: 'Variable Trait; Skill',
+              type: 'entries',
+              entries: ['One skill.'],
+            },
+          },
+        },
+        darkvision: null,
+      },
+    ],
+  }
+  const ref = (trait?: string) => ({
+    name: 'Custom Lineage',
+    baseName: 'Custom Lineage',
+    source: 'TCE',
+    abilityFixed: {},
+    abilityChoices: {},
+    ...(trait ? { trait } : {}),
+  })
+
+  it('offers each version as an option, and gives neither before one is taken', async () => {
+    mockFetch.mockResolvedValue({ race: [lineage] })
+    const [race] = await loadRaces()
+    expect(race.traitChoice?.title).toBe('Variable Trait')
+    expect(race.traitChoice?.options.map((o) => [o.name, o.text])).toEqual([
+      ['Darkvision', ['Darkvision 60.']],
+      ['Skill Proficiency', ['One skill.']],
+    ])
+    expect(race.darkvision).toBeUndefined()
+    expect(race.skillProficiencies).toEqual([])
+  })
+
+  it('gives what the option taken gives', async () => {
+    mockFetch.mockResolvedValue({ race: [lineage] })
+    const races = await loadRaces()
+    const dark = findPlayableRace(races, ref('Darkvision'))
+    expect(dark).toMatchObject({
+      darkvision: 60,
+      skillProficiencies: [],
+      trait: 'Darkvision',
+    })
+    expect(dark?.traitChoice?.options).toHaveLength(2)
+    const skill = findPlayableRace(races, ref('Skill Proficiency'))
+    expect(skill?.darkvision).toBeUndefined()
+    expect(skill?.skillProficiencies).toEqual([{ any: 1 }])
+    expect(findPlayableRace(races, ref())?.trait).toBeUndefined()
+  })
+
+  it('takes a lineage that sets spells as an option, with all it gives', async () => {
+    mockFetch.mockResolvedValue({
+      race: [
+        {
+          name: 'Elf',
+          source: 'XPHB',
+          speed: 30,
+          darkvision: 60,
+          additionalSpells: [
+            { name: 'Drow' },
+            { name: 'High Elf' },
+            { name: 'Wood Elf' },
+          ],
+          _versions: [
+            {
+              name: 'Elf; Drow Lineage',
+              darkvision: 120,
+              additionalSpells: [{ known: {} }],
+            },
+            { name: 'Elf; High Elf Lineage', additionalSpells: [{ known: {} }] },
+            {
+              name: 'Elf; Wood Elf Lineage',
+              speed: 35,
+              additionalSpells: [{ known: {} }],
+            },
+          ],
+        },
+      ],
+    })
+    const races = await loadRaces()
+    const [elf] = races
+    // Before a lineage is taken: the race's own numbers, and none of the lineage spells.
+    expect(elf.traitChoice?.options.map((o) => o.name)).toEqual([
+      'Drow Lineage',
+      'High Elf Lineage',
+      'Wood Elf Lineage',
+    ])
+    expect(elf.additionalSpells).toBeUndefined()
+    expect(elf.darkvision).toBe(60)
+    const ref = (trait: string): RaceRef => ({
+      name: 'Elf',
+      baseName: 'Elf',
+      source: 'XPHB',
+      abilityFixed: {},
+      abilityChoices: {},
+      trait,
+    })
+    const drow = findPlayableRace(races, ref('Drow Lineage'))
+    expect(drow?.darkvision).toBe(120)
+    // The race's sets of spells stay, the lineage's taken, so a choice keeps its place.
+    expect(drow?.additionalSpells).toHaveLength(3)
+    expect(drow?.spellSet).toBe('Drow')
+    expect(findPlayableRace(races, ref('Wood Elf Lineage'))?.speed).toBe(35)
+    // A save from before names the set of spells taken.
+    expect(findPlayableRace(races, ref('High Elf'))?.trait).toBe('High Elf Lineage')
   })
 })

@@ -12,6 +12,7 @@ import { useAsyncData } from '../../hooks/useAsyncData'
 import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import {
   buildSkillSources,
+  withRepeats,
   grantedLine,
   MANUAL_TAG,
   otherPicks,
@@ -68,12 +69,12 @@ export function SkillsSection() {
   const sources = useMemo(
     () =>
       character && held
-        ? [
+        ? withRepeats([
             ...buildSkillSources(character, classByKey, background, race),
             ...summary.skillSources,
             ...optionSkillSources(held, options.data ?? undefined),
             ...featureSkillSources(held),
-          ]
+          ])
         : [],
     [character, held, classByKey, background, race, summary.skillSources, options.data],
   )

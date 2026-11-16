@@ -105,6 +105,8 @@ export interface Sources {
    * held: an offered one is held only when taken.
    */
   featureChoices: FeatureChoiceState
+  /** Whether a weapon of the item catalog, by lower-case name, is simple or martial. */
+  weaponCategory: (name: string) => 'simple' | 'martial' | undefined
 }
 
 export function collectSources(character: Character, deps: DeriveDeps): Sources {
@@ -166,7 +168,25 @@ export function collectSources(character: Character, deps: DeriveDeps): Sources 
     optionSlots: slots,
     featureSlots,
     featureChoices: featureChoiceState(character, featureSlots, variants),
+    weaponCategory: weaponCategories(deps.items ?? []),
   }
+}
+
+/** The weapons of the catalog by lower-case name, read once per catalog. */
+const CATEGORIES = new WeakMap<readonly Item[], Sources['weaponCategory']>()
+
+function weaponCategories(items: readonly Item[]): Sources['weaponCategory'] {
+  const known = CATEGORIES.get(items)
+  if (known) return known
+  const byName = new Map<string, 'simple' | 'martial'>()
+  for (const item of items) {
+    const category = item.weapon?.category
+    if (category && !byName.has(item.name.toLowerCase()))
+      byName.set(item.name.toLowerCase(), category)
+  }
+  const read = (name: string) => byName.get(name)
+  CATEGORIES.set(items, read)
+  return read
 }
 
 /** A rule's holder as the character has it. */

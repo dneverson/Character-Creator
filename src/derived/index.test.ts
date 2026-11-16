@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deriveSheet } from '.'
+import { deriveSheet, sameBuild } from '.'
 import { build, FIGHTER, WIZARD, deps } from '../test/derivedFixtures'
 import { makeItem } from '../test/itemFixtures'
 
@@ -56,5 +56,27 @@ describe('deriveSheet picks', () => {
       },
     ])
     expect(sheet.optionals).toMatchObject([{ text: 'Firearms', on: false }])
+  })
+})
+
+describe('sameBuild', () => {
+  it('holds across play, history, favorites and portrait, not a build change', () => {
+    const c = build('Fighter', 1, {}, [])
+    expect(sameBuild(c, c)).toBe(true)
+    const played = {
+      ...c,
+      play: { ...c.play, tempHp: 5 },
+      history: [],
+      favorites: [],
+      portrait: 'data:',
+      updatedAt: c.updatedAt + 1,
+    }
+    expect(sameBuild(c, played)).toBe(true)
+    expect(sameBuild(c, { ...c, name: 'Other' })).toBe(false)
+    expect(sameBuild(c, { ...c, play: { ...c.play, masteryAtRest: {} } })).toBe(false)
+    // A field only one of them has is a change too.
+    expect(sameBuild({ ...c, completedAt: 1 }, { ...c, completedAt: undefined })).toBe(
+      false,
+    )
   })
 })

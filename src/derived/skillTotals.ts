@@ -7,6 +7,7 @@ import { abilityMod } from '../dice/dice'
 import type { SkillRow, SkillSource } from '../character/skills'
 import { halfLines, halfRules, itemCheckLines } from './combat'
 import type { AbilityTotals } from './armorClass'
+import { checkEffectLines, heldOptionEffects } from './optionEffects'
 import type { Sources } from './sources'
 import { BASE_SOURCE, quantity, type Line, type SourceRef, type Quantity } from './types'
 
@@ -23,6 +24,7 @@ export function skillTotals(
   expertise: ReadonlyMap<string, SourceRef>,
 ): DerivedSkill[] {
   const byTag = new Map(skillSources.map((s) => [s.tag, s]))
+  const effects = heldOptionEffects(sources)
   return rows.map((row) => {
     const lines: Line[] = [
       {
@@ -70,6 +72,7 @@ export function skillTotals(
         row.proficient,
       ),
       ...itemCheckLines(sources, `skill|${row.key}`),
+      ...checkEffectLines(effects, row.key, `skill|${row.key}|edge`),
     )
     return { ...row, total: quantity(lines) }
   })

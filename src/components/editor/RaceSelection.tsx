@@ -6,8 +6,10 @@
 
 import { useMemo } from 'react'
 import Alert from 'react-bootstrap/Alert'
+import Form from 'react-bootstrap/Form'
 import Spinner from 'react-bootstrap/Spinner'
 import type { AbilityIncreases } from '../../data/abilityOptions'
+import { sizeName } from '../../data/labels'
 import { findPlayableRace, loadRaces, type PlayableRace } from '../../data/race'
 import type { RaceRef } from '../../character/model'
 import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
@@ -18,6 +20,8 @@ import { AbbrText } from '../Abbr'
 import { AbilityOptionPicker } from './AbilityOptionPicker'
 import { OptionalRuleSwitch } from './OptionalRuleSwitch'
 import { OriginIncreaseFlags } from './OriginIncreaseFlags'
+import { OriginSwaps } from './OriginSwaps'
+import { RaceTraitChooser } from './RaceTraitChooser'
 import { EditorSection } from './EditorSection'
 import { NotInBooksAlert } from './NotInBooksAlert'
 import {
@@ -32,9 +36,15 @@ import {
 
 /**
  * A character's record of a race, taking its increases the given way: under Customizing
- * Your Origin, with none given outright.
+ * Your Origin, with none given outright. The option of its trait and the size taken
+ * stay.
  */
-function raceRef(race: PlayableRace, abilityOption = 0, customOrigin = false): RaceRef {
+function raceRef(
+  race: PlayableRace,
+  abilityOption = 0,
+  customOrigin = false,
+  swaps?: string[],
+): RaceRef {
   const custom = customOrigin && canCustomizeOrigin(race)
   return {
     name: race.name,
@@ -46,6 +56,9 @@ function raceRef(race: PlayableRace, abilityOption = 0, customOrigin = false): R
     abilityFixed: custom ? {} : (race.abilityOptions[abilityOption]?.fixed ?? {}),
     abilityChoices: {},
     ...(custom ? { customOrigin: true } : {}),
+    ...(custom && swaps?.length ? { swaps } : {}),
+    ...(race.trait ? { trait: race.trait } : {}),
+    ...(race.sizeOptions && race.size ? { size: race.size[0] } : {}),
   }
 }
 
@@ -64,6 +77,8 @@ export function RaceSelection() {
   if (!character) return null
   const race = character.race
   const picked = findPlayableRace(available, race)
+
+  const sizes = picked?.sizeOptions ?? picked?.size ?? []
 
   const placeIncreases = (abilityChoices: AbilityIncreases) => {
     if (race) updateActive({ race: { ...race, abilityChoices } })
@@ -132,13 +147,24 @@ export function RaceSelection() {
                     id="race-custom-origin"
                     on={race.customOrigin === true}
                     onToggle={(on) =>
-                      updateActive({ race: raceRef(picked, race.abilityOption ?? 0, on) })
+                      updateActive({
+                        race: raceRef(picked, race.abilityOption ?? 0, on, race.swaps),
+                      })
                     }
                   >
                     <strong>Customizing Your Origin:</strong>{' '}
                     <AbbrText text="place each of the race's increases on an ability of your choice, a different one each (TCE, an optional rule)." />
                   </OptionalRuleSwitch>
                 </div>
+              )}
+              {race.customOrigin && canCustomizeOrigin(picked) && (
+                <OriginSwaps
+                  race={
+                    findPlayableRace(available, { ...race, swaps: undefined }) ?? picked
+                  }
+                  raceRef={race}
+                  onSwaps={(swaps) => updateActive({ race: { ...race, swaps } })}
+                />
               )}
               {picked.abilityOptions.length > 0 ? (
                 <AbilityOptionPicker
@@ -148,7 +174,12 @@ export function RaceSelection() {
                   choices={race.abilityChoices}
                   onOption={(index) =>
                     updateActive({
-                      race: raceRef(picked, index, race.customOrigin === true),
+                      race: raceRef(
+                        picked,
+                        index,
+                        race.customOrigin === true,
+                        race.swaps,
+                      ),
                     })
                   }
                   onChoices={placeIncreases}
@@ -158,6 +189,39 @@ export function RaceSelection() {
                   {picked.edition === 'one'
                     ? 'None from the species: under the 2024 rules they come from your background.'
                     : 'This race gives none.'}
+                </div>
+              )}
+              {sizes.length > 1 && (
+                <div className="mt-3">
+                  <h4 className="h6 mb-2">Size</h4>
+                  <div role="radiogroup" aria-label="Size">
+                    {sizes.map((size) => (
+                      <Form.Check
+                        key={size}
+                        inline
+                        type="radio"
+                        name="race-size"
+                        id={`race-size-${size}`}
+                        label={sizeName(size)}
+                        checked={race.size === size}
+                        onChange={() => updateActive({ race: { ...race, size } })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {picked.traitChoice && (
+                <div className="mt-3">
+                  <h4 className="h6 mb-2">{picked.traitChoice.title}</h4>
+                  <RaceTraitChooser
+                    choice={picked.traitChoice}
+                    taken={race.trait}
+                    onTake={(trait) => {
+                      const { trait: _old, ...rest } = race
+                      void _old
+                      updateActive({ race: trait ? { ...rest, trait } : rest })
+                    }}
+                  />
                 </div>
               )}
             </div>

@@ -11,6 +11,7 @@ import { strengthNeeded } from '../rules/equipment'
 import { AC_RULES, acRuleId, type AcRequirement, type AcRule } from '../rules/acRules'
 import type { ArmorKind } from '../rules/proficiencyGrants'
 import { itemBonus } from './itemBonus'
+import { acEffectLines, heldOptionEffects } from './optionEffects'
 import { armorProficiency, isArmorItem, type Proficiencies } from './proficiencies'
 import { heldBy, type HeldItem, type Sources } from './sources'
 import {
@@ -343,6 +344,9 @@ export function armorClass(
           : undefined,
     })
   }
+
+  // The infusions put into the armor or the shield (Enhanced Defense).
+  lines.push(...acEffectLines(sources, heldOptionEffects(sources), [usedArmor, shield]))
 
   // The bonuses the tables give (feats, styles, species, items).
   for (const rule of AC_RULES) {

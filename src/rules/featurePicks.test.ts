@@ -16,10 +16,12 @@ import {
   TERRAINS,
 } from './featurePicks'
 import { holderId } from './holder'
+import { EFFECT_ITEM_PICKS } from './optionEffects'
 
 describe('the feature picks table', () => {
-  it('gives every pick a title, and every option a key, of its own', () => {
-    const titles = FEATURE_PICKS.map((p) => p.title)
+  it('gives every pick a title of its own holder, and every option a key, of its own', () => {
+    // The tag a pick is stored under is its first holder's and its title.
+    const titles = FEATURE_PICKS.map((p) => `${holderId(p.holders[0])}|${p.title}`)
     expect(new Set(titles).size).toBe(titles.length)
     for (const pick of FEATURE_PICKS) {
       const keys = pick.options.map((o) => o.key)
@@ -120,9 +122,14 @@ describe.skipIf(!dataDir)('feature picks against the data', () => {
       ({ collection, record }) =>
         collection === 'optionalfeature' && ASKS.test(plainText(record)),
     )
+    // The item an option's effects are on (a pact weapon, an infused item) is picked
+    // whether or not its text asks: the infusion's item prerequisite names it.
+    const itemPicks = new Set(EFFECT_ITEM_PICKS.map((r) => r.option))
     const rows = new Set(
       FEATURE_PICKS.flatMap((p) =>
-        p.holders.flatMap((h) => ('option' in h ? [h.option] : [])),
+        p.holders.flatMap((h) =>
+          'option' in h && !itemPicks.has(h.option) ? [h.option] : [],
+        ),
       ),
     )
     const tally = { row: 0, excused: 0, data: 0 }

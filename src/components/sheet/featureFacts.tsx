@@ -5,6 +5,7 @@
 import type { FeatureRow } from '../../derived/features'
 import { Entries } from '../../text/Entries'
 import { factColumn, type Describe, type Fact } from '../table/facts'
+import { EffectLines } from './EffectLines'
 import type { Column } from '../table/types'
 
 export const featureKey = (row: FeatureRow) => row.id
@@ -33,6 +34,16 @@ const description: Fact<FeatureRow> = {
   render: (row) => <Entries entries={row.entries} />,
 }
 
+const effects: Fact<FeatureRow> = {
+  key: 'effects',
+  label: 'On your sheet',
+  text: (row) =>
+    (row.lines ?? [])
+      .map((l) => [l.label, l.amount, l.how, l.why].filter(Boolean).join(' '))
+      .join('; '),
+  render: (row) => <EffectLines lines={row.lines ?? []} />,
+}
+
 export const featureColumns: Column<FeatureRow>[] = [
   {
     key: 'name',
@@ -50,7 +61,7 @@ export const featureColumns: Column<FeatureRow>[] = [
 ]
 
 export const describeFeature: Describe<FeatureRow> = () => [
-  { key: 'basics', title: 'Basics', facts: [from, kind, level] },
+  { key: 'basics', title: 'Basics', facts: [from, kind, level, effects] },
   { key: 'text', title: 'Text', facts: [description] },
 ]
 

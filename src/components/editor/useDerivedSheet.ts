@@ -1,19 +1,32 @@
 // The derived sheet of the active character: every number worked out once from what the
 // character has and the loaded data, for the sections that show them.
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useCharacter } from '../../character/useCharacterDoc'
 import { loadClassOptions } from '../../data/classOptions'
 import { loadBookEditions } from '../../data/edition'
 import { loadItems } from '../../data/items'
 import { loadLanguages } from '../../data/languages'
-import { deriveSheet } from '../../derived'
+import type { Character } from '../../character/model'
+import { deriveSheet, sameBuild } from '../../derived'
 import type { DeriveDeps } from '../../derived/sources'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { useFeatSummary } from './useFeatSummary'
 
+/**
+ * The character as last derived: the same object until its build changes, so an edit in
+ * play (a use spent, damage taken) keeps the sheet, and what shows it, as they are.
+ */
+function useBuild(character: Character | null): Character | null {
+  const [held, setHeld] = useState(character)
+  if (held === character) return held
+  if (held && character && sameBuild(held, character)) return held
+  setHeld(character)
+  return character
+}
+
 export function useDerivedSheet() {
-  const character = useCharacter()
+  const character = useBuild(useCharacter())
   const { classByKey, background, race, feats, loading, error } = useFeatSummary()
   const items = useAsyncData(loadItems)
   const languages = useAsyncData(loadLanguages)

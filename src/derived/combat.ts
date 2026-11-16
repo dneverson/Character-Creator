@@ -17,6 +17,7 @@ import {
 } from '../rules/combatRules'
 import type { AbilityTotals } from './armorClass'
 import { itemBonus } from './itemBonus'
+import { heldOptionEffects, initiativeEffectLines } from './optionEffects'
 import { heldBy, type Sources } from './sources'
 import { BASE_SOURCE, quantity, type Line, type Quantity } from './types'
 
@@ -167,6 +168,7 @@ export function initiative(
     }
   }
   lines.push(...halfLines(halves, proficient))
+  lines.push(...initiativeEffectLines(sources, heldOptionEffects(sources)))
   // Initiative is a Dexterity check.
   lines.push(...itemCheckLines(sources, 'initiative'))
   lines.push({

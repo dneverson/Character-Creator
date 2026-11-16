@@ -2,9 +2,9 @@
 // editor's job, one click away.
 
 import Button from 'react-bootstrap/Button'
-import type { StoryState } from '../../character/model'
+import type { Character, StoryState } from '../../character/model'
 import { useCharacterStore } from '../../character/store'
-import { useCharacter } from '../../character/useCharacterDoc'
+import { useCharacterPart } from '../../character/useCharacterDoc'
 
 const FIELDS: { key: keyof StoryState; label: string }[] = [
   { key: 'personalityTraits', label: 'Personality Traits' },
@@ -16,8 +16,10 @@ const FIELDS: { key: keyof StoryState; label: string }[] = [
   { key: 'backstory', label: 'Backstory' },
 ]
 
+const selectStory = (character: Character) => character.story
+
 export function StoryPanel() {
-  const story = useCharacter()?.story
+  const story = useCharacterPart(selectStory)
   const setView = useCharacterStore((s) => s.setView)
   if (!story) return null
   const written = FIELDS.filter((f) => story[f.key].trim() !== '')

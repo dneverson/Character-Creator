@@ -8,8 +8,10 @@
 // the weapons of the catalog, the tables of the option's text.
 
 import type { PickCard, PickChip } from '../character/picks'
+import { indexItems, resolveInventoryItem } from '../character/inventory'
 import type { ClassOption } from '../data/classOptions'
 import type { Item } from '../data/itemTypes'
+import type { PickedItemKind } from '../rules/optionEffects'
 import {
   FEATURE_PICKS,
   type FeaturePick,
@@ -137,6 +139,7 @@ function weaponOptions(
   for (const item of items) {
     const w = item.weapon
     if (item.kind !== 'weapon' || item.magic || !w?.category) continue
+    if (from.melee && !w.melee) continue
     const key = item.name.toLowerCase()
     const codes = w.properties.map((p) => p.code)
     if (!from.also.includes(key) && from.without.some((c) => codes.includes(c))) continue
@@ -153,9 +156,64 @@ function weaponOptions(
           value: `${w.damage?.text ?? '-'} ${w.damageTypes.join(', ')}`,
         },
       ],
+      group: w.melee ? 'melee' : 'ranged',
     })
   }
   return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/** Whether an item is of the kind a pick of the inventory reads. */
+const ITEM_KINDS: Record<PickedItemKind, (item: Item) => boolean> = {
+  weapon: (item) => item.kind === 'weapon' && item.weapon !== undefined,
+  armorOrShield: (item) => item.armor !== undefined,
+  shield: (item) => item.armor?.class === 'shield',
+  armor: (item) => item.armor !== undefined && item.armor.class !== 'shield',
+  focus: (item) => ['rod', 'staff', 'wand', 'focus'].includes(item.kind),
+  any: () => true,
+  monkCandidate: (item) =>
+    item.kind === 'weapon' &&
+    item.weapon?.category !== undefined &&
+    !item.weapon.properties.some((p) => p.code === 'H' || p.code === 'S'),
+}
+
+/**
+ * The items of the inventory of the pick's kind, by their key in lower case: a magic one
+ * is flagged for an infusion, a ranged weapon for a pact weapon without the option that
+ * allows it.
+ */
+function inventoryOptions(
+  from: Extract<FeaturePickFrom, { kind: 'inventory' }>,
+  sources: Sources,
+  items: readonly Item[],
+): FeaturePickOption[] {
+  const catalog = indexItems(items)
+  const byKey = new Map<string, FeaturePickOption>()
+  const ranged = from.rangedWith && sources.options.has(from.rangedWith)
+  for (const stack of sources.character.equipment.items) {
+    const item = resolveInventoryItem(stack, catalog)
+    if (!item || !ITEM_KINDS[from.items](item)) continue
+    const key = item.key.toLowerCase()
+    if (byKey.has(key)) continue
+    const unmet =
+      from.nonmagical && item.magic
+        ? 'An infusion goes into a nonmagical object - allowed with DM approval'
+        : from.rangedWith && item.weapon && !item.weapon.melee && !ranged
+          ? `A ranged pact weapon needs ${from.rangedWith.split('|')[0]} - allowed with DM approval`
+          : undefined
+    byKey.set(key, {
+      key,
+      name: item.name,
+      text: [item.category ?? item.kind, stack.equipped ? 'equipped' : 'carried'].join(
+        ', ',
+      ),
+      facts: [
+        { label: 'Item', value: item.category ?? item.kind },
+        { label: 'Equipped', value: stack.equipped ? 'Yes' : 'No' },
+      ],
+      ...(unmet ? { unmet } : {}),
+    })
+  }
+  return [...byKey.values()]
 }
 
 /** The rows of the option's own tables whose caption matches, with the level the caption names. */
@@ -199,16 +257,59 @@ export function pickOptions(
   data: PickData,
 ): readonly FeaturePickOption[] {
   const { pick } = held
+  const options = listed(held, sources, data)
+  return pick.oneOfEach
+    ? oneOfEach(
+        pick.oneOfEach,
+        options,
+        sources.character.classOptions[held.tag] ?? [],
+        held.count,
+      )
+    : options
+}
+
+function listed(
+  held: HeldFeaturePick,
+  sources: Sources,
+  data: PickData,
+): readonly FeaturePickOption[] {
+  const { pick } = held
   const from = pick.from
   if (!from) return pick.options
   if (from.kind === 'warlockCantrips') return warlockCantrips(sources, pick)
   if (from.kind === 'weapons') return weaponOptions(from, data.items ?? [])
+  if (from.kind === 'inventory') return inventoryOptions(from, sources, data.items ?? [])
   const holder = pick.holders[0]
   const key = 'option' in holder ? holder.option : ''
   return tableOptions(
     from,
     data.catalog?.find((o) => o.key === key),
   )
+}
+
+/**
+ * The options with those of the groups already picked flagged, once the picks left
+ * could not cover each group still missing (a kensei's second melee weapon, before a
+ * ranged one); the picks made too once none is left.
+ */
+function oneOfEach(
+  rule: NonNullable<FeaturePick['oneOfEach']>,
+  options: readonly FeaturePickOption[],
+  picks: readonly string[],
+  count: number,
+): FeaturePickOption[] {
+  const groupOf = new Map(options.map((o) => [o.key, o.group]))
+  const had = new Set(picks.map((p) => groupOf.get(p)))
+  const missing = rule.groups.filter((g) => !had.has(g))
+  const left = Math.max(0, count - picks.length)
+  if (missing.length === 0 || left > missing.length) return [...options]
+  // A pick made stays unflagged while picks are left to mend the list with.
+  const flagged = (o: FeaturePickOption) =>
+    o.group !== undefined &&
+    !missing.includes(o.group) &&
+    !o.unmet &&
+    (left === 0 || !picks.includes(o.key))
+  return options.map((o) => (flagged(o) ? { ...o, unmet: rule.why } : o))
 }
 
 /** The options, and any pick no longer among them (a cantrip since swapped), to be seen and taken back. */
@@ -235,9 +336,11 @@ const chipOf = (
   value,
   label,
   state,
-  ...(option.minLevel && classLevel < option.minLevel
-    ? { unmet: `Needs class level ${option.minLevel} - allowed with DM approval` }
-    : {}),
+  ...(option.unmet
+    ? { unmet: option.unmet }
+    : option.minLevel && classLevel < option.minLevel
+      ? { unmet: `Needs class level ${option.minLevel} - allowed with DM approval` }
+      : {}),
   detail: { facts: option.facts ?? [], entries: [option.text] },
 })
 

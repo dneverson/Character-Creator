@@ -6,7 +6,7 @@ import type { AbilityKey } from '../dice/dice'
 import { characterAbilityTotals, totalLevel } from '../character/derive'
 import { hpBreakdown } from '../character/hp'
 import { proficiencyBonus } from '../data/skills'
-import { buildSkillSources, skillCards } from '../character/skills'
+import { buildSkillSources, skillCards, withRepeats } from '../character/skills'
 import type { BeastRef, Character } from '../character/model'
 import type { PickCard } from '../character/picks'
 import { armorClass, type AbilityTotals } from './armorClass'
@@ -100,6 +100,32 @@ export interface DerivedSheet {
   hp: Quantity
 }
 
+/**
+ * The parts of a character the derived sheet does not read: what happened in play (but for
+ * the weapon masteries chosen at the last long rest), the history, the favorites, the
+ * portrait and when it was last edited. A change to only these leaves the sheet as it was.
+ */
+const NOT_DERIVED = new Set<string>([
+  'play',
+  'history',
+  'favorites',
+  'portrait',
+  'updatedAt',
+])
+
+/** Whether two versions of a character derive the same sheet: their build is the same. */
+export function sameBuild(a: Character, b: Character): boolean {
+  if (a === b) return true
+  if (a.play.masteryAtRest !== b.play.masteryAtRest) return false
+  return sameFields(a, b) && sameFields(b, a)
+}
+
+/** Whether every field of `x` the sheet reads holds the same value in `y`. */
+const sameFields = (x: Character, y: Character) =>
+  Object.entries(x).every(
+    ([key, value]) => NOT_DERIVED.has(key) || Reflect.get(y, key) === value,
+  )
+
 export function deriveSheet(character: Character, deps: DeriveDeps): DerivedSheet {
   const sources = collectSources(character, deps)
   const edition = characterEdition(character, deps.editionOf)
@@ -136,12 +162,12 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
   const choices: GrantChoices = { picks: character.grantPicks, alt: character.grantAlt }
   const known = proficiencies(sources, choices)
   const blocks = grantBlocks(sources)
-  const skillSources = [
+  const skillSources = withRepeats([
     ...buildSkillSources(character, deps.classByKey, deps.background, deps.race),
     ...sources.summary.skillSources,
     ...optionSkillSources(sources, deps.optionCatalog),
     ...featureSkillSources(sources),
-  ]
+  ])
   const table = skillTable(character, sources, skillSources, sources.summary.abilityBonus)
   const ac = armorClass(sources, totals, known)
   const speed = speedQuantity(sources, totals.str, edition)
@@ -153,7 +179,7 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
   const classOptions = optionCards(sources, deps)
   const breakdown = hpBreakdown(character, deps.classByKey, sources.summary)
   const rolled = character.hp.method === 'rolled' && breakdown.rolledHP !== undefined
-  const features = featureRows(sources, deps.optionCatalog, deps.items)
+  const features = featureRows(sources, deps.optionCatalog, deps.items, totals)
   // The first row of a name is the feature's own text; later rows are its improvements.
   const featureText = new Map(
     [...features]

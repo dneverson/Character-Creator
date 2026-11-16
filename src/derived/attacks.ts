@@ -7,9 +7,12 @@
 import { ABILITY_NAMES, abilityMod, formatMod, type AbilityKey } from '../dice/dice'
 import type { ItemMastery, ItemProperty } from '../data/items'
 import { FIGHTING_STYLES, type FightingStyle } from '../rules/fightingStyles'
+import { MONK_WEAPON_RULES, type MonkWeaponRule } from '../rules/martialArts'
 import type { AbilityTotals } from './armorClass'
 import { classTableDie } from './classTable'
+import { heldFeaturePicks } from './featurePicks'
 import { itemBonus } from './itemBonus'
+import { heldOptionEffects, weaponEffects, type HeldEffect } from './optionEffects'
 import { weaponProficiency, type Proficiencies } from './proficiencies'
 import { heldBy, type HeldItem, type Sources } from './sources'
 import { masteredKinds } from './weaponMastery'
@@ -82,6 +85,71 @@ interface Context {
   shield: boolean
   /** The kinds of weapons picked for a weapon mastery, with what they were picked for. */
   mastered: Map<string, SourceRef>
+  /** The effects of the class options held (an infusion, a pact weapon's invocations). */
+  effects: HeldEffect[]
+  /** A monk's Martial Arts, for the attacks with monk weapons. */
+  martialArts?: MartialArts
+}
+
+interface MartialArts {
+  faces: number
+  source: SourceRef
+  rule?: MonkWeaponRule
+  /** The weapons picked as monk weapons (kensei weapons, a dedicated weapon), by key. */
+  picked: Map<string, { source: SourceRef; needsProficiency: boolean }>
+  /** The armor or shield worn, which turns Martial Arts off. */
+  armor?: string
+}
+
+/** A monk's Martial Arts: its die at the Monk level, and what makes a weapon a monk weapon. */
+function martialArtsOf(sources: Sources): MartialArts | undefined {
+  const monk = sources.classes.find((c) => c.row.name === 'Monk' && c.loaded)
+  const faces =
+    monk?.loaded && monk.level > 0
+      ? classTableDie(monk.loaded.entry, MARTIAL_ARTS, monk.level)
+      : undefined
+  if (!monk || !faces) return undefined
+  const picked: MartialArts['picked'] = new Map()
+  for (const held of heldFeaturePicks(sources)) {
+    if (!held.pick.monkWeapons) continue
+    const source = { ...held.source, label: held.pick.title }
+    // A dedicated weapon must be one the monk is proficient with; kensei weapons give it.
+    const needsProficiency = held.pick.from?.kind === 'inventory'
+    for (const key of sources.character.classOptions[held.tag] ?? [])
+      picked.set(key, { source, needsProficiency })
+  }
+  return {
+    faces,
+    source: { kind: 'class', tag: `class:Monk|${monk.row.source}`, label: MARTIAL_ARTS },
+    rule: MONK_WEAPON_RULES.find((r) => r.classSource === monk.row.source),
+    picked,
+    armor: sources.items.find((i) => i.item.armor?.class)?.item.name,
+  }
+}
+
+/** What makes a weapon a monk weapon for the character: the Monk's rule or a pick. */
+function monkWeaponBy(
+  held: HeldItem,
+  ma: MartialArts,
+  proficient: boolean,
+): { source: SourceRef; text: string } | { unmet: string } | undefined {
+  const pick =
+    ma.picked.get(held.baseName.toLowerCase()) ??
+    ma.picked.get(held.item.key.toLowerCase())
+  if (pick && pick.needsProficiency && !proficient)
+    return {
+      unmet: `${pick.source.label}: you are not proficient with it, so it is not a monk weapon.`,
+    }
+  if (pick)
+    return { source: pick.source, text: `${pick.source.label}: a monk weapon for you` }
+  if (ma.rule?.is(held.item, held.baseName))
+    return { source: ma.source, text: ma.rule.text }
+  return undefined
+}
+
+const dieFaces = (text: string | undefined) => {
+  const match = /^1d(\d+)$/.exec(text ?? '')
+  return match ? Number(match[1]) : undefined
 }
 
 function stylesHeld(sources: Sources) {
@@ -103,12 +171,33 @@ const flagLine = (id: string, label: string, why: string): Line => ({
 function weaponRow(held: HeldItem, ctx: Context): AttackRow | undefined {
   const weapon = held.item.weapon
   if (!weapon) return undefined
-  const { key, why } = weaponAbility(held, ctx.totals)
+  const options = weaponEffects(ctx.sources, held, ctx.totals, ctx.effects)
+  const proficient = weaponProficiency(ctx.proficiencies, held) ?? options.proficient
+  const ma = ctx.martialArts
+  const monkBy = ma ? monkWeaponBy(held, ma, proficient !== undefined) : undefined
+  const monk = ma && monkBy && 'source' in monkBy && !ma.armor ? monkBy : undefined
+  const usual = weaponAbility(held, ctx.totals)
+  // An option may let the attacks use another ability (Charisma with a 2024 pact weapon),
+  // and Martial Arts Dexterity with a monk weapon.
+  const alt =
+    options.ability ??
+    (monk ? { key: 'dex' as const, source: monk.source, label: MARTIAL_ARTS } : undefined)
+  const altMod = alt ? abilityMod(ctx.totals[alt.key]) : 0
+  const { key, why } =
+    alt && altMod > abilityMod(ctx.totals[usual.key])
+      ? {
+          key: alt.key,
+          why: `${alt.label}: ${ABILITY_NAMES[alt.key]} ${formatMod(altMod)} beats ${ABILITY_NAMES[usual.key]}`,
+        }
+      : usual
   const mod = abilityMod(ctx.totals[key])
   const codes = weapon.properties.map((p) => p.code)
   const id = `attack|${held.item.key}`
+  const abilitySource = alt && key === alt.key ? alt.source : BASE_SOURCE
   const ability = (suffix: string) =>
-    lineOf(`${id}|${suffix}|ability`, ABILITY_NAMES[key], BASE_SOURCE, mod, { how: why })
+    lineOf(`${id}|${suffix}|ability`, ABILITY_NAMES[key], abilitySource, mod, {
+      how: why,
+    })
   const inactive = held.active
     ? {}
     : { status: 'inactive' as const, why: 'Needs attunement, and you are not attuned.' }
@@ -125,7 +214,6 @@ function weaponRow(held: HeldItem, ctx: Context): AttackRow | undefined {
   const meleeOneHanded = weapon.melee && !codes.includes('2H')
   const alone = ctx.weaponCount === 1
   const toHit: Line[] = [ability('hit')]
-  const proficient = weaponProficiency(ctx.proficiencies, held)
   if (proficient) {
     toHit.push(
       lineOf(`${id}|hit|prof`, 'Proficiency bonus', proficient, ctx.prof, {
@@ -141,14 +229,32 @@ function weaponRow(held: HeldItem, ctx: Context): AttackRow | undefined {
       ),
     )
   }
-  toHit.push(...magic('hit', ['bonusWeapon', 'bonusWeaponAttack']))
+  toHit.push(...magic('hit', ['bonusWeapon', 'bonusWeaponAttack']), ...options.hit)
 
   const damage: Line[] = [
     ability('damage'),
     ...magic('damage', ['bonusWeapon', 'bonusWeaponDamage']),
+    ...options.damage,
   ]
-  const notes: string[] = []
+  const notes: string[] = [...options.notes]
   const twoHandedExtra: Line[] = []
+  // Martial Arts: the monk's die in place of the weapon's when it is higher.
+  const dieOf = (dice: string | undefined) => {
+    const faces = dieFaces(dice)
+    return ma && monk && faces !== undefined && ma.faces > faces ? `1d${ma.faces}` : dice
+  }
+  if (ma && monkBy) {
+    if ('unmet' in monkBy) notes.push(monkBy.unmet)
+    else if (ma.armor)
+      notes.push(
+        `${MARTIAL_ARTS}: not while you wear armor or wield a shield (${ma.armor}).`,
+      )
+    else if (dieOf(weapon.damage?.text) !== weapon.damage?.text)
+      notes.push(
+        `${MARTIAL_ARTS}: ${monkBy.text}, so the damage die is d${ma.faces} in place of ${weapon.damage?.text ?? ''}.`,
+      )
+    else notes.push(`${MARTIAL_ARTS}: ${monkBy.text}.`)
+  }
 
   for (const { style, source } of ctx.styles) {
     const e = style.effect
@@ -241,12 +347,12 @@ function weaponRow(held: HeldItem, ctx: Context): AttackRow | undefined {
     count: Math.max(1, held.stack.quantity),
     toHit: quantity([...toHit, ...masteryLines, ...flags]),
     damage: {
-      dice: weapon.damage?.text ?? '-',
+      dice: dieOf(weapon.damage?.text) ?? '-',
       types: weapon.damageTypes.map((t) => t.toLowerCase()).join(' or '),
       bonus: quantity(damage),
     },
     twoHanded: versatile
-      ? { dice: versatile.text, bonus: quantity(twoHandedExtra) }
+      ? { dice: dieOf(versatile.text) ?? versatile.text, bonus: quantity(twoHandedExtra) }
       : undefined,
     range: rangeText,
     properties: weapon.properties,
@@ -260,11 +366,8 @@ function unarmedRow(ctx: Context): AttackRow {
   const id = 'attack|unarmed'
   const str = abilityMod(ctx.totals.str)
   const dex = abilityMod(ctx.totals.dex)
-  const monk = ctx.sources.classes.find((c) => c.row.name === 'Monk' && c.loaded)
-  const monkFaces =
-    monk?.loaded && monk.level > 0
-      ? classTableDie(monk.loaded.entry, MARTIAL_ARTS, monk.level)
-      : undefined
+  const monk = ctx.martialArts
+  const monkFaces = monk?.faces
   const empty = ctx.weaponCount === 0 && !ctx.shield
   const style = ctx.styles.find((s) => s.style.effect.kind === 'unarmed')
   const styleFaces =
@@ -336,6 +439,8 @@ export function attackRows(
     weaponCount: weapons.reduce((n, w) => n + Math.max(1, w.stack.quantity), 0),
     shield: sources.items.some((i) => i.item.armor?.class === 'shield'),
     mastered: masteredKinds(sources),
+    effects: heldOptionEffects(sources),
+    martialArts: martialArtsOf(sources),
   }
   return [...weapons.flatMap((w) => weaponRow(w, ctx) ?? []), unarmedRow(ctx)]
 }

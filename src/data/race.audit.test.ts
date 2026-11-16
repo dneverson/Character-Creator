@@ -39,6 +39,39 @@ interface RawSubrace {
   _copy?: { raceName?: string; raceSource?: string }
 }
 
+interface RawVersion {
+  name?: string
+  _abstract?: unknown
+  [field: string]: unknown
+}
+
+interface RawRace {
+  name: string
+  source: string
+  raceName?: string
+  _versions?: RawVersion[]
+}
+
+interface RawFile {
+  race: RawRace[]
+  subrace?: RawRace[]
+}
+
+/**
+ * The fields of a version that are not a number or grant of the race: its name and book,
+ * its text (`_mod`, shown as the option's text), the data's own search tags, and which of
+ * its grants replace the race's (applied as the version's fields themselves).
+ */
+const NOT_APPLIED = ['name', 'source', '_mod', 'traitTags', 'overwrite']
+
+/** A spell block of the data with its first-level keys in one order, to compare. */
+const sorted = (value: unknown): unknown => {
+  const block: unknown = Array.isArray(value) ? value[0] : value
+  return block && typeof block === 'object'
+    ? Object.fromEntries(Object.entries(block).sort(([a], [b]) => a.localeCompare(b)))
+    : block
+}
+
 /** Every race rule of the hand-written tables, by the table it is in. */
 const RACE_RULES: [string, RaceHolder][] = [
   ...(
@@ -77,6 +110,10 @@ describe.skipIf(!dataDir)('races and subraces against the data', async () => {
         }
       ).subrace ?? [])
     : []
+
+  const rawFile: RawFile = dataDir
+    ? (JSON.parse(readFileSync(`${dataDir}/races.json`, 'utf8')) as RawFile)
+    : { race: [] }
 
   it('lists every subrace under the race it names, a copied one included', () => {
     const missing = subraces.flatMap((s) => {
@@ -146,5 +183,99 @@ describe.skipIf(!dataDir)('races and subraces against the data', async () => {
     expect(missed).toEqual([])
     // The EGW Draconblood and Ravenite take the Breath Weapon of the PHB Dragonborn.
     expect(crossBook).toBeGreaterThan(20)
+  })
+
+  it('offers the options of a trait to choose, each giving what it says', () => {
+    const choosing = races.filter((r) => r.traitChoice)
+    const lineage = races.find((r) => r.name === 'Custom Lineage')
+    expect(lineage?.traitChoice?.title).toBe('Variable Trait')
+    const options = lineage?.traitChoice?.options ?? []
+    expect(options.map((o) => o.name)).toEqual(['Darkvision', 'Skill Proficiency'])
+    // Neither before one is taken: no darkvision, no skill.
+    expect(lineage?.darkvision).toBeUndefined()
+    expect(lineage?.skillProficiencies ?? []).toEqual([])
+    expect(options[0].race.darkvision).toBe(60)
+    expect(options[0].race.skillProficiencies ?? []).toEqual([])
+    expect(options[1].race.darkvision).toBeUndefined()
+    expect(options[1].race.skillProficiencies?.length).toBe(1)
+    const kobold = races.find((r) => r.name === 'Kobold' && r.source === 'MPMM')
+    expect(kobold?.traitChoice?.options.length).toBe(3)
+    expect(kobold?.skillProficiencies ?? []).toEqual([])
+    expect(choosing.every((r) => (r.traitChoice?.options.length ?? 0) >= 2)).toBe(true)
+    expect(choosing.map((r) => `${r.name}|${r.source}`)).toMatchInlineSnapshot(`
+      [
+        "Aasimar|MPMM",
+        "Custom Lineage|TCE",
+        "Draenei|WoW",
+        "Elf|LFL",
+        "Elf|WoW",
+        "Elf|XPHB",
+        "Faerie|LFL",
+        "Gnome|XPHB",
+        "Goliath|XPHB",
+        "Half-Elf (Variant; Aquatic Elf Descent)|SCAG",
+        "Half-Elf (Variant; Drow Descent)|SCAG",
+        "Half-Elf (Variant; Moon Elf or Sun Elf Descent)|SCAG",
+        "Half-Elf (Variant; Wood Elf Descent)|SCAG",
+        "Kithkin|LFL",
+        "Kobold|MPMM",
+        "Shifter|EFA",
+        "Shifter|MPMM",
+        "Tauren|WoW",
+        "Tiefling|XPHB",
+        "Troll|WoW",
+      ]
+    `)
+  })
+
+  it('applies every field a version of a race sets to the option of it', () => {
+    const owners = [...rawFile.race, ...(rawFile.subrace ?? [])].filter(
+      (r) => (r._versions?.length ?? 0) > 1 && !r._versions?.some((v) => v._abstract),
+    )
+    const wrong: string[] = []
+    let checked = 0
+    for (const owner of owners) {
+      const playable = races.filter((r) =>
+        owner.raceName
+          ? r.baseName === owner.raceName &&
+            r.subraceName === owner.name &&
+            r.source === owner.source
+          : r.baseName === owner.name && r.baseSource === owner.source && !r.subraceName,
+      )
+      for (const race of playable)
+        for (const version of owner._versions ?? []) {
+          const optionName = (version.name ?? '').replace(`${owner.name}; `, '')
+          const option = race.traitChoice?.options.find((o) => o.name === optionName)
+          const where = `${race.name}|${race.source}: ${optionName}`
+          if (!option) {
+            wrong.push(`${where}: no option`)
+            continue
+          }
+          for (const [field, value] of Object.entries(version)) {
+            if (NOT_APPLIED.includes(field)) continue
+            checked += 1
+            const got: unknown = Reflect.get(option.race, field)
+            if (field === 'additionalSpells' && value !== null) {
+              // The option takes the race's set of spells named for it.
+              const set = (Array.isArray(got) ? got : []).find(
+                (b: { name?: string }) => b.name === option.race.spellSet,
+              ) as Record<string, unknown> | undefined
+              const { name: _name, ...spells } = set ?? {}
+              void _name
+              if (
+                !set ||
+                JSON.stringify(sorted(spells)) !== JSON.stringify(sorted(value))
+              )
+                wrong.push(`${where}: ${field}`)
+            } else if (value === null) {
+              if (got !== undefined && !(Array.isArray(got) && got.length === 0))
+                wrong.push(`${where}: ${field} not cleared`)
+            } else if (JSON.stringify(got) !== JSON.stringify(value))
+              wrong.push(`${where}: ${field}`)
+          }
+        }
+    }
+    expect(wrong).toEqual([])
+    expect(checked).toBeGreaterThan(55)
   })
 })

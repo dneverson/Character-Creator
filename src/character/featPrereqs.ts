@@ -5,7 +5,7 @@
 import type { AbilityKey } from '../dice/dice'
 import type { Feat, FeatPrerequisite } from '../data/feats'
 import type { LoadedClass } from '../data/class'
-import type { PlayableRace } from '../data/race'
+import { raceSize, type PlayableRace } from '../data/race'
 import type { Character } from './model'
 
 export type PrereqResult = 'met' | 'unmet' | 'unknown'
@@ -66,7 +66,11 @@ function raceMet(
   const ref = ctx.character.race
   if (!ref) return 'unmet'
   if (r.name === 'small race') {
-    return ctx.race ? bool(ctx.race.size?.includes('S') === true) : 'unknown'
+    // A race of several sizes is Small only once the player takes that size.
+    const size = raceSize(ctx.race)
+    if (ctx.race && size === undefined && (ctx.race.size?.length ?? 0) > 1)
+      return 'unknown'
+    return ctx.race ? bool(size === 'S') : 'unknown'
   }
   if (ref.baseName.toLowerCase() !== r.name.toLowerCase()) return 'unmet'
   if (!r.subrace) return 'met'

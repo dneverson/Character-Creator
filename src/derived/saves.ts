@@ -7,6 +7,7 @@ import { ABILITIES, ABILITY_NAMES, abilityMod, type AbilityKey } from '../dice/d
 import { SAVE_RULES } from '../rules/saveRules'
 import type { AbilityTotals } from './armorClass'
 import { itemBonus } from './itemBonus'
+import { heldOptionEffects, saveEffectLines } from './optionEffects'
 import type { Proficiencies } from './proficiencies'
 import { heldBy, type Sources } from './sources'
 import { BASE_SOURCE, quantity, type Line, type Quantity } from './types'
@@ -31,6 +32,7 @@ export function saveRows(
       ? [{ rule, effect: rule.effect, source: held.source }]
       : []
   })
+  const effects = heldOptionEffects(sources)
   return Object.fromEntries(
     ABILITIES.map((key) => {
       const name = ABILITY_NAMES[key]
@@ -81,6 +83,7 @@ export function saveRows(
           status: 'applied',
         })
       }
+      lines.push(...saveEffectLines(effects, key, `save|${key}|edge`))
       return [
         key,
         { key, label: name, proficient: given !== undefined, total: quantity(lines) },

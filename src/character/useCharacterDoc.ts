@@ -41,6 +41,22 @@ export function useCharacter(): Character | null {
   return doc ? doc.character : inStore
 }
 
+/**
+ * One part of the character to show (its play state, its favorites), read from the same
+ * document as `useCharacter`, so a component re-renders only when that part changes.
+ * `select` must return a value the character holds, not a new object. Undefined without
+ * a character.
+ */
+export function useCharacterPart<T>(select: (character: Character) => T): T | undefined {
+  const doc = useContext(CharacterDocContext)
+  const inStore = useCharacterStore((s) => {
+    const character = doc || !s.activeId ? undefined : s.characters[s.activeId]
+    return character ? select(character) : undefined
+  })
+  if (!doc) return inStore
+  return doc.character ? select(doc.character) : undefined
+}
+
 /** The way to change the character: the provided document's, else the store's. */
 export function useUpdateCharacter(): UpdateCharacter {
   const doc = useContext(CharacterDocContext)

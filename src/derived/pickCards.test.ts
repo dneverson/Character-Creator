@@ -9,6 +9,7 @@ import { clearPicks, picksCharged, togglePick } from '../character/picks'
 import type { PlayableBackground } from '../data/background'
 import { WIZARD, deps, featOf } from '../test/derivedFixtures'
 import { makeItem } from '../test/itemFixtures'
+import { withSwaps } from '../rules/customOrigin'
 
 const meleeWeapon = (name: string, category: 'simple' | 'martial', property: string) =>
   makeItem({
@@ -265,5 +266,120 @@ describe('picks', () => {
     expect(clearPicks(both, 'bg', ['tool', 'language'])).toEqual({
       tool: { flute: 'race' },
     })
+  })
+})
+
+describe('Customizing Your Origin swaps', () => {
+  it('gives each swapped proficiency a card of what the Proficiency Swaps table allows', () => {
+    const c = createCharacter('Tordek')
+    const race = withSwaps(
+      {
+        key: 'Dwarf|PHB',
+        name: 'Dwarf',
+        baseName: 'Dwarf',
+        source: 'PHB',
+        baseSource: 'PHB',
+        edition: 'classic',
+        abilityOptions: [{ fixed: { con: 2 }, amounts: [], from: [] }],
+        featGrants: [],
+        weaponProficiencies: [{ 'rapier|phb': true, 'club|phb': true }],
+        languageProficiencies: [{ dwarvish: true }],
+      },
+      {
+        name: 'Dwarf',
+        baseName: 'Dwarf',
+        source: 'PHB',
+        abilityFixed: {},
+        abilityChoices: {},
+        customOrigin: true,
+        swaps: ['weapon:rapier', 'weapon:club', 'language:dwarvish'],
+      },
+    )
+    c.race = {
+      name: 'Dwarf',
+      baseName: 'Dwarf',
+      source: 'PHB',
+      abilityFixed: {},
+      abilityChoices: {},
+    }
+    const sources = collectSources(c, { ...deps([]), race, items: catalog.items })
+    const cards = pickCards(sources, {}, catalog, proficiencies(sources).listing)
+    const byName = new Map(cards.map((card) => [card.name, card]))
+    const values = (name: string) => byName.get(name)?.chips.map((chip) => chip.label)
+    // The martial weapon becomes any weapon or a tool; the simple one a simple weapon or a tool.
+    expect(values('Swap for Rapier')).toEqual([
+      'Club',
+      'Dice Set',
+      'Herbalism Kit',
+      'Lute',
+      'Rapier',
+      "Smith's Tools",
+    ])
+    expect(values('Swap for Club')).toEqual([
+      'Club',
+      'Dice Set',
+      'Herbalism Kit',
+      'Lute',
+      "Smith's Tools",
+    ])
+    // A language becomes one of the rule's own list of sixteen.
+    expect(values('Swap for Dwarvish')).toHaveLength(16)
+    expect(values('Swap for Dwarvish')).toContain('Deep Speech')
+    expect(byName.get('Swap for Rapier')).toMatchObject({
+      count: 1,
+      left: 1,
+      kind: 'race',
+    })
+    // The swapped weapons are no longer given.
+    expect(proficiencies(sources).weapons).toEqual([])
+  })
+})
+
+describe('a proficiency given twice', () => {
+  it('lets the later source pick another of the same kind (PHB p.125)', () => {
+    const c = createCharacter('Ilsa')
+    c.race = {
+      name: 'Dwarf',
+      baseName: 'Dwarf',
+      source: 'PHB',
+      abilityFixed: {},
+      abilityChoices: {},
+    }
+    const race = {
+      key: 'Dwarf|PHB',
+      name: 'Dwarf',
+      baseName: 'Dwarf',
+      source: 'PHB',
+      baseSource: 'PHB',
+      abilityOptions: [],
+      featGrants: [],
+      languageProficiencies: [{ common: true, dwarvish: true }],
+      toolProficiencies: [{ "smith's tools": true }],
+    }
+    const sources = {
+      ...collectSources(c, { ...deps([]), race }),
+      background: background({
+        languageProficiencies: [{ dwarvish: true }],
+        toolProficiencies: [{ "smith's tools": true, 'dice set': true }],
+      }),
+    }
+    const cards = pickCards(sources, {}, catalog, proficiencies(sources).listing)
+    const repeats = cards.filter((card) => card.tag === 'bg:repeat')
+    expect(repeats.map((card) => [card.label, card.count, card.left])).toEqual([
+      ['Background · Sage · Already proficient', 1, 1],
+      ['Background · Sage · Already proficient', 1, 1],
+    ])
+    // What the character already has is no pick.
+    const tools = repeats.find((card) => card.kinds.includes('tool'))
+    expect(tools?.chips.find((chip) => chip.label === "Smith's Tools")?.state).toBe(
+      'taken',
+    )
+    // Once the other one is picked, nothing is open and it counts as the background's.
+    const picks = { tool: { lute: 'bg:repeat' }, language: { draconic: 'bg:repeat' } }
+    const known = proficiencies(sources, { picks })
+    expect(known.open).toEqual([])
+    expect(known.listing.tool.find((t) => t.value === 'Lute')?.sources).toEqual([
+      expect.objectContaining({ label: 'Sage' }),
+    ])
   })
 })

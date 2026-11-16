@@ -187,6 +187,23 @@ describe('resolveSpellGrants', () => {
     expect(stale.variants[0].selected).toBeUndefined()
   })
 
+  it('gives the set a race has taken, with no choice to make', () => {
+    const legacy = {
+      ...race([
+        { name: 'Infernal', ability: 'cha', known: { '1': ['thaumaturgy#c'] } },
+        { name: 'Abyssal', ability: 'cha', known: { '1': ['poison spray#c'] } },
+      ]),
+      spellSet: 'Abyssal',
+    }
+    const taken = resolveSpellGrants(characterOf(1), context({ race: legacy }))
+    expect(taken.variants).toEqual([])
+    // The ids stay those of the set among the race's sets.
+    const own = taken.grants.filter((g) => g.origin === 'race')
+    expect(own.map((g) => [g.spell?.name, g.id])).toEqual([
+      ['poison spray', 'race:1:known:1:0:0'],
+    ])
+  })
+
   it('reads a feat: choices from a filter, a count, and how it is cast', () => {
     const initiate = makeFeat({
       name: 'Magic Initiate',

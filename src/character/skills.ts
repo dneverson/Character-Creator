@@ -109,6 +109,46 @@ export function buildSkillSources(
   return sources
 }
 
+/** The words that mark the pick of a proficiency given twice. */
+export const REPEAT_LABEL = 'Already proficient'
+
+/**
+ * A proficiency gained from two sources: the later one gives a different one of the same
+ * kind instead (PHB p.125). The tag of the pick that replaces what a source repeats.
+ */
+export const repeatTag = (tag: string) => `${tag}:repeat`
+
+/**
+ * The skill picks that replace the skills a source gives outright which an earlier
+ * source already gave: one source per source that repeats any, choosing from every skill.
+ */
+export function repeatedSkillSources(sources: SkillSource[]): SkillSource[] {
+  const seen = new Set<string>()
+  const out: SkillSource[] = []
+  for (const src of sources) {
+    const repeated = src.fixed.filter((skill) => seen.has(skill))
+    for (const skill of src.fixed) seen.add(skill)
+    if (repeated.length === 0) continue
+    out.push({
+      tag: repeatTag(src.tag),
+      label: `${src.label} · ${REPEAT_LABEL}`,
+      kind: src.kind,
+      fixed: [],
+      choices: [{ count: repeated.length, from: SKILLS.map((s) => s.key) }],
+    })
+  }
+  return out
+}
+
+/** The sources with the picks that replace what they repeat, each after its source. */
+export function withRepeats(sources: SkillSource[]): SkillSource[] {
+  const repeats = repeatedSkillSources(sources)
+  return sources.flatMap((src) => [
+    src,
+    ...repeats.filter((r) => r.tag === repeatTag(src.tag)),
+  ])
+}
+
 /** Total "choose" budget offered by a source. */
 function budgetOf(source: SkillSource): number {
   return source.choices.reduce((n, c) => n + c.count, 0)

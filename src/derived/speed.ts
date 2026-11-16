@@ -20,6 +20,7 @@ import {
   type SpeedLimit,
   type SpeedRule,
 } from '../rules/speedRules'
+import { heldOptionEffects, speedEffectLines } from './optionEffects'
 import { heldBy, type HeldItem, type Sources } from './sources'
 import { quantity, sumLines, type Line, type Quantity, type SourceRef } from './types'
 
@@ -222,6 +223,7 @@ export function speedQuantity(
         : { ...base, status: 'applied' },
     )
   }
+  lines.push(...speedEffectLines(sources, heldOptionEffects(sources)))
   lines.push(...armorStrengthLines(sources, strength, edition))
   lines.push(...itemLines(sources, lines))
   return quantity(lines)

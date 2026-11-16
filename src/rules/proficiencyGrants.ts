@@ -206,7 +206,7 @@ export const PROFICIENCY_GRANTS: readonly ProficiencyGrant[] = [
       'TCE',
       'Training in War and Song (Bladesinging)',
     ),
-    text: 'Bladesinging: you gain proficiency with light armor (and one one-handed melee weapon of your choice, which is not stored yet).',
+    text: 'Bladesinging: you gain proficiency with light armor, and with the one-handed melee weapon picked on its card.',
     armor: ['light'],
   },
   {

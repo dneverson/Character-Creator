@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  withRepeats,
   buildSkillSources,
   classSourceTag,
   grantedLine,
@@ -392,5 +393,24 @@ describe('a budget shared with another kind of pick', () => {
       history: 'full',
       insight: 'full',
     })
+  })
+})
+
+describe('withRepeats', () => {
+  it('gives a source that repeats a skill a pick of any other skill after it', () => {
+    const bg = { tag: 'bg', label: 'Background · Acolyte', kind: 'background' as const }
+    const race = { tag: 'race', label: 'Race · Elf', kind: 'race' as const }
+    const out = withRepeats([
+      { ...bg, fixed: ['insight', 'religion'], choices: [] },
+      { ...race, fixed: ['insight', 'perception'], choices: [] },
+    ])
+    expect(out.map((s) => s.tag)).toEqual(['bg', 'race', 'race:repeat'])
+    expect(out[2]).toMatchObject({
+      label: 'Race · Elf · Already proficient',
+      kind: 'race',
+      fixed: [],
+      choices: [{ count: 1, from: SKILLS.map((s) => s.key) }],
+    })
+    expect(withRepeats([{ ...bg, fixed: ['insight'], choices: [] }])).toHaveLength(1)
   })
 })

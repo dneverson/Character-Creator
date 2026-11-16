@@ -28,6 +28,7 @@ import { BaseItemChooser } from './BaseItemChooser'
 import { CustomItemModal, type CustomItemDraft } from './CustomItemModal'
 import { NotInBooksAlert } from './NotInBooksAlert'
 import { StartingEquipment } from './StartingEquipment'
+import { raceSize } from '../../data/race'
 import { useFeatSummary } from './useFeatSummary'
 import { inventoryColumns, useEditStack } from './inventoryColumns'
 import { CoinPurse, InventoryTotals } from './InventoryTotals'
@@ -199,7 +200,7 @@ export function EquipmentSection() {
             owned={owned}
             currency={equipment.currency}
             strength={strength}
-            size={race?.size?.[0]}
+            size={raceSize(race)}
           />
           <CoinPurse currency={equipment.currency} />
 

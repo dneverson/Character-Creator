@@ -12,6 +12,7 @@
 // option whose text asks for a choice to a row, a data field that is read, or an excuse.
 
 import type { Holder } from './holder'
+import { EFFECT_ITEM_PICKS, type PickedItemKind } from './optionEffects'
 
 export interface FeaturePickOption {
   /** What is stored for the pick. */
@@ -27,6 +28,10 @@ export interface FeaturePickOption {
   facts?: { label: string; value: string }[]
   /** The class level it needs; below it, a pick is flagged (an item of a higher table). */
   minLevel?: number
+  /** Why taking it is against the rules, when it is: the pick is flagged, never refused. */
+  unmet?: string
+  /** The group it counts in, for a pick that needs one of each group (a melee weapon). */
+  group?: string
 }
 
 /**
@@ -36,8 +41,22 @@ export interface FeaturePickOption {
  */
 export type FeaturePickFrom =
   | { kind: 'warlockCantrips' }
-  | { kind: 'weapons'; without: string[]; also: string[] }
+  /**
+   * The kinds of weapons of the item catalog without some properties, or the named ones;
+   * melee ones only when `melee`.
+   */
+  | { kind: 'weapons'; without: string[]; also: string[]; melee?: true }
   | { kind: 'textTables'; caption: RegExp }
+  /**
+   * The items of the character's inventory of a kind: a nonmagical one only, for an
+   * infusion; a ranged weapon only with the option named, for a pact weapon.
+   */
+  | {
+      kind: 'inventory'
+      items: PickedItemKind
+      nonmagical?: true
+      rangedWith?: string
+    }
 
 export interface FeaturePick {
   /** The pick's name in a card and in the key it is stored under. */
@@ -56,6 +75,14 @@ export interface FeaturePick {
   byLevel?: Record<number, number>
   /** What the card says about the choice. */
   note: string
+  /**
+   * The first picks must be one of each of these groups (a kensei's first two weapons:
+   * one melee, one ranged): once the picks left could not cover a group still missing,
+   * the options of the groups already had are flagged.
+   */
+  oneOfEach?: { groups: string[]; why: string }
+  /** The weapons picked are monk weapons for the character (Martial Arts). */
+  monkWeapons?: true
 }
 
 const ranger = (name: string): Holder => ({
@@ -262,6 +289,39 @@ export const FEATURE_PICKS: readonly FeaturePick[] = [
     from: { kind: 'weapons', without: ['H', 'S'], also: ['longbow'] },
     byLevel: { 3: 2, 6: 3, 11: 4, 17: 5 },
     note: 'One melee and one ranged weapon at 3rd level, and one more of either at 6th, 11th and 17th. You gain proficiency with them, and they are monk weapons for you.',
+    oneOfEach: {
+      groups: ['melee', 'ranged'],
+      why: 'The kensei weapons of 3rd level are one melee and one ranged weapon - allowed with DM approval',
+    },
+    monkWeapons: true,
+  },
+  {
+    title: 'Dedicated weapon',
+    noun: 'dedicated weapons',
+    holders: [
+      { classFeature: { className: 'Monk', source: 'TCE', name: 'Dedicated Weapon' } },
+    ],
+    options: [],
+    from: { kind: 'inventory', items: 'monkCandidate' },
+    note: 'The weapon in your inventory you last touched at the end of a rest: it counts as a monk weapon until you dedicate another. It must be a simple or martial weapon you are proficient with, without the heavy and special properties.',
+    monkWeapons: true,
+  },
+  {
+    title: 'Bladesinging weapon',
+    noun: 'bladesinging weapons',
+    holders: [
+      {
+        subclassFeature: {
+          className: 'Wizard',
+          shortName: 'Bladesinging',
+          source: 'TCE',
+          name: 'Training in War and Song (Bladesinging)',
+        },
+      },
+    ],
+    options: [],
+    from: { kind: 'weapons', without: ['2H'], also: [], melee: true },
+    note: 'One type of one-handed melee weapon: you gain proficiency with it.',
   },
   ...(
     [
@@ -288,6 +348,20 @@ export const FEATURE_PICKS: readonly FeaturePick[] = [
     },
     note: 'One magic item from the Replicable Items tables of your artificer level or lower, each time you learn the infusion.',
   },
+  // The item an option's effects are on (rules/optionEffects.ts).
+  ...EFFECT_ITEM_PICKS.map((row): FeaturePick => ({
+    title: row.title,
+    noun: `${row.title.toLowerCase()}s`,
+    holders: [{ option: row.option }],
+    options: [],
+    from: {
+      kind: 'inventory',
+      items: row.items,
+      ...(row.nonmagical && { nonmagical: row.nonmagical }),
+      ...(row.rangedWith && { rangedWith: row.rangedWith }),
+    },
+    note: row.note,
+  })),
 ]
 
 /**

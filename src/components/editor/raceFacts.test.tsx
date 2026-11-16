@@ -140,6 +140,31 @@ describe('race facts', () => {
       expect(text(key, empty)).toBe('')
   })
 
+  it('shows what the options give while the option of a trait is open', () => {
+    const option = (name: string, resist: string) => ({
+      name,
+      text: [],
+      race: bare('Tiefling', { trait: name, resist: [resist] }),
+    })
+    const tiefling = bare('Tiefling', {
+      traitChoice: {
+        title: 'Fiendish Legacy',
+        options: [option('Abyssal', 'poison'), option('Infernal', 'fire')],
+      },
+    })
+    expect(text('resist', tiefling)).toBe('Poison or Fire')
+    const sets = [
+      { name: 'Abyssal', known: { '1': ['poison spray#c'] } },
+      { name: 'Infernal', known: { '1': ['fire bolt#c'] } },
+    ]
+    const infernal = bare('Tiefling', { additionalSpells: sets, spellSet: 'Infernal' })
+    expect(text('spells', infernal)).toBe('Fire Bolt')
+    // Once one is taken, only what it gives.
+    expect(text('resist', { ...tiefling, trait: 'Infernal', resist: ['fire'] })).toBe(
+      'Fire',
+    )
+  })
+
   it('names the creature type, a humanoid when the race names none', () => {
     expect(text('creatureType', full)).toBe('Humanoid or Fey')
     expect(text('creatureType', empty)).toBe('Humanoid')

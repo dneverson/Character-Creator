@@ -15,6 +15,10 @@ vi.mock('../../data/race', async (importOriginal) => ({
   loadRaces: vi.fn(),
 }))
 const mockRaces = vi.mocked(loadRaces)
+vi.mock('../../data/items', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../data/items')>()),
+  loadItems: vi.fn(() => Promise.resolve([])),
+}))
 
 const dwarf: PlayableRace = {
   featGrants: [],
@@ -236,6 +240,45 @@ describe('RaceSelection', () => {
     expect(within(summary()).getByText('Darkvision:')).toBeInTheDocument()
     expect(within(summary()).getByText('60 ft.')).toBeInTheDocument()
     expect(within(summary()).getByText('Constitution +2')).toBeInTheDocument()
+  })
+
+  it('swaps a language or proficiency of the race under Customizing Your Origin', async () => {
+    const user = userEvent.setup()
+    mockRaces.mockResolvedValue([
+      {
+        ...dwarf,
+        languageProficiencies: [{ common: true, dwarvish: true }],
+        weaponProficiencies: [{ 'battleaxe|phb': true }],
+      },
+    ])
+    const c = seedActive()
+    renderSection()
+    await choose(user, 'Dwarf (Hill)')
+    // Without the rule there is nothing to swap.
+    expect(screen.queryByRole('table', { name: 'Proficiency swaps' })).toBeNull()
+    await user.click(
+      await screen.findByRole('checkbox', { name: /Customizing Your Origin/ }),
+    )
+    const table = await screen.findByRole('table', { name: 'Proficiency swaps' })
+    const row = within(table).getByText('Dwarvish').closest('tr')
+    if (!row) throw new Error('no Dwarvish row')
+    expect(within(row).getByText('Language')).toBeInTheDocument()
+    await user.click(within(row).getByRole('button', { name: 'Swap' }))
+    await waitFor(() => expect(active(c.id).race?.swaps).toEqual(['language:dwarvish']))
+    expect(within(row).getByRole('button', { name: 'Swapped' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    const axe = within(table).getByText('Battleaxe').closest('tr')
+    if (!axe) throw new Error('no Battleaxe row')
+    expect(within(axe).getByText('Simple/martial weapon or tool')).toBeInTheDocument()
+    // Taken back, and the switch off keeps no swaps.
+    await user.click(within(row).getByRole('button', { name: 'Swapped' }))
+    await waitFor(() => expect(active(c.id).race?.swaps).toEqual([]))
+    await user.click(within(axe).getByRole('button', { name: 'Swap' }))
+    await user.click(screen.getByRole('checkbox', { name: /Customizing Your Origin/ }))
+    await waitFor(() => expect(active(c.id).race?.customOrigin).toBeUndefined())
+    expect(active(c.id).race?.swaps).toBeUndefined()
   })
 
   it("moves a race's increases anywhere under Tasha's Customizing Your Origin", async () => {
@@ -476,5 +519,71 @@ describe('RaceSelection', () => {
     mockRaces.mockRejectedValue(new Error('boom'))
     renderSection()
     expect(await screen.findByText(/Failed to load races: boom/i)).toBeInTheDocument()
+  })
+})
+
+describe('a race with a trait to choose and a size to choose', () => {
+  const base: PlayableRace = {
+    featGrants: [],
+    key: 'Custom Lineage|TCE||TCE',
+    name: 'Custom Lineage',
+    baseName: 'Custom Lineage',
+    source: 'TCE',
+    baseSource: 'TCE',
+    edition: 'classic',
+    size: ['S', 'M'],
+    speed: 30,
+    abilityOptions: [{ fixed: {}, amounts: [2], from: [...ABILITIES] }],
+  }
+  const lineage: PlayableRace = {
+    ...base,
+    traitChoice: {
+      title: 'Variable Trait',
+      options: [
+        {
+          name: 'Darkvision',
+          text: ['You can see in dim light within 60 feet of you.'],
+          race: { ...base, darkvision: 60, trait: 'Darkvision' },
+        },
+        {
+          name: 'Skill Proficiency',
+          text: ['You gain proficiency in one skill of your choice.'],
+          race: { ...base, trait: 'Skill Proficiency' },
+        },
+      ],
+    },
+  }
+  const lineageRef: RaceRef = {
+    name: 'Custom Lineage',
+    baseName: 'Custom Lineage',
+    source: 'TCE',
+    abilityOption: 0,
+    abilityFixed: {},
+    abilityChoices: {},
+  }
+
+  it('takes an option of the trait, keeps it on a change of size, and takes it back', async () => {
+    mockRaces.mockResolvedValue([lineage])
+    const c = seedActive(['TCE'], lineageRef)
+    const user = userEvent.setup()
+    renderSection()
+    const table = await screen.findByRole('table', { name: 'Variable Trait options' })
+    await user.click(
+      within(
+        within(table).getByText('Darkvision').closest('tr') as HTMLElement,
+      ).getByRole('button', { name: 'Choose' }),
+    )
+    expect(active(c.id).race?.trait).toBe('Darkvision')
+    await user.click(screen.getByRole('radio', { name: 'Small' }))
+    expect(active(c.id).race).toMatchObject({ trait: 'Darkvision', size: 'S' })
+    await settle()
+    // The size taken stays when the way of taking the increases changes.
+    await user.click(screen.getByRole('checkbox', { name: /Customizing Your Origin/ }))
+    expect(active(c.id).race).toMatchObject({ size: 'S', trait: 'Darkvision' })
+    await user.click(screen.getByRole('button', { name: 'Change option' }))
+    const open = await screen.findByRole('table', { name: 'Variable Trait options' })
+    await user.click(within(open).getByRole('button', { name: 'Remove' }))
+    expect(active(c.id).race?.trait).toBeUndefined()
+    expect(active(c.id).race?.size).toBe('S')
   })
 })

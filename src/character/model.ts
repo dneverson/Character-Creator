@@ -684,6 +684,23 @@ export interface RaceRef {
    * needs migrating.
    */
   customOrigin?: true
+  /**
+   * Under Customizing Your Origin, the proficiencies and languages of the race the player
+   * swapped for others ("weapon:longsword"; rules/customOrigin.ts), each replaced by a
+   * pick of its own. Absent means none; no stored document needs migrating.
+   */
+  swaps?: string[]
+  /**
+   * The option taken of the race's trait with options (data/race.ts `traitChoice`):
+   * "Darkvision" of Custom Lineage's Variable Trait. Absent until taken; no stored
+   * document needs migrating.
+   */
+  trait?: string
+  /**
+   * The size taken, of a race that lets the player choose ("S" of a Small or Medium
+   * Custom Lineage). Absent until taken; no stored document needs migrating.
+   */
+  size?: string
 }
 
 export interface Character {
@@ -1035,6 +1052,22 @@ function normalizeFeats(raw: Partial<FeatsState> | undefined): FeatsState {
   }
 }
 
+/**
+ * The race of a stored character. A save from before the 2024 lineages (an elf's,
+ * a tiefling's legacy) were the race's options kept the lineage only as the set of the
+ * race's spells taken ("Drow"); it becomes the option taken, which the race's options
+ * know by that name (data/race.ts `findPlayableRace`).
+ */
+function storedRace(
+  race: RaceRef | undefined,
+  spellGrants: SpellGrantChoices | undefined,
+): RaceRef | undefined {
+  const lineage = spellGrants?.['race:variant']?.variant
+  return race && !race.trait && typeof lineage === 'string'
+    ? { ...race, trait: lineage }
+    : race
+}
+
 const plainObject = (raw: SpellGrantChoices | undefined): SpellGrantChoices =>
   raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
 
@@ -1089,7 +1122,7 @@ export function ensureCharacterDefaults(raw: StoredCharacter | undefined): Chara
       : null
   merged.abilities = { ...emptyAbilities(), ...(raw?.abilities ?? {}) }
   merged.classes = Array.isArray(raw?.classes) ? raw!.classes : base.classes
-  merged.race = raw?.race
+  merged.race = storedRace(raw?.race, raw?.spellGrants)
   merged.background = storedBackground(raw?.background)
   // Schema 23: the skill picks moved into `grantPicks.skill`.
   delete (merged as Character & { skillProficiencies?: PickMap }).skillProficiencies

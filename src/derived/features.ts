@@ -11,6 +11,9 @@ import { featureWithheld, heldEntries } from './classOptions'
 import { takenFeaturePicks } from './featurePicks'
 import type { Entry } from '../text/Entries'
 import type { Sources } from './sources'
+import type { AbilityTotals } from './armorClass'
+import { heldOptionEffects, optionRowLines } from './optionEffects'
+import type { Line } from './types'
 
 export type FeatureKind = 'Class' | 'Species' | 'Background' | 'Feat'
 
@@ -31,6 +34,11 @@ export interface FeatureRow {
    * own: PHB Font of Magic holds Sorcery Points, whose counter shows on this row.
    */
   nested?: string[]
+  /**
+   * What the feature does to the numbers of the sheet, and where, as lines: an option's
+   * bonus to a cantrip's damage, the item its infusion is in, a maneuver's superiority die.
+   */
+  lines?: Line[]
 }
 
 /** The names of the class and subclass features an entry list takes in by reference. */
@@ -74,6 +82,7 @@ export function featureRows(
   sources: Sources,
   catalog: readonly ClassOption[] = [],
   items: readonly Item[] = [],
+  totals?: AbilityTotals,
 ): FeatureRow[] {
   const { classes, race, background, feats } = sources
   const out: FeatureRow[] = []
@@ -130,11 +139,13 @@ export function featureRows(
   }
   // The options taken (an invocation, a maneuver) and those known outright.
   const byKey = new Map(catalog.map((o) => [o.key, o]))
+  const effects = heldOptionEffects(sources)
   for (const slot of sources.optionSlots) {
     const keys = [...slot.required, ...(sources.character.classOptions[slot.tag] ?? [])]
     keys.forEach((key, i) => {
       const option = byKey.get(key)
       if (!option) return
+      const lines = totals ? optionRowLines(sources, option, totals, effects) : []
       out.push({
         id: `${slot.tag}:${key}:${i}`,
         name: option.name,
@@ -142,6 +153,7 @@ export function featureRows(
         kind: slot.owner.kind === 'feat' ? 'Feat' : 'Class',
         entries: option.entries,
         anchor: `option:${key}`,
+        ...(lines.length > 0 ? { lines } : {}),
       })
     })
   }

@@ -25,6 +25,7 @@ import { PinButton } from './PinButton'
 import { useSheetRowDetail } from './SheetDetail'
 import { ItemCharges } from './ItemCharges'
 import { usePlay } from './usePlay'
+import { raceSize } from '../../data/race'
 
 export function InventoryPanel({ sheet }: SheetPanelProps) {
   const character = useCharacter()
@@ -78,7 +79,7 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
         owned={owned}
         currency={character.equipment.currency}
         strength={strength}
-        size={race?.size?.[0]}
+        size={raceSize(race)}
       />
       <CoinPurse currency={character.equipment.currency} />
       {loading ? (

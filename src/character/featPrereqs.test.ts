@@ -99,6 +99,8 @@ describe('prerequisitesMet', () => {
     expect(check(small, ctx({ character, race: halfling(['S']) }))).toBe('met')
     expect(check(small, ctx({ character, race: halfling(['M']) }))).toBe('unmet')
     expect(check(small, ctx({ character, race: halfling() }))).toBe('unmet')
+    // A race of several sizes is Small only once that size is taken.
+    expect(check(small, ctx({ character, race: halfling(['S', 'M']) }))).toBe('unknown')
   })
 
   it('matches the background by name', () => {

@@ -12,7 +12,7 @@ export const feet = (distance: number) => `${distance} ft.`
 const VARIES = 'V'
 
 /** One size code in full; a code nobody knows is shown as it is. */
-function sizeName(code: string): string {
+export function sizeName(code: string): string {
   if (code === VARIES) return 'Varies'
   return lookup(code, 'size')?.full ?? code
 }
