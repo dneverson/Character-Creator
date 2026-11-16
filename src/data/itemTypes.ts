@@ -224,6 +224,8 @@ export interface Item {
   speed?: ItemSpeedChange
   /** The resistances, immunities and vulnerabilities the item gives, when it gives any. */
   defenses?: ItemDefenses
+  /** The condition those defenses hold under, when they do not stand (defenseRules.ts). */
+  defensesWhen?: string
   charges?: ItemCharges
   spells: AttachedSpell[]
   container?: ItemContainer

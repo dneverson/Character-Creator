@@ -19,6 +19,7 @@ const REWARDS = [
   reward('Boon of Speed'),
   reward('Boon of Truesight'),
   reward('Boon of Luck'),
+  reward('Charm of Khyber', { source: 'EFA', key: 'Charm of Khyber|EFA', type: 'Charm' }),
   reward('Boon of Recovery'),
   reward('Arcane Study Charm', {
     source: 'XDMG',
@@ -63,6 +64,25 @@ describe('rewards', () => {
     expect(sheet.hp.value - without.hp.value).toBe(40)
     expect(sheet.speed.value - without.speed.value).toBe(30)
     expect(sheet.senses.find((s) => s.key === 'truesight')?.range.value).toBe(60)
+  })
+
+  it('show a timed sense as a conditional line with its duration, never counted', () => {
+    const { sheet } = sheetWith('Charm of Khyber')
+    const dark = sheet.senses.find((s) => s.key === 'darkvision')
+    expect(dark?.range.value).toBe(120)
+    const truesight = sheet.senses.find((s) => s.key === 'truesight')
+    expect(truesight?.range.value).toBe(0)
+    expect(truesight?.conditional).toEqual({
+      when: 'for 1 minute, after you expend the charm',
+      range: 60,
+    })
+    expect(truesight?.range.lines).toContainEqual(
+      expect.objectContaining({
+        label: 'Charm of Khyber',
+        status: 'conditional',
+        when: 'for 1 minute, after you expend the charm',
+      }),
+    )
   })
 
   it('show on the Features tab, with the counters of their uses on their rows', () => {

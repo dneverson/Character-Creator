@@ -405,6 +405,8 @@ export interface RaceHolder {
   baseName: string
   source: string
   subraceName?: string
+  /** The option of the race's trait taken ("Taunka Lineage"), for a rule of one option. */
+  trait?: string
 }
 
 /**
@@ -414,10 +416,13 @@ export interface RaceHolder {
  * before it was kept) is read as from the subrace's book.
  */
 export function holdsRace(
-  race: Pick<RaceRef, 'baseName' | 'baseSource' | 'source' | 'subraceName'> | undefined,
+  race:
+    | Pick<RaceRef, 'baseName' | 'baseSource' | 'source' | 'subraceName' | 'trait'>
+    | undefined,
   want: RaceHolder,
 ): boolean {
   if (!race || race.baseName !== want.baseName) return false
+  if (want.trait !== undefined && race.trait !== want.trait) return false
   if (want.subraceName === undefined)
     return (race.baseSource ?? race.source) === want.source
   return race.subraceName === want.subraceName && race.source === want.source

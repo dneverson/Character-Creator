@@ -83,6 +83,17 @@ const FEATURE_ROWS: readonly Row[] = [
     'resist',
     ['bludgeoning damage from falling'],
   ],
+  [
+    { race: { baseName: 'Tauren', source: 'WoW', trait: 'Taunka Lineage' } },
+    'resist',
+    ['cold'],
+  ],
+  [
+    { race: { baseName: 'Worgen', source: 'WoW' } },
+    'resist',
+    ['necrotic'],
+    'Only while you are in your bestial form from Darkflight.',
+  ],
   // ---- Barbarian ----------------------------------------------------------------------
   [classFeature('Barbarian', 'PHB', 'Rage'), 'resist', BPS, RAGING],
   [classFeature('Barbarian', 'XPHB', 'Rage'), 'resist', BPS, RAGING],
@@ -113,6 +124,12 @@ const FEATURE_ROWS: readonly Row[] = [
     ['necrotic', 'psychic', 'radiant'],
     'Only while the Rage of the Gods form lasts.',
   ],
+  [
+    sub('Barbarian', 'Wild Heart', 'XPHB', 'Rage of the Wilds'),
+    'resist',
+    ['all damage except force, necrotic, psychic and radiant'],
+    'Only while your Rage is active, and only if you took the Bear option.',
+  ],
   // ---- Artificer ----------------------------------------------------------------------
   [
     sub('Artificer', 'Alchemist', 'TCE', 'Chemical Mastery'),
@@ -131,6 +148,18 @@ const FEATURE_ROWS: readonly Row[] = [
   [sub('Cleric', 'Strength (PSA)', 'PSA', 'Avatar of Battle'), 'resist', BPS, NONMAGICAL],
   [sub('Cleric', 'War', 'XPHB', 'Avatar of Battle'), 'resist', BPS],
   [sub('Cleric', 'Forge', 'XGE', 'Soul of the Forge'), 'resist', ['fire']],
+  [
+    sub('Cleric', 'Nature', 'PHB', 'Dampen Elements'),
+    'resist',
+    ELEMENTS,
+    'Only against one instance of that damage, when you use your reaction.',
+  ],
+  [
+    sub('Cleric', 'Shadow', 'WoW', 'Dispersion'),
+    'resist',
+    ['all damage'],
+    'Only until the end of your next turn, after you use your Reaction when an attack hits you.',
+  ],
   [sub('Cleric', 'Forge', 'XGE', 'Saint of Forge and Fire'), 'immune', ['fire']],
   [
     sub('Cleric', 'Forge', 'XGE', 'Saint of Forge and Fire'),
@@ -194,6 +223,18 @@ const FEATURE_ROWS: readonly Row[] = [
     'resist',
     { count: 1, from: ELEMENTS },
   ],
+  [
+    sub('Monk', 'Ascendant Dragon', 'FTD', 'Aspect of the Wyrm'),
+    'resist',
+    { count: 1, from: DRAGON },
+    'Only while the aura of draconic power lasts, if you took the Resistance effect.',
+  ],
+  [
+    sub('Monk', 'Mystic Brews', 'WoW', 'Mystic Brew'),
+    'resist',
+    { count: 2, from: ['cold', 'necrotic', 'psychic', 'radiant'] },
+    'Only for 1 hour after you drink the Heavenly Spirit beverage.',
+  ],
   // ---- Mystic (Unearthed Arcana) ------------------------------------------------------
   [classFeature('Mystic', 'UATheMysticClass', 'Psionic Body'), 'resist', BPS],
   [classFeature('Mystic', 'UATheMysticClass', 'Psionic Body'), 'immune', ['poison']],
@@ -207,6 +248,12 @@ const FEATURE_ROWS: readonly Row[] = [
     'resist',
     ['all damage'],
     'Only while you are in the spectral form.',
+  ],
+  [
+    sub('Mystic', 'Wu Jen', 'UATheMysticClass', 'Elemental Mastery'),
+    'immune',
+    ['the damage type you resist'],
+    'Only until the end of your next turn, after you spend 2 psi points as a reaction.',
   ],
   // ---- Paladin ------------------------------------------------------------------------
   [classFeature('Paladin', 'PHB', 'Divine Health'), 'condition', ['disease']],
@@ -229,6 +276,30 @@ const FEATURE_ROWS: readonly Row[] = [
   ],
   [sub('Paladin', 'Devotion', 'XPHB', 'Aura of Devotion'), 'condition', ['charmed']],
   [
+    sub('Paladin', 'Crown', 'SCAG', 'Exalted Champion'),
+    'resist',
+    BPS,
+    'Only for 1 hour after you use your action, and only against nonmagical weapons.',
+  ],
+  [
+    sub('Paladin', 'Conquest', 'XGE', 'Invincible Conqueror'),
+    'resist',
+    ['all damage'],
+    'Only for 1 minute after you use your action.',
+  ],
+  [
+    sub('Paladin', 'Noble Genies', 'FRHoF', "Djinni's Escape"),
+    'resist',
+    BPS,
+    'Only until the end of your next turn, in the semi-incorporeal form.',
+  ],
+  [
+    sub('Paladin', 'Noble Genies', 'FRHoF', "Djinni's Escape"),
+    'condition',
+    ['grappled', 'prone', 'restrained'],
+    'Only until the end of your next turn, in the semi-incorporeal form.',
+  ],
+  [
     sub('Paladin', 'Redemption', 'XGE', 'Emissary of Redemption'),
     'resist',
     ['all damage dealt by other creatures'],
@@ -243,6 +314,30 @@ const FEATURE_ROWS: readonly Row[] = [
     sub('Ranger', 'Drakewarden', 'FTD', 'Bond of Fang and Scale'),
     'resist',
     { count: 1, from: DRAGON },
+  ],
+  [
+    sub('Ranger', 'Drakewarden', 'FTD', 'Perfected Bond'),
+    'resist',
+    ['the damage you take'],
+    'Only against that damage, when you use your reaction.',
+  ],
+  [
+    sub('Ranger', 'Swarmkeeper', 'TCE', 'Swarming Dispersal'),
+    'resist',
+    ['the damage you take'],
+    'Only against that damage, when you use your reaction.',
+  ],
+  [
+    sub('Ranger', 'Horizon Walker', 'XGE', 'Spectral Defense'),
+    'resist',
+    ["all of an attack's damage"],
+    'Only on the turn you take damage from an attack, when you use your reaction.',
+  ],
+  [
+    sub('Ranger', 'Hunter', 'XPHB', "Superior Hunter's Defense"),
+    'resist',
+    ['the damage you take and other damage of its type'],
+    'Only until the end of the current turn, when you use your Reaction.',
   ],
   [sub('Ranger', 'Winter Walker', 'FRHoF', 'Frigid Explorer'), 'resist', ['cold']],
   [
@@ -264,6 +359,36 @@ const FEATURE_ROWS: readonly Row[] = [
     { count: 1, from: ['psychic', 'poison', 'necrotic'] },
   ],
   // ---- Sorcerer -----------------------------------------------------------------------
+  [
+    sub('Sorcerer', 'Draconic', 'PHB', 'Elemental Affinity'),
+    'resist',
+    ['the damage type of your draconic ancestry'],
+    'Only for 1 hour after you spend 1 sorcery point when you cast a spell of that type.',
+  ],
+  [
+    sub('Sorcerer', 'Lunar', 'DSotDQ', 'Lunar Empowerment'),
+    'resist',
+    ['necrotic', 'radiant'],
+    'Only while you are in the Crescent Moon Lunar Embodiment phase.',
+  ],
+  [
+    sub('Sorcerer', 'Lunar', 'DSotDQ', 'Lunar Phenomenon'),
+    'resist',
+    ['all damage'],
+    'Only until the start of your next turn, after the Crescent Moon teleport.',
+  ],
+  [
+    sub('Sorcerer', 'Shadow', 'XGE', 'Umbral Form'),
+    'resist',
+    ['all damage except force and radiant'],
+    'Only while you are in your shadowy form (6 sorcery points).',
+  ],
+  [
+    sub('Sorcerer', 'Shadow', 'RHW', 'Umbral Form'),
+    'resist',
+    ['all damage except force and radiant'],
+    'Only while you are in your Umbral Form.',
+  ],
   [
     sub('Sorcerer', 'Draconic', 'XPHB', 'Elemental Affinity'),
     'resist',
@@ -332,6 +457,18 @@ const FEATURE_ROWS: readonly Row[] = [
     BPS,
     'Only while you are using Form of Dread.',
   ],
+  [
+    sub('Warlock', 'Undead', 'VRGR', 'Spirit Projection'),
+    'resist',
+    BPS,
+    'Only while you are projecting your spirit.',
+  ],
+  [
+    sub('Warlock', 'Vestige', 'AU', 'Vestige Power'),
+    'resist',
+    ['the damage types of your vestige'],
+    'Only while you are within 30 feet of your Vestige Companion.',
+  ],
   [sub('Warlock', 'Celestial', 'XGE', 'Radiant Soul'), 'resist', ['radiant']],
   [sub('Warlock', 'Celestial', 'XPHB', 'Radiant Soul'), 'resist', ['radiant']],
   // ---- Wizard -------------------------------------------------------------------------
@@ -346,9 +483,33 @@ const FEATURE_ROWS: readonly Row[] = [
     ['damage from spells'],
   ],
   [sub('Wizard', 'Necromancy', 'PHB', 'Inured to Undeath'), 'resist', ['necrotic']],
+  [
+    sub('Wizard', 'Transmutation', 'PHB', "Transmuter's Stone"),
+    'resist',
+    { count: 1, from: ELEMENTS },
+    'Only while you carry the stone, if you chose the Resistance benefit.',
+  ],
+  [
+    sub('Wizard', 'Transmuter', 'AU', "Transmuter's Stone"),
+    'resist',
+    { count: 1, from: [...DRAGON, 'thunder'] },
+    'Only while the bearer carries the stone, if you chose the Resistance benefit.',
+  ],
   [sub('Wizard', 'Necromancer', 'AU', 'Necromancy Spellbook'), 'resist', ['necrotic']],
   // ---- Options and feats --------------------------------------------------------------
   [{ option: 'Hill Rune|TCE' }, 'resist', ['poison']],
+  [
+    { option: 'Resistant Armor|TCE' },
+    'resist',
+    { count: 1, from: DAMAGE_TYPES.filter((t) => !BPS.includes(t)) },
+    'Only while you wear the armor infused with it.',
+  ],
+  [
+    { option: 'Tomb of Levistus|XGE' },
+    'vulnerable',
+    ['fire'],
+    'Only until the ice melts, after you use your reaction.',
+  ],
   [
     { feat: 'Planar Wanderer|SatO' },
     'resist',
@@ -367,6 +528,24 @@ const FEATURE_ROWS: readonly Row[] = [
     'Only while in dim light or darkness.',
   ],
   [{ feat: 'Dungeon Delver|PHB' }, 'resist', ['damage dealt by traps']],
+  [
+    { feat: 'Delicious Pain|ABH' },
+    'resist',
+    BPS,
+    'Only until the start of your next turn, after you take such damage and use your Reaction.',
+  ],
+  [
+    { feat: 'Gift of the Chromatic Dragon|FTD' },
+    'resist',
+    DRAGON,
+    'Only against one instance of that damage, when you use your reaction.',
+  ],
+  [
+    { feat: 'Guile of the Cloud Giant|BGG' },
+    'resist',
+    ['all of the damage of an attack that hits you'],
+    'Only against that attack, when you use your reaction.',
+  ],
   [
     { feat: 'Soul of the Storm Giant|BGG' },
     'resist',
@@ -403,6 +582,18 @@ const REWARD_ROWS: readonly Row[] = [
     NONMAGICAL,
   ],
   [{ reward: 'Charm of the Crystal Heart|ToA' }, 'vulnerable', ['bludgeoning']],
+  [
+    { reward: 'Charm of Cold Resistance|IDRotF' },
+    'resist',
+    ['cold'],
+    'Only for 24 hours after you use the charm.',
+  ],
+  [
+    { reward: 'Charm of the Titan-Forged|WoW' },
+    'resist',
+    ['all damage'],
+    'Only for 1 minute after you expend the charm.',
+  ],
   [{ reward: 'Fragment of Despondence|CRCotN' }, 'condition', ['charmed']],
   [{ reward: "Heliod's Disciple|MOT" }, 'resist', ['fire']],
   [{ reward: "Pharika's Votary|MOT" }, 'condition', ['disease']],
@@ -435,6 +626,12 @@ const ITEM_ROWS: readonly Row[] = [
   [item('Armor of Invulnerability|DMG'), 'resist', ['nonmagical damage']],
   [item('Armor of Invulnerability|XDMG'), 'resist', BPS],
   [item('Amulet of Appearance|CoA'), 'condition', ['frightened', 'poisoned']],
+  [
+    item('Banner of the Krig Rune|SKT'),
+    'condition',
+    ['frightened'],
+    'Only for 10 minutes after you use Mark of Courage, within 20 feet of the banner.',
+  ],
   [item('Blast Scepter|WDMM'), 'resist', ['fire', 'lightning']],
   [item('Blackrazor|XDMG'), 'condition', ['charmed', 'frightened']],
   [item('Book of Exalted Deeds|XDMG'), 'condition', ['charmed', 'frightened']],
@@ -442,7 +639,36 @@ const ITEM_ROWS: readonly Row[] = [
   [item('Book of Vile Darkness|XDMG'), 'condition', ['exhaustion']],
   [item('Bracelet of Rock Magic|TftYP'), 'condition', ['petrified']],
   [item('Canian Fork|CoA'), 'vulnerable', ['radiant']],
+  [
+    item('Claw of the Wyrm Rune|SKT'),
+    'resist',
+    ["damage from a dragon's breath weapon"],
+    'Only while the claw is displayed on your person.',
+  ],
   [item('Crown of Horns|FRAiF'), 'immune', ['necrotic']],
+  [
+    item('Elemental Essence Shard (Earth)|TCE'),
+    'resist',
+    { count: 1, from: DAMAGE_TYPES },
+    "Only until the start of your next turn, after you use the shard's property.",
+  ],
+  // The eye and the hand give these together, when the bearer is attuned to both.
+  ...(['Eye|DMG', 'Hand|DMG', 'Eye|XDMG', 'Hand|XDMG'] as const).flatMap(
+    (part): Row[] => {
+      const [name, book] = part.split('|')
+      const when = 'Only while you are attuned to both the Eye and the Hand of Vecna.'
+      const kinds: [DefenseKind, string[]][] = [
+        ['immune', ['poison']],
+        ['condition', book === 'DMG' ? ['disease', 'poisoned'] : ['poisoned']],
+      ]
+      return kinds.map(([kind, types]): Row => [
+        item(`${name} of Vecna|${book}`),
+        kind,
+        types,
+        when,
+      ])
+    },
+  ),
   [
     item('Gauntlets of Rage|CoA'),
     'condition',
@@ -462,6 +688,12 @@ const ITEM_ROWS: readonly Row[] = [
   ],
   [item('Mace of the Black Crown (Awakened)|EGW'), 'resist', ['poison']],
   [item('Mace of the Black Crown (Exalted)|EGW'), 'resist', ['fire', 'poison']],
+  [
+    item('Nimbus Coronet|BGG'),
+    'resist',
+    BPS,
+    'Only while you are in cloud form, for 1 minute after you invoke the rune.',
+  ],
   [item('Obsidian Flint Dragon Plate|BGDIA'), 'resist', ['poison']],
   [item('Orb of the Stein Rune|SKT'), 'resist', ['damage from ranged weapon attacks']],
   [item('Periapt of Health|DMG'), 'condition', ['disease']],
@@ -479,8 +711,24 @@ const ITEM_ROWS: readonly Row[] = [
   ],
   [item('Shield of the Hidden Lord|BGDIA'), 'resist', ['fire']],
   [item('Staff of Light and Shadow|WoW'), 'resist', ['necrotic']],
+  [item('Wyrmreaver Gauntlets|BGG'), 'resist', { count: 1, from: DRAGON }],
   [item('Sword of Kas|XDMG'), 'resist', ['necrotic']],
   [item('The Codicil of White|IDRotF'), 'resist', ['cold']],
+  // The type of a chromatic rose is the color it is named for.
+  ...(
+    [
+      ['Black Chromatic Rose|WBtW', 'acid'],
+      ['Blue Chromatic Rose|WBtW', 'lightning'],
+      ['Green Chromatic Rose|WBtW', 'poison'],
+      ['Red Chromatic Rose|WBtW', 'fire'],
+      ['White Chromatic Rose|WBtW', 'cold'],
+    ] as const
+  ).map(([key, type]): Row => [
+    item(key),
+    'resist',
+    [type],
+    'Only while you hold the rose by its stem.',
+  ]),
   // A dragon mask gives immunity instead when its wearer already resists the type.
   ...(
     [
@@ -513,8 +761,17 @@ export const ITEM_DEFENSE_NOT_STANDING: Readonly<Record<string, string>> = {
   'Sundial of Eternal Dusk|ICC': 'Only while the shadow of its action lasts.',
 }
 
+/** The same for a generic variant, by the name of the variant. */
+export const VARIANT_DEFENSE_WHEN: Readonly<Record<string, string>> = {
+  'Glimmering Moonbow':
+    'Only until the start of your next turn, after you use the bonus action.',
+}
+
 /** Items whose data lists a defense that holds only under a condition, with it. */
 export const ITEM_DEFENSE_WHEN: Readonly<Record<string, string>> = {
+  'Eye of Vecna|DMG': 'Only while you are attuned to both the Eye and the Hand of Vecna.',
+  'Hand of Vecna|DMG':
+    'Only while you are attuned to both the Eye and the Hand of Vecna.',
   'Helm of Brilliance|DMG': 'Only while the helm has at least one ruby.',
   'Helm of Brilliance|XDMG': 'Only while the helm has at least one ruby.',
 }

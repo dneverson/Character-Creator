@@ -53,6 +53,7 @@ export function hpQuantity(
   character: Character,
   breakdown: HpBreakdown,
   rolled: boolean,
+  notes: readonly Line[] = [],
 ): Quantity {
   const manual: Pick<Line, 'source' | 'op' | 'status' | 'badge'> = {
     source: { kind: 'manual', tag: 'manual', label: '' },
@@ -97,6 +98,7 @@ export function hpQuantity(
       label: 'Flat bonus',
       amount: character.hp.flatBonus || 0,
     },
+    ...notes,
   ]
   return quantity(lines)
 }

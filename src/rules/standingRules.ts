@@ -6,9 +6,12 @@
 // number, never added to it: the case it holds in ("against being charmed") is the row's
 // `when`, and a row with none holds always.
 //
+// A death saving throw has no row on the sheet: its note goes on the hit point maximum's
+// lines. Initiative is a row of rules/combatRules.ts.
+//
 // Not here: a trait held only after an action or for a time, a roll the sheet has no row
-// for (death saves, initiative, a tool check), and the advantages of the class options,
-// which are rows of rules/optionEffects.ts.
+// for (a tool check), and the advantages of the class options, which are rows of
+// rules/optionEffects.ts.
 
 import type { AbilityKey } from '../dice/dice'
 import { SKILLS } from '../data/skills'
@@ -16,8 +19,9 @@ import type { Holder } from './holder'
 
 export type Edge = 'advantage' | 'disadvantage'
 
-/** What the note is on: the saving throws of some abilities, or some skills. */
-export type StandingScope = { save: readonly AbilityKey[] } | { check: readonly string[] }
+/** What the note is on: the saving throws of some abilities, some skills or death saves. */
+export type StandingScope =
+  { save: readonly AbilityKey[] } | { check: readonly string[] } | { death: true }
 
 export interface StandingRule {
   holder: Holder
@@ -44,6 +48,7 @@ const checks = (...skills: string[]): StandingScope => ({ check: skills })
 const checksOf = (...abilities: AbilityKey[]): StandingScope => ({
   check: SKILLS.filter((s) => abilities.includes(s.ability)).map((s) => s.key),
 })
+const deathSaves: StandingScope = { death: true }
 const everyCheck: StandingScope = { check: SKILLS.map((s) => s.key) }
 
 const race = (baseName: string, source: string): Holder => ({
@@ -55,6 +60,7 @@ const subrace = (baseName: string, source: string, subraceName: string): Holder 
 const feat = (key: string): Holder => ({ feat: key })
 const reward = (key: string): Holder => ({ reward: key })
 const item = (key: string): Holder => ({ item: key })
+const variant = (name: string): Holder => ({ variant: name })
 const classFeature = (className: string, source: string, name: string): Holder => ({
   classFeature: { className, source, name },
 })
@@ -71,6 +77,10 @@ const D: Edge = 'disadvantage'
 const CHARMED = 'to avoid or end the charmed condition'
 const FRIGHTENED = 'to avoid or end the frightened condition'
 const POISONED = 'to avoid or end the poisoned condition'
+const CHARMED_FRIGHTENED = 'to avoid or end the charmed and frightened conditions'
+const GRAPPLED = 'to avoid or end the grappled condition'
+const BLACKRAZOR = 'while the temporary hit points it gave last and you hold it'
+const DEMONS = "against the demons' spells and special abilities"
 const SPELLS = 'against spells'
 const MAGIC = 'against spells and other magical effects'
 const SUNLIGHT = 'when you or what you perceive is in direct sunlight'
@@ -494,6 +504,307 @@ const ROWS: readonly Row[] = [
   [item('Quarterstaff of the Acrobat|XDMG'), A, checks('acrobatics')],
   [item('Infernal Amulet|CoA'), D, saves('str')],
   [item('Infernal Amulet|CoA'), D, checksOf('str')],
+  // ---- Items: the standing ones of other books ------------------------------------------
+  [item('Amethyst Lodestone|FTD'), A, saves('str')],
+  [
+    item('Amulet of Duplicity|CoA'),
+    D,
+    checks('persuasion'),
+    'to reveal who you really are',
+  ],
+  [
+    item('Amulet of Protection from Turning|TftYP'),
+    A,
+    allSaves,
+    'against effects that turn undead',
+  ],
+  ...['Ashen Band of Courage', 'Ashen Band of Greater Courage'].map((name): Row => [
+    item(`${name}|ICC`),
+    A,
+    allSaves,
+    CHARMED_FRIGHTENED,
+  ]),
+  [item('Ashen Band of Unmatched Courage|ICC'), A, allSaves, CHARMED_FRIGHTENED],
+  [item('Belt of Dwarvenkind|DMG'), A, allSaves, 'against poison'],
+  [
+    item('Belt of Dwarvenkind|DMG'),
+    A,
+    checks('persuasion'),
+    'made to interact with dwarves',
+  ],
+  [item('Belt of Dwarvenkind|XDMG'), A, allSaves, POISONED],
+  [
+    item('Belt of Dwarvenkind|XDMG'),
+    A,
+    checks('persuasion'),
+    'made to interact with dwarves and duergar',
+  ],
+  ...(
+    [
+      ['Black Dragon Mask|HotDQ', 'black'],
+      ['Blue Dragon Mask|RoTOS', 'blue'],
+      ['Green Dragon Mask|RoTOS', 'green'],
+      ['Red Dragon Mask|RoTOS', 'red'],
+      ['White Dragon Mask|RoTOS', 'white'],
+    ] as const
+  ).map(([key, color]): Row => [
+    item(key),
+    A,
+    checksOf('cha'),
+    `made against ${color} dragons`,
+  ]),
+  ...[
+    'Black',
+    'Blue',
+    'Brass',
+    'Bronze',
+    'Copper',
+    'Gold',
+    'Green',
+    'Red',
+    'Silver',
+    'White',
+  ].map((color): Row => [
+    item(`${color} Dragon Scale Mail|DMG`),
+    A,
+    allSaves,
+    'against the Frightful Presence and breath weapons of dragons',
+  ]),
+  [
+    item('Dragonstaff of Ahghairon|WDH'),
+    A,
+    allSaves,
+    'against the spells and breath weapons of dragons and other creatures like them',
+  ],
+  [item('Blackrazor|DMG'), A, allSaves, BLACKRAZOR],
+  [item('Blackrazor|DMG'), A, everyCheck, BLACKRAZOR],
+  [item('Blanket|XPHB'), A, allSaves, 'against extreme cold'],
+  [
+    item('Bracers of Celerity|PaBTSO'),
+    A,
+    allSaves,
+    'to avoid or end the paralyzed or restrained conditions',
+  ],
+  [item('Cape of Enlargement|PaBTSO'), A, saves('str')],
+  [item('Cape of Enlargement|PaBTSO'), A, checksOf('str')],
+  [item('Ring of Red Fury|CRCotN'), A, saves('str')],
+  [item('Ring of Red Fury|CRCotN'), A, checksOf('str')],
+  [item('Powered Armor|QftIS'), A, checksOf('str')],
+  [item('Powered Armor|LLK'), A, deathSaves],
+  [
+    item('Cloak of Billowing|WttHC'),
+    A,
+    checks('performance'),
+    'to amuse humanoid onlookers while the cloak is billowing',
+  ],
+  [
+    item('Dread Helm|WttHC'),
+    A,
+    checks('intimidation'),
+    'to intimidate a humanoid who sees you wearing it',
+  ],
+  [item('Piwafwi (Cloak of Elvenkind)|OotA'), A, checks('stealth'), 'made to hide'],
+  [item('Piwafwi of Fire Resistance|OotA'), A, checks('stealth'), 'made to hide'],
+  [
+    item('Costume|XPHB'),
+    A,
+    everyCheck,
+    'made to impersonate the person or type of person it represents',
+  ],
+  [
+    item("Cultist's Robe|HotB"),
+    A,
+    everyCheck,
+    'made to impersonate a cultist in the Cult of Chaos',
+  ],
+  [
+    item("Danoth's Visor (Dormant)|EGW"),
+    A,
+    checks('investigation', 'perception'),
+    'that rely on sight',
+  ],
+  [
+    item('Defias Leather|WoW'),
+    A,
+    checks('stealth'),
+    'made to hide behind stone objects and structures',
+  ],
+  [item('Demon Armor|DMG'), D, allSaves, DEMONS],
+  [variant('Demon Armor'), D, allSaves, DEMONS],
+  [item('Diamond Staff|AU'), A, checks('arcana'), 'while holding the staff'],
+  [
+    item("Donjon's Sundering Sphere|BMT"),
+    A,
+    allSaves,
+    'against spells or effects that send you to another plane or space',
+  ],
+  [
+    item('Dream Weaver|AU'),
+    A,
+    saves('int', 'wis', 'cha'),
+    'while you have the unconscious condition',
+  ],
+  [item('Ebonbane|RHW'), A, allSaves, MAGIC],
+  ...['DMG', 'XDMG'].map((book): Row => [
+    item(`Eyes of the Eagle|${book}`),
+    A,
+    checks('perception'),
+    'that rely on sight',
+  ]),
+  [item('Far Gear|AI'), A, checks('intimidation')],
+  [
+    item('Garb of Light and Shadow|FRHoF'),
+    A,
+    everyCheck,
+    'to influence Fey associated with its Domain of Delight',
+  ],
+  [
+    item('Genie Robe|FRHoF'),
+    A,
+    everyCheck,
+    'to influence Elementals associated with its plane',
+  ],
+  [
+    item('Goggles of Object Reading|EGW'),
+    A,
+    checks('arcana'),
+    'to reveal information about a creature or object you can see',
+  ],
+  [item('Greater Silver Sword|MTF'), A, saves('int', 'wis', 'cha')],
+  [item('Grimoire Infinitus (Awakened)|EGW'), A, allSaves, MAGIC],
+  [
+    item('Grovelthrash (Dormant)|EGW'),
+    A,
+    checks('insight'),
+    'to discern a lie spoken in a language you understand',
+  ],
+  [item('Helm of Perfect Potential|BGG'), A, checks('deception', 'insight')],
+  [item('Ioun Stone, Awareness|XDMG'), A, checks('perception')],
+  [
+    item('Jester Card|BMT'),
+    A,
+    saves('con'),
+    "to maintain concentration on Otto's Irresistible Dance",
+  ],
+  [item('Kagonesti Forest Shroud|DSotDQ'), A, checks('stealth')],
+  [item("Knave's Eye Patch|WDH"), A, checks('perception'), 'that rely on sight'],
+  [
+    item('Leather Golem Armor|LLK'),
+    D,
+    everyCheck,
+    'until the end of your next turn, after you take fire damage',
+  ],
+  [
+    item('Lost Crown of Besilmer|PotA'),
+    A,
+    allSaves,
+    'against effects that would charm you',
+  ],
+  [item('Mindguard Crown|PaBTSO'), A, saves('int', 'wis', 'cha')],
+  [item('Necklace of Adaptation|DMG'), A, allSaves, 'against harmful gases and vapors'],
+  [item('Necklace of Adaptation|XDMG'), A, allSaves, POISONED],
+  [item('Nepenthe|VRGR'), A, allSaves, MAGIC],
+  [item('Nether Scroll of Azumar|CM'), A, allSaves, MAGIC],
+  [item('Obsidian Flint Dragon Plate|BGDIA'), A, allSaves, GRAPPLED],
+  [
+    item('Obsidian Flint Dragon Plate|BGDIA'),
+    A,
+    checks('athletics', 'acrobatics'),
+    GRAPPLED,
+  ],
+  [
+    item('Ominous Staff of Skulls|AU'),
+    A,
+    checks('intimidation'),
+    'made while holding it',
+  ],
+  [item('Orb of the Stein Rune|SKT'), A, saves('str'), 'while you wear the boots'],
+  [item('Orb of the Veil|EGW'), A, checksOf('wis'), 'to find hidden doors and paths'],
+  [item('Periapt of Health|XDMG'), A, allSaves, POISONED],
+  [
+    item('Ring of Truth Telling|WDH'),
+    A,
+    checks('insight'),
+    'to determine whether someone is lying to you',
+  ],
+  [item('Robe of Eyes|DMG'), A, checks('perception'), 'that rely on sight'],
+  ...['DMG', 'XDMG'].flatMap((book): Row[] => [
+    [item(`Rod of Alertness|${book}`), A, checks('perception')],
+    [item(`Sentinel Shield|${book}`), A, checks('perception')],
+  ]),
+  [item('Shadowfell Brand Tattoo|TCE'), A, checks('stealth')],
+  [
+    item('Shard of the Ise Rune|SKT'),
+    A,
+    checks('stealth'),
+    'made while in snowy terrain',
+  ],
+  [item('Shrieking Greaves|BMT'), A, saves('dex')],
+  [item('Shrieking Greaves|BMT'), D, allSaves, 'against being frightened'],
+  [item('Slumbering Scaled Ornament|FTD'), A, allSaves, CHARMED_FRIGHTENED],
+  [
+    item("Stonebreaker's Breastplate|BGG"),
+    A,
+    saves('con'),
+    'to maintain concentration on the spell it cast',
+  ],
+  [item('Sword of Zariel|BGDIA'), A, checks('insight')],
+  [
+    item('Talisman of the Sphere|XDMG'),
+    A,
+    checks('arcana'),
+    'to control a Sphere of Annihilation',
+  ],
+  [
+    item('Teeth of Dahlver-Nar|TCE'),
+    D,
+    checks('insight', 'perception'),
+    'from the constant whispers of memories and nearby minds',
+  ],
+  [item('The Bloody End (Dormant)|EGW'), A, checks('intimidation')],
+  [item('Staff of the Lost|AU'), D, checks('survival'), 'made to navigate'],
+  [
+    item('Ventilating Lungs|ERLW'),
+    A,
+    allSaves,
+    'against harmful gases such as cloudkill',
+  ],
+  [item('Verminshroud (Dormant)|EGW'), A, checks('perception'), SMELL],
+  [item("Wayfarer's Boots|BGG"), A, checks('survival')],
+  [item('Watchful Helm|CM'), A, checks('perception'), 'that rely on sight'],
+  [item('Whelm|DMG'), D, allSaves, 'while you can see the daytime sky'],
+  [item('Whelm|DMG'), D, everyCheck, 'while you can see the daytime sky'],
+  [
+    item('Winter Camouflage|FRHoF'),
+    A,
+    checks('stealth'),
+    'in an appropriate environment',
+  ],
+  // ---- Generic variants: any item made from them ----------------------------------------
+  [variant('Feywrought Armor'), A, allSaves, CHARMED],
+  [variant('Gloomwrought Armor'), A, allSaves, FRIGHTENED],
+  [variant('Holy Avenger'), A, allSaves, MAGIC],
+  [variant('Zephyr Armor'), A, saves('dex')],
+  [variant('Zephyr Armor'), A, checks('acrobatics')],
+  // ---- Death saving throws: a note on the hit point maximum's lines ---------------------
+  [feat('Durable|XPHB'), A, deathSaves],
+  [feat('Touch of Death|RHW'), D, deathSaves],
+  [race('Reborn', 'RHW'), A, deathSaves],
+  [reward('Fragment of Pity|CRCotN'), D, deathSaves],
+  [sub('Fighter', 'Champion', 'XPHB', 'Survivor'), A, deathSaves],
+  // ---- Escaping a grapple or a restraint --------------------------------------------------
+  [
+    feat('Vampire Hunter|ABH'),
+    A,
+    checks('athletics', 'acrobatics'),
+    'to escape from nonmagical restraints or the grappled condition',
+  ],
+  [
+    reward('Boon of the Unfettered|DMG'),
+    A,
+    checks('athletics', 'acrobatics'),
+    'made to resist being grappled',
+  ],
 ]
 
 /** Every row, with the item rows of a book the data does not have dropped by the audit. */

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { deriveSheet } from '.'
 import { combatNumbers, isEdgeLine, passives, settleEdges } from './combat'
 import { collectSources } from './sources'
 import { characterAbilityTotals } from '../character/derive'
@@ -6,7 +7,15 @@ import type { Character } from '../character/model'
 import { buildSkillSources, skillRows } from '../character/skills'
 import { proficiencyBonus } from '../data/skills'
 import type { LoadedClass } from '../data/class'
-import { build, deps, featOf, loadedClass, stack } from '../test/derivedFixtures'
+import {
+  build,
+  deps,
+  featOf,
+  FIGHTER,
+  ITEMS,
+  loadedClass,
+  stack,
+} from '../test/derivedFixtures'
 import { makeItem } from '../test/itemFixtures'
 import { BASE_SOURCE, sumLines, type Line } from './types'
 
@@ -80,6 +89,36 @@ describe('initiative', () => {
     const fighter = [loadedClass('Fighter', [], [])]
     expect(numbers(c, fighter, ['Alert|PHB']).initiative.value).toBe(5)
     expect(numbers(c, fighter, ['Alert|XPHB']).initiative.value).toBe(3)
+  })
+
+  it('notes the advantage and adds the bonus an item gives, greyed until attuned', () => {
+    const rod = makeItem({
+      name: 'Rod of Alertness',
+      source: 'XDMG',
+      magic: true,
+      attunement: { required: true, optional: false, classes: [] },
+    })
+    const scorpion = makeItem({ name: 'Scorpion Armor', source: 'ToA', magic: true })
+    const initiative = (attuned: boolean) =>
+      deriveSheet(
+        build('Fighter', 1, { dex: 10 }, [
+          stack('Rod of Alertness', { source: 'XDMG', attuned }),
+          stack('Scorpion Armor', { source: 'ToA' }),
+        ]),
+        deps([FIGHTER], [...ITEMS, rod, scorpion]),
+      ).combat.initiative
+    expect(initiative(true).value).toBe(5)
+    expect(initiative(true).lines).toContainEqual(
+      expect.objectContaining({
+        label: 'Rod of Alertness',
+        op: 'note',
+        how: 'Advantage on the roll',
+        status: 'conditional',
+      }),
+    )
+    expect(initiative(false).lines).toContainEqual(
+      expect.objectContaining({ label: 'Rod of Alertness', status: 'inactive' }),
+    )
   })
 
   it('adds half the proficiency bonus with Jack of All Trades, not beside proficiency', () => {

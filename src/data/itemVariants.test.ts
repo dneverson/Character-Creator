@@ -80,6 +80,18 @@ describe('readVariant', () => {
     expect(plusOneWeapon.variant?.appliesTo).toBe('Any weapon')
   })
 
+  it('reads the defense of a variant from the data, or from the rules, with its condition', () => {
+    const moonbow = variant({
+      name: 'Glimmering Moonbow',
+      source: '',
+      requires: [{ bow: true }],
+      inherits: { namePrefix: 'Glimmering Moon ', source: 'BMT' },
+    })
+    expect(moonbow.defensesWhen).toMatch(/^Only until the start of your next turn/)
+    expect(applyVariant(moonbow, longsword).defensesWhen).toBe(moonbow.defensesWhen)
+    expect(plusOneWeapon.defensesWhen).toBeUndefined()
+  })
+
   it('fills the bonus into the text the book prints', () => {
     expect(plusOneWeapon.entries).toEqual([
       'You have a +1 bonus to attack and damage rolls.',

@@ -21,6 +21,7 @@ import {
 } from './grantBlocks'
 import { skillTable, type ExpertiseState } from './expertise'
 import { hpQuantity } from './hp'
+import { deathNoteLines, heldStanding } from './standing'
 import { itemBonus } from './itemBonus'
 import { pickCards } from './pickCards'
 import { proficiencies, type Proficiencies } from './proficiencies'
@@ -262,7 +263,12 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
         .filter((o) => !o.spec.kinds.includes('expertise'))
         .reduce((n, o) => n + o.left, 0) +
       table.expertise.cards.reduce((n, c) => n + c.left, 0),
-    hp: hpQuantity(character, breakdown, rolled),
+    hp: hpQuantity(
+      character,
+      breakdown,
+      rolled,
+      deathNoteLines(heldStanding(sources), 'hp|death'),
+    ),
     checklist: buildChecklist({
       sources,
       deps,

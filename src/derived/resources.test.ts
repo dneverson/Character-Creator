@@ -307,6 +307,64 @@ describe('deriveResources', () => {
     expect(anchorOf(grant('subclass', 'Paladin|PHB'))).toBe('class:Paladin|PHB#Oath')
   })
 
+  it('anchors a counter to the feature its grant belongs to when no text tags the spell', () => {
+    const grant = (
+      origin: SpellGrant['origin'],
+      gate: number,
+      classKey?: string,
+    ): SpellGrant => ({
+      id: `${origin}:alter self`,
+      sourceId: origin,
+      from: 'Transmuter',
+      origin,
+      ...(classKey ? { classKey } : {}),
+      mode: 'innate',
+      gate,
+      locked: false,
+      uses: '1 per long rest',
+      spell: { name: 'alter self', source: 'PHB', cantrip: false },
+      limit: { count: 1, rest: 'long', pool: origin },
+    })
+    const row = (
+      kind: FeatureRow['kind'],
+      from: string,
+      anchor: string,
+      extra: Partial<FeatureRow> = {},
+    ): FeatureRow => ({
+      id: anchor,
+      name: anchor,
+      from,
+      kind,
+      entries: [],
+      anchor,
+      ...extra,
+    })
+    const features = [
+      row('Class', 'Wizard', 'class:Wizard|PHB#Arcane Recovery', { level: 3 }),
+      row('Class', 'Wizard', 'class:Wizard|PHB#Minor Alchemy', {
+        level: 2,
+        ofSubclass: true,
+      }),
+      row('Class', 'Wizard', 'class:Wizard|PHB#Shapechanger', {
+        level: 10,
+        ofSubclass: true,
+      }),
+      row('Species', 'Elf', 'race#Fey Ancestry'),
+    ]
+    const anchorOf = (g: SpellGrant) =>
+      deriveResources(sourcesOf('Fighter', 1), [g], TOTALS, 2, features).find(
+        (r) => r.kind === 'spell',
+      )?.anchor
+    expect(anchorOf(grant('race', 0))).toBe('race#Fey Ancestry')
+    // The subclass's own feature, never a feature of the class, at the level it comes at.
+    expect(anchorOf(grant('subclass', 10, 'Wizard|PHB'))).toBe(
+      'class:Wizard|PHB#Shapechanger',
+    )
+    expect(anchorOf(grant('subclass', 3, 'Wizard|PHB'))).toBe(
+      'class:Wizard|PHB#Minor Alchemy',
+    )
+  })
+
   it('counts the charges of an equipped item, restored by hand when they come at dawn', () => {
     const wand = (on: string): Item =>
       makeItem({

@@ -29,8 +29,14 @@ export const COMBAT_NOT_APPLIED: Record<string, string> = {
   'optionalfeature|Ambush|TCE': 'spends a superiority die on the roll in play',
   'optionalfeature|Ambush|XPHB': 'spends a superiority die on the roll in play',
   'optionalfeature|Helm of Awareness|TCE': 'an option of a creature that wears a helm',
-  'magicvariant|Weapon of Warning|':
-    'an item that gives advantage while it is on the person',
+  'item|Deck of Wonder|BMT': 'a result of drawing a card, for 8 hours',
+  'item|Sword of Kas|DMG': 'adds a die rolled at the start of combat, not a fixed number',
+  'item|Sword of Kas|XDMG':
+    'adds a die rolled at the start of combat, not a fixed number',
+  'item|The Infernal Machine of Lum the Mad|IMR':
+    'one result of a random table of the device, not a feature the character holds',
+  'itemGroup|Eye and Hand of Vecna|XDMG':
+    'holds only with both the Eye and the Hand attuned: a pair, not one item the sheet holds',
   'race|Lorwyn Changeling|LFL': 'a move after the roll, not a bonus to it',
 }
 
@@ -53,6 +59,8 @@ describe.skipIf(!dataDir)('combat rules against the data', () => {
         'background',
         'action',
         'magicvariant',
+        'item',
+        'itemGroup',
       ],
       (text) => CHANGES_COMBAT_ROLL.test(text),
     )

@@ -4,7 +4,7 @@
 
 export type Holder =
   | { feat: string }
-  | { race: { baseName: string; source: string; subraceName?: string } }
+  | { race: { baseName: string; source: string; subraceName?: string; trait?: string } }
   | { classFeature: { className: string; source: string; name: string } }
   | {
       subclassFeature: {
@@ -20,6 +20,8 @@ export type Holder =
   | { option: string }
   /** An item of the catalog, by its key "Name|Source". */
   | { item: string }
+  /** Any item made from a generic variant (Holy Avenger), by the variant's name. */
+  | { variant: string }
   /** A supernatural gift of the rewards file (a blessing, a boon), by "Name|Source". */
   | { reward: string }
 
@@ -45,6 +47,7 @@ export function holderId(holder: Holder): string {
   }
   if ('option' in holder) return `optionalfeature|${holder.option}`
   if ('reward' in holder) return `reward|${holder.reward}`
+  if ('variant' in holder) return `magicvariant|${holder.variant}|`
   return `item|${holder.item}`
 }
 
@@ -56,5 +59,6 @@ export function holderName(holder: Holder): string {
   if ('subclassFeature' in holder) return holder.subclassFeature.name
   if ('option' in holder) return holder.option.split('|')[0]
   if ('reward' in holder) return holder.reward.split('|')[0]
+  if ('variant' in holder) return holder.variant
   return holder.item.split('|')[0]
 }

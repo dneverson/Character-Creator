@@ -45,6 +45,14 @@ const subclassFeature = (
   name: string,
 ): Holder => ({ subclassFeature: { className, shortName, source, name } })
 
+/** An item that gives advantage on Initiative rolls, as its own text says it. */
+const itemEdge = (key: string, text: string): InitiativeRule => ({
+  holder: { item: key },
+  label: key.split('|')[0],
+  text,
+  effect: { kind: 'advantage' },
+})
+
 export const INITIATIVE_RULES: readonly InitiativeRule[] = [
   {
     holder: feat('Alert', 'PHB'),
@@ -152,6 +160,63 @@ export const INITIATIVE_RULES: readonly InitiativeRule[] = [
     holder: subclassFeature('Cleric', 'Twilight', 'TCE', 'Vigilant Blessing'),
     label: 'Vigilant Blessing',
     text: 'Twilight Domain, Vigilant Blessing: you can give a creature advantage on its next initiative roll.',
+    effect: { kind: 'advantage' },
+  },
+  ...['Slumbering', 'Stirring', 'Wakened', 'Ascendant'].map((stage) =>
+    itemEdge(
+      `${stage} Dragon-Touched Focus|FTD`,
+      `${stage} Dragon-Touched Focus: you have advantage on initiative rolls.`,
+    ),
+  ),
+  itemEdge(
+    'Helm of Awareness|EFA',
+    'Helm of Awareness: you have advantage on Initiative rolls.',
+  ),
+  itemEdge(
+    'Ioun Stone, Awareness|XDMG',
+    'Ioun Stone of Awareness: you have Advantage on Initiative rolls.',
+  ),
+  itemEdge(
+    'Peregrine Mask|GGR',
+    'Peregrine Mask: you have advantage on initiative rolls.',
+  ),
+  itemEdge(
+    'Rod of Alertness|DMG',
+    'Rod of Alertness: you have advantage on rolls for initiative.',
+  ),
+  itemEdge(
+    'Rod of Alertness|XDMG',
+    'Rod of Alertness: you have Advantage on Initiative rolls.',
+  ),
+  itemEdge(
+    'Scourge of Shadow|CoA',
+    'Scourge of Shadow: you have advantage on initiative rolls.',
+  ),
+  itemEdge(
+    'Sentinel Shield|DMG',
+    'Sentinel Shield: you have advantage on initiative rolls.',
+  ),
+  itemEdge(
+    'Sentinel Shield|XDMG',
+    'Sentinel Shield: you have Advantage on Initiative rolls.',
+  ),
+  {
+    holder: { item: 'Scorpion Armor|ToA' },
+    label: 'Scorpion Armor',
+    text: "Scorpion Armor: a +5 bonus to initiative as long as you aren't incapacitated.",
+    effect: { kind: 'flat', amount: 5 },
+  },
+  {
+    holder: { item: 'Shield of the Silver Dragon|CoS' },
+    label: 'Shield of the Silver Dragon',
+    text: "Shield of the Silver Dragon: a +2 bonus to initiative if you aren't incapacitated.",
+    effect: { kind: 'flat', amount: 2 },
+  },
+  itemEdge('Wave|XDMG', 'Wave: you have Advantage on Initiative rolls.'),
+  {
+    holder: { variant: 'Weapon of Warning' },
+    label: 'Weapon of Warning',
+    text: 'Weapon of Warning: you have advantage on initiative rolls.',
     effect: { kind: 'advantage' },
   },
 ]

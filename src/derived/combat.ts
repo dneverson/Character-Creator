@@ -47,7 +47,7 @@ function held<T extends { holder: InitiativeRule['holder'] }>(
 ) {
   return rules.flatMap((rule) => {
     const found = heldBy(sources, rule.holder)
-    return found ? [{ rule, source: found.source }] : []
+    return found ? [{ rule, source: found.source, active: found.active !== false }] : []
   })
 }
 
@@ -145,7 +145,7 @@ export function initiative(
   const rules = held(sources, INITIATIVE_RULES)
   let proficient = false
   const halves: Parameters<typeof halfLines>[0] = []
-  for (const { rule, source } of rules) {
+  for (const { rule, source, active } of rules) {
     const id = `initiative|${source.tag}|${rule.label}`
     const e = rule.effect
     const base = { id, label: rule.label, source, op: 'add' as const, text: rule.text }
@@ -161,9 +161,10 @@ export function initiative(
       lines.push({
         ...base,
         op: 'note',
-        status: 'conditional',
+        status: active ? 'conditional' : 'inactive',
         when: 'on the roll',
         how: 'Advantage on the roll',
+        ...(active ? {} : { why: 'Needs attunement, and you are not attuned.' }),
       })
     }
   }

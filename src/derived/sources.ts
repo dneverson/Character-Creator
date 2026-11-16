@@ -303,6 +303,12 @@ export function heldBy(sources: Sources, holder: Holder): Held | undefined {
     const held = sources.items.find((i) => i.item.key === holder.item)
     return held && { source: held.source, active: held.active }
   }
+  if ('variant' in holder) {
+    const held = sources.items.find(
+      (i) => i.stack.variantOf?.split('|')[0] === holder.variant,
+    )
+    return held && { source: held.source, active: held.active }
+  }
   // A feature of a list to choose from (Protector or Thaumaturge), or an optional class
   // feature (Favored Foe) and the one it replaces, is held once taken.
   if (featureWithheld(sources.featureChoices, holderId(holder))) return undefined

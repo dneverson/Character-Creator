@@ -64,6 +64,13 @@ export function checkNoteLines(
     .map((h) => noteLine(h, id, 'check'))
 }
 
+/** The notes on death saving throws, which have no row of their own: the hit points show them. */
+export function deathNoteLines(held: readonly HeldStanding[], id: string): Line[] {
+  return held
+    .filter(({ rule }) => 'death' in rule.scope)
+    .map((h) => noteLine(h, id, 'death saving throw'))
+}
+
 /**
  * Heavy armor's disadvantage on Stealth: the armor class already works out whether the armor
  * worn hampers it (Medium Armor Master lifts it for medium armor), so this reads that flag.

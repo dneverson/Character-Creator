@@ -43,7 +43,7 @@ const sheetOf = (
   className = 'Fighter',
 ) => {
   const c = build(className, 1, {}, [])
-  c.equipment.items = items.map((i) => stack(i.name, { attuned: true }))
+  c.equipment.items = items.map((i) => stack(i.name, { attuned: true, source: i.source }))
   return { c, d: { ...deps([RAGER], items), ...(extra ? { race: race(extra) } : {}) } }
 }
 
@@ -107,6 +107,42 @@ describe('defenses', () => {
     expect(sheet.picks.map((p) => [p.tag, p.noun, p.count])).toEqual([
       ['race', 'damage resistances', 1],
     ])
+  })
+
+  it('show a type the player picked of a conditional source as conditional', () => {
+    const shard = makeItem({
+      name: 'Elemental Essence Shard (Earth)',
+      source: 'TCE',
+      kind: 'wondrous',
+      magic: true,
+    })
+    const { c, d } = sheetOf(null, [shard])
+    const tag = deriveSheet(c, d).picks[0].tag
+    c.grantPicks = { resist: { fire: tag } }
+    const fire = deriveSheet(c, d).defenses.find((r) => r.key === 'resist|fire')
+    expect(fire?.held.value).toBe(0)
+    expect(fire?.conditional).toMatch(/^Only until the start of your next turn/)
+  })
+
+  it('show the defenses of an item that holds only under a condition as conditional', () => {
+    const bow = makeItem({
+      name: 'Glimmering Moon Longbow',
+      kind: 'weapon',
+      magic: true,
+      defenses: { resist: ['slashing'] },
+      defensesWhen: 'Only after the bonus action.',
+    })
+    const { c, d } = sheetOf(null, [bow])
+    const row = deriveSheet(c, d).defenses[0]
+    expect([row.held.value, row.conditional]).toEqual([0, 'Only after the bonus action.'])
+  })
+
+  it('give a species the defense of the option of its trait taken, and not before', () => {
+    const taunka = { baseName: 'Tauren', source: 'WoW', baseSource: 'WoW' }
+    const { c, d } = sheetOf({ ...taunka, trait: 'Taunka Lineage' }, [])
+    expect(deriveSheet(c, d).defenses.map((r) => r.key)).toEqual(['resist|cold'])
+    const other = sheetOf({ ...taunka, trait: 'Mulgore Lineage' }, [])
+    expect(deriveSheet(other.c, other.d).defenses).toEqual([])
   })
 
   it('have none when nothing gives one', () => {

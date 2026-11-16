@@ -9,7 +9,7 @@ import {
 } from '../data/class'
 import { stripTags } from '../text/tags'
 import { dataDir, records, recordId, textOf, type Rec } from '../test/dataAudit'
-import { holderId, type Holder } from './holder'
+import { holderId, holderName, type Holder } from './holder'
 import { RESOURCE_CHANGES, RESOURCE_EXCUSED, RESOURCE_RULES } from './resources'
 
 // A use limit in a book's words: "a number of times equal to", "you regain all expended
@@ -81,7 +81,7 @@ describe('resource rules', () => {
 
   it('changes only counters a rule gives', () => {
     const labels = new Set(
-      RESOURCE_RULES.map((r) => r.label ?? r.feature ?? holderLabel(r.holder)),
+      RESOURCE_RULES.map((r) => r.label ?? r.feature ?? holderName(r.holder)),
     )
     expect(RESOURCE_CHANGES.filter((c) => !labels.has(c.target))).toEqual([])
   })
@@ -91,16 +91,6 @@ describe('resource rules', () => {
     expect(Object.keys(RESOURCE_EXCUSED).filter((id) => ruled.has(id))).toEqual([])
   })
 })
-
-/** The name a holder's counter shows without a label: the feature, feat or option. */
-function holderLabel(holder: Holder): string {
-  if ('feat' in holder) return holder.feat.split('|')[0]
-  if ('option' in holder) return holder.option.split('|')[0]
-  if ('item' in holder) return holder.item.split('|')[0]
-  if ('reward' in holder) return holder.reward.split('|')[0]
-  if ('race' in holder) return holder.race.subraceName ?? holder.race.baseName
-  return 'classFeature' in holder ? holder.classFeature.name : holder.subclassFeature.name
-}
 
 describe.skipIf(!dataDir)('resource rules against the data', () => {
   const all = records(dataDir ?? '')

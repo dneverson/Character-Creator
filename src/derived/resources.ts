@@ -7,7 +7,7 @@ import { ABILITY_NAMES, abilityMod } from '../dice/dice'
 import { subclassOf, type ClassTableGroup } from '../data/class'
 import { hasTrait } from '../data/race'
 import type { SpellGrant } from '../character/spellGrants'
-import { holderId, type Holder } from '../rules/holder'
+import { holderId, holderName, type Holder } from '../rules/holder'
 import {
   RESOURCE_CHANGES,
   RESOURCE_RULES,
@@ -112,13 +112,7 @@ const restoresText = (recharge: Recharge, shortRegain: number) =>
 /** The name a counter shows: its label, the trait inside the holder, or the holder's name. */
 function ruleLabel(rule: Pick<ResourceRule, 'holder' | 'label' | 'feature'>): string {
   if (rule.label ?? rule.feature) return rule.label ?? rule.feature ?? ''
-  const h: Holder = rule.holder
-  if ('feat' in h) return h.feat.split('|')[0]
-  if ('option' in h) return h.option.split('|')[0]
-  if ('item' in h) return h.item.split('|')[0]
-  if ('reward' in h) return h.reward.split('|')[0]
-  if ('race' in h) return h.race.subraceName ?? h.race.baseName
-  return 'classFeature' in h ? h.classFeature.name : h.subclassFeature.name
+  return holderName(rule.holder)
 }
 
 /** The feature row a holder's counter belongs to, by the tag of where it comes from. */
@@ -247,7 +241,10 @@ const mentionsSpell = (entries: readonly Entry[], name: string) =>
 /**
  * The row of the Features tab that grants the spells of a pool when no row is named by
  * the grant's source: the first trait or feature of the species, the background or the
- * class whose text tags one of the spells (Infernal Legacy for Hellish Rebuke).
+ * class whose text tags one of the spells (Infernal Legacy for Hellish Rebuke). When none
+ * tags one, the grant belongs to what holds the record it is read from: the subclass or
+ * class feature of the level the grant comes at, else the first one, or the first trait of
+ * the species or feature of the background.
  */
 function grantAnchor(
   list: readonly SpellGrant[],
@@ -257,13 +254,18 @@ function grantAnchor(
   if (!kind) return undefined
   const owner = list[0].classKey?.split('|')[0]
   const names = list.flatMap((g) => (g.spell ? [g.spell.name.toLowerCase()] : []))
-  return features.find(
+  const own = features.filter(
     (f) =>
       f.kind === kind &&
       f.anchor !== undefined &&
-      (owner === undefined || f.from === owner) &&
-      names.some((n) => mentionsSpell(f.entries, n)),
-  )?.anchor
+      (owner === undefined || f.from === owner),
+  )
+  const named = own.find((f) => names.some((n) => mentionsSpell(f.entries, n)))
+  if (named) return named.anchor
+  const record = own.filter(
+    (f) => (f.ofSubclass === true) === (list[0].origin === 'subclass'),
+  )
+  return (record.find((f) => f.level === list[0].gate) ?? record[0])?.anchor
 }
 
 /** A counter for each spell the data lets the character cast a number of times per rest. */

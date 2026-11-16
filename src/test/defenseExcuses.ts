@@ -5,17 +5,18 @@
 
 const COLLECTIONS: Readonly<Record<string, string>> = {
   background: 'The word is in a personality table ("vulnerable to fear"), not a rule.',
-  boon: 'A demonic boon a DM grants; the sheet does not model these.',
+  boon: 'A trait a monster is given ("This creature has ..."), not a rule of a character.',
   book: 'A book entry that describes the book, not a rule of the character.',
   card: 'A card of a deck: one drawn effect, not a standing defense.',
   charoption:
-    'A character option of a setting (a gift, a mark); the sheet has no model for them.',
+    'A character option of a setting (a gift, a mark) that gives a defense; the tool offers no way to take one yet.',
   condition: 'The rules text of a condition: what a creature under it has, not a source.',
-  cult: 'A cult of the DM-side boons; the sheet does not model these.',
+  cult: 'A trait a monster is given ("This creature has ..."), not a rule of a character.',
   deity: 'A deity entry: lore, not a rule of the character.',
   disease: 'A disease a creature suffers: lore and effects, not a source of defenses.',
   encounter: 'An encounter table.',
-  facility: 'A bastion facility: a rule of the stronghold, not of the character.',
+  facility:
+    'A benefit of a bastion facility, given for a limited time at the stronghold; the sheet has no bastion model.',
   hazard: "A hazard of the world: its own defenses, not the character's.",
   itemEntry: 'A shared text block of an item, read through the item that uses it.',
   itemType: 'A category of items.',
@@ -42,8 +43,6 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
     "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
   'feat|Cult of the Dragon Initiate|FRHoF':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
-  'feat|Delicious Pain|ABH':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'feat|Elemental Adept|PHB':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
   'feat|Elemental Adept|XPHB':
@@ -51,10 +50,6 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
   'feat|Elemental Familiar|AU': "The defense is the familiar's, not the character's.",
   'feat|Fingers of Frost|WoW':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
-  'feat|Gift of the Chromatic Dragon|FTD':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'feat|Guile of the Cloud Giant|BGG':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'feat|Hot Streak|WoW':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
   'feat|Otherworldly Familiar|AU': "The defense is the familiar's, not the character's.",
@@ -64,42 +59,14 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
   'feat|Spellfire Adept|FRHoF':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
-  'itemGroup|Absorbing Tattoo|TCE':
-    'A type chosen again at each rest or when the item is made, outside the character sheet.',
-  'itemGroup|Armor of Resistance|DMG':
-    'A type chosen again at each rest or when the item is made, outside the character sheet.',
-  'itemGroup|Armor of Resistance|XDMG':
-    'A type chosen again at each rest or when the item is made, outside the character sheet.',
-  'itemGroup|Armor of Vulnerability|DMG':
-    'An index of the items it lists; each of those items is audited as an item.',
-  'itemGroup|Armor of Vulnerability|XDMG':
-    'An index of the items it lists; each of those items is audited as an item.',
-  'itemGroup|Ashen Bands of Courage|ICC':
-    'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'itemGroup|Breastplate of the Tyrant|AU':
-    'An index of the items it lists; each of those items is audited as an item.',
-  'itemGroup|Chromatic Rose|WBtW':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    'The text names armor of another book as an example of how armor evolves; it is not a rule of the group.',
   'itemGroup|Devastation Orb|PotA':
     'The defense is of an object, a structure, a summon or a trapped creature, not of the character.',
-  'itemGroup|Eye and Hand of Vecna|DMG':
-    'An index of the items it lists; each of those items is audited as an item.',
-  'itemGroup|Eye and Hand of Vecna|XDMG':
-    'An index of the items it lists; each of those items is audited as an item.',
   'itemGroup|Horn of Valhalla|XDMG':
     "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
-  'itemGroup|Mace of the Black Crown|EGW':
-    'An index of the items it lists; each of those items is audited as an item.',
-  'itemGroup|Potion of Resistance|XDMG':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'itemGroup|Ring of Resistance|DMG':
-    'A type chosen again at each rest or when the item is made, outside the character sheet.',
-  'itemGroup|Ring of Resistance|XDMG':
-    'A type chosen again at each rest or when the item is made, outside the character sheet.',
-  'itemGroup|Stormgirdle|EGW':
-    'An index of the items it lists; each of those items is audited as an item.',
   'itemGroup|True-Ice Shards|CoA':
-    'An index of the items it lists; each of those items is audited as an item.',
+    'It overcomes or ignores a resistance or immunity of its target; it gives the character no defense.',
   'item|+1 Wraps of Unarmed Prowess|BMT':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
   'item|+2 Wraps of Unarmed Prowess|BMT':
@@ -116,8 +83,6 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
     'The defense is of an object, a structure, a summon or a trapped creature, not of the character.',
   "item|Arcanist's Bestiary|AU":
     'It tells the character what a creature resists or is immune to; it gives none.',
-  'item|Banner of the Krig Rune|SKT':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'item|Battle Standard of Infernal Power|BGDIA':
     'The defense is of an object, a structure, a summon or a trapped creature, not of the character.',
   "item|Bigby's Beneficent Bracelet|BGG":
@@ -127,11 +92,9 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
   'item|Blade of Avernus|BGDIA':
     'It overcomes or ignores a resistance or immunity of its target; it gives the character no defense.',
   'item|Blight Ichor|EGW':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    'A consumable that is used up when it works; the sheet holds no used-up items.',
   'item|Bridle of Capturing|IMR':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
-  'item|Claw of the Wyrm Rune|SKT':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'item|Condensed Order|CoA':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   "item|Constantori's Portrait|KftGV":
@@ -153,11 +116,9 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
   "item|Devlin's Staff of Striking|ToA":
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'item|Dreamlily|ERLW':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    'A consumable that is used up when it works; the sheet holds no used-up items.',
   'item|Eldritch Claw Tattoo|TCE':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
-  'item|Elemental Essence Shard (Earth)|TCE':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'item|Figurine of Wondrous Power, Ivory Goats|DMG':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'item|Figurine of Wondrous Power, Ivory Goats|XDMG':
@@ -167,7 +128,7 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
   'item|Flying Citadel Helm|DSotDQ':
     'The defense is of an object, a structure, a summon or a trapped creature, not of the character.',
   'item|Fool Card|BMT':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    "A card's effect on its target (other creatures resist its damage), not on the character.",
   'item|Frostmourne|WoW':
     "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
   'item|Glowrune Pigment|BGG':
@@ -258,8 +219,6 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'item|Net|XPHB':
     'The defense is of an object, a structure, a summon or a trapped creature, not of the character.',
-  'item|Nimbus Coronet|BGG':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'item|Orb of Damara|FRAiF':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'item|Orcus Figurine|CM':
@@ -273,7 +232,7 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
   'item|Platinum Scarf|FTD':
     "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
   'item|Potion of Aqueous Form|MOT':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    'A consumable that is used up when it works; the sheet holds no used-up items.',
   'item|Protective Verses|TCE':
     'A match inside another word or spell name (invulnerable, Globe of Invulnerability).',
   'item|Pyxis of Pandemonium|MOT':
@@ -338,18 +297,14 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'item|Wrought-Iron Tower|CoA':
     'It overcomes or ignores a resistance or immunity of its target; it gives the character no defense.',
-  'item|Wyrmreaver Gauntlets|BGG':
-    'A type chosen again at each rest or when the item is made, outside the character sheet.',
   'item|Wyrmskull Throne|SKT':
     'A match inside another word or spell name (invulnerable, Globe of Invulnerability).',
   'magicvariant|Acheron Blade|':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'magicvariant|Blade of the Medusa|':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'magicvariant|Glimmering Moonbow|':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    "The curse and the petrifying effect are of the target; nothing is the character's defense.",
   'magicvariant|Polymorph Blade|':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    "The immunity is of the target of the weapon's effect, not the character's.",
   'magicvariant|Silvered Ammunition|':
     'It overcomes or ignores a resistance or immunity of its target; it gives the character no defense.',
   'magicvariant|Silvered Weapon|':
@@ -360,24 +315,12 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
   'optionalfeature|Pact of the Blade|PHB':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
-  'optionalfeature|Resistant Armor|TCE':
-    'A type chosen again at each rest or when the item is made, outside the character sheet.',
-  'optionalfeature|Tomb of Levistus|XGE':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'race|Tauren|WoW':
-    'A trait of one version of the species whose text the sheet does not read; the version choice carries no defense row.',
   'race|Troglodyte|DMG':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
-  'race|Worgen|WoW':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'reward|Boon of Immortality|DMG':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
-  'reward|Charm of Cold Resistance|IDRotF':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'reward|Charm of the Snow Walker|IDRotF':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
-  'reward|Charm of the Titan-Forged|WoW':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'reward|Darkspear Tribe Charm|WoW':
     'A match inside another word or spell name (invulnerable, Globe of Invulnerability).',
   'reward|Fragment of Abhorrence|CRCotN':
@@ -385,7 +328,7 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
   "reward|Nylea's Disciple|MOT":
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'reward|Selesnya Charm|GGR':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
   'subclassFeature|Abjure Enemy|PHB|Paladin|Vengeance':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'subclassFeature|Among the Dead|SCAG|Warlock|Undying':
@@ -395,8 +338,6 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
   'subclassFeature|Arcane Abeyance|EGW|Wizard|Chronurgy':
     "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
   'subclassFeature|Arcane Ward|XPHB|Wizard|Abjurer':
-    "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
-  'subclassFeature|Aspect of the Wyrm|FTD|Monk|Ascendant Dragon':
     "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
   'subclassFeature|Bestial Soul|TCE|Barbarian|Beast':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
@@ -410,12 +351,6 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'subclassFeature|Cutting Words|PHB|Bard|Lore':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
-  'subclassFeature|Dampen Elements|PHB|Cleric|Nature':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'subclassFeature|Dispersion|WoW|Cleric|Shadow':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  "subclassFeature|Djinni's Escape|FRHoF|Paladin|Noble Genies":
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'subclassFeature|Draconic Presence|PHB|Sorcerer|Draconic':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'subclassFeature|Durable Summons|AU|Wizard|Conjurer':
@@ -424,14 +359,8 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
     "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
   'subclassFeature|Eldritch Strike|PHB|Fighter|Eldritch Knight':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
-  'subclassFeature|Elemental Affinity|PHB|Sorcerer|Draconic':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'subclassFeature|Elemental Mastery|UATheMysticClass|Mystic|Wu Jen':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'subclassFeature|Envenom Weapons|XPHB|Rogue|Assassin':
     'It overcomes or ignores a resistance or immunity of its target; it gives the character no defense.',
-  'subclassFeature|Exalted Champion|SCAG|Paladin|Crown':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'subclassFeature|Exceptional Training|PHB|Ranger|Beast Master':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
   'subclassFeature|Expansive Bond|TCE|Cleric|Peace':
@@ -450,16 +379,10 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
   'subclassFeature|Instinctive Charm|PHB|Wizard|Enchantment':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
-  'subclassFeature|Invincible Conqueror|XGE|Paladin|Conquest':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'subclassFeature|Know Your Enemy|XPHB|Fighter|Battle Master':
     'It tells the character what a creature resists or is immune to; it gives none.',
   'subclassFeature|Luminous Barrier|WoW|Cleric|Discipline':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'subclassFeature|Lunar Empowerment|DSotDQ|Sorcerer|Lunar':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'subclassFeature|Lunar Phenomenon|DSotDQ|Sorcerer|Lunar':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    'Given to the creatures the cleric blesses (the ward is theirs), not to the cleric.',
   'subclassFeature|Magic Arrow|XGE|Fighter|Arcane Archer':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
   'subclassFeature|Manifest Echo|EGW|Fighter|Echo Knight':
@@ -468,52 +391,28 @@ export const DEFENSE_TEXT_EXCUSED: Readonly<Record<string, string>> = {
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
   'subclassFeature|Mote of Potential|TCE|Bard|Creation':
     'A match inside another word or spell name (invulnerable, Globe of Invulnerability).',
-  'subclassFeature|Mystic Brew|WoW|Monk|Mystic Brews':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   "subclassFeature|Nature's Sanctuary|PHB|Druid|Land":
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
   'subclassFeature|One with the Blade|XGE|Monk|Kensei':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
-  'subclassFeature|Perfected Bond|FTD|Ranger|Drakewarden':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'subclassFeature|Primal Strike|PHB|Druid|Moon':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
   'subclassFeature|Projected Ward|XPHB|Wizard|Abjurer':
     "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
   "subclassFeature|Pyromancer's Fury|PSK|Sorcerer|Pyromancer (PSK)":
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
-  'subclassFeature|Rage of the Wilds|XPHB|Barbarian|Wild Heart':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'subclassFeature|Runeforging|WoW|Death Knight|Ebon Blade':
     'It overcomes or ignores a resistance or immunity of the target; it gives the character no defense.',
-  'subclassFeature|Spectral Defense|XGE|Ranger|Horizon Walker':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'subclassFeature|Spirit Projection|VRGR|Warlock|Undead':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  "subclassFeature|Superior Hunter's Defense|XPHB|Ranger|Hunter":
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'subclassFeature|Swarming Dispersal|TCE|Ranger|Swarmkeeper':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  "subclassFeature|Transmuter's Stone|AU|Wizard|Transmuter":
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  "subclassFeature|Transmuter's Stone|PHB|Wizard|Transmutation":
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'subclassFeature|Umbral Form|RHW|Sorcerer|Shadow':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
-  'subclassFeature|Umbral Form|XGE|Sorcerer|Shadow':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'subclassFeature|Undying Nature|SCAG|Warlock|Undying':
     'An immunity to one effect (a spell, a save result, a curse), not a damage or condition immunity the sheet shows.',
-  'subclassFeature|Vestige Power|AU|Warlock|Vestige':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
   'subclassFeature|Warding Flare|PHB|Cleric|Light':
     "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
   'subclassFeature|Warding Flare|PSA|Cleric|Ambition (PSA)':
     "The defense is a target's, an ally's, a summon's or an aura member's, not the character's own.",
   'subclassFeature|Wild Magic Surge|PHB|Sorcerer|Wild':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    'A result of a random roll on a table, not a feature the character holds.',
   'subclassFeature|Wild Magic Surge|XPHB|Sorcerer|Wild Magic':
-    'Held only after an action, a bonus action or a reaction, for a limited time or while something is spent or consumed: not standing.',
+    'A result of a random roll on a table, not a feature the character holds.',
   'subrace|undefined|PHB|Dragonborn':
     "The base Dragonborn entry only; its damage type is the base species' own pick.",
 }

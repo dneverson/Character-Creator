@@ -5,6 +5,7 @@ import {
   ITEM_DEFENSE_NOT_STANDING,
   ITEM_DEFENSE_WHEN,
   VARIANT_DEFENSES,
+  VARIANT_DEFENSE_WHEN,
 } from './defenseRules'
 import { holderId } from './holder'
 import { dataDir, recordId, records, textOf, type Rec } from '../test/dataAudit'
@@ -62,12 +63,30 @@ describe.skipIf(!dataDir)('defenses against the data', () => {
   const matching = all.filter(
     ({ record }) => hasFields(record) || TEXT.test(textOf(record)),
   )
+  /** Whether an item or a variant of that name has its defense as data or as a row. */
+  const memberCovered = (member: string): boolean => {
+    const [name, source] = member.split('|')
+    return all.some(
+      (r) =>
+        (r.collection === 'item' || r.collection === 'magicvariant') &&
+        r.record.name === name &&
+        (source === undefined ||
+          r.collection === 'magicvariant' ||
+          r.record.source === source) &&
+        (hasFields(r.record) || rows.has(r.id) || name in VARIANT_DEFENSES),
+    )
+  }
+  /** A group is an index of items: covered when the items it lists are. */
+  const groupCovered = (record: Rec): boolean =>
+    Array.isArray(record.items) &&
+    record.items.some((m) => typeof m === 'string' && memberCovered(m))
 
   it('rule, derive from the data, or excuse every record that names a defense', () => {
     const unknown = matching
       .filter(({ id, collection, record }) => {
         if (rows.has(id) || id in DEFENSE_TEXT_EXCUSED) return false
         if (collection in DEFENSE_COLLECTIONS_EXCUSED) return false
+        if (collection === 'itemGroup' && groupCovered(record)) return false
         if (collection === 'magicvariant' && String(record.name) in VARIANT_DEFENSES)
           return false
         return !(READ_FROM_FIELDS.includes(collection) && hasFields(record))
@@ -89,6 +108,7 @@ describe.skipIf(!dataDir)('defenses against the data', () => {
       ...Object.keys(ITEM_DEFENSE_NOT_STANDING),
       ...Object.keys(ITEM_DEFENSE_WHEN),
     ]
+    expect(Object.keys(VARIANT_DEFENSE_WHEN).filter((n) => !names.has(n))).toEqual([])
     expect(named.filter((key) => !ids.has(`item|${key}`))).toEqual([])
   })
 
@@ -107,7 +127,7 @@ describe.skipIf(!dataDir)('defenses against the data', () => {
     const ruled = [...unique].filter((id) => rows.has(id)).length
     const excused = [...unique].filter((id) => id in DEFENSE_TEXT_EXCUSED).length
     expect(unique.size).toBeGreaterThan(600)
-    expect(ruled).toBeGreaterThan(70)
-    expect(excused).toBeGreaterThan(200)
+    expect(ruled).toBeGreaterThan(150)
+    expect(excused).toBeGreaterThan(180)
   })
 })

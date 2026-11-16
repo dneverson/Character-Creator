@@ -26,6 +26,8 @@ export interface FeatureRow {
   kind: FeatureKind
   /** The class level it is gained at; absent for the others. */
   level?: number
+  /** A feature of the chosen subclass, not of the class itself. */
+  ofSubclass?: true
   entries: Entry[]
   /** Where a limited-use counter finds it (`DerivedResource.anchor`). */
   anchor?: string
@@ -102,6 +104,7 @@ export function featureRows(
           from: row.name,
           kind: 'Class',
           level: f.level,
+          ...(f.id?.startsWith('subclassFeature|') ? { ofSubclass: true as const } : {}),
           entries,
           anchor: `${tag}#${f.name}`,
           ...(nested.length > 0 ? { nested } : {}),

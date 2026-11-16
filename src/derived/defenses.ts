@@ -74,23 +74,34 @@ function givenDefenses(
       ...(state ? { state } : {}),
     })
 
+  // A type the player chooses of a feature that holds only under a condition shows with
+  // it, as the type the feature's row names does.
+  const choiceWhen = new Map<string, string>()
+  for (const rule of DEFENSE_RULES) {
+    const held = rule.choose && rule.when ? heldBy(sources, rule.holder) : undefined
+    if (held && rule.when) choiceWhen.set(`${held.source.tag}|${rule.kind}`, rule.when)
+  }
+  const choiceState = (kind: DefenseKind, source: SourceRef): Given['state'] => {
+    const when = choiceWhen.get(`${source.tag}|${kind}`)
+    return when ? { status: 'conditional', when } : undefined
+  }
   // What a species and a feat list, and the types the player picked for them.
   for (const { value, source } of grantState(blocks, choices).granted) {
     const kind = KINDS.find((k) => k === value.kind)
-    if (kind) add(kind, value.key, source)
+    if (kind) add(kind, value.key, source, choiceState(kind, source))
   }
   const sourceOf = new Map(blocks.map((b) => [b.card.tag, b.source]))
   for (const kind of KINDS) {
     for (const [type, tag] of Object.entries(picksOf(choices.picks, kind))) {
       const source = sourceOf.get(tag)
-      if (source) add(kind, type, source)
+      if (source) add(kind, type, source, choiceState(kind, source))
     }
   }
   // An item gives what its data lists while it is worn, and attuned when it needs it.
   for (const held of sources.items) {
     const { item } = held
     if (item.key in ITEM_DEFENSE_NOT_STANDING) continue
-    const when = ITEM_DEFENSE_WHEN[item.key]
+    const when = item.defensesWhen ?? ITEM_DEFENSE_WHEN[item.key]
     const state: Given['state'] = !held.active
       ? { status: 'inactive', why: 'Needs attunement, and you are not attuned.' }
       : when

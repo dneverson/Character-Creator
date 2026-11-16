@@ -62,6 +62,22 @@ const FEATURE_SENSE_RULES: readonly SenseRule[] = [
     sense: 'darkvision',
     range: 120,
   },
+  {
+    holder: { reward: 'Charm of Khyber|EFA' },
+    label: 'Charm of Khyber',
+    text: 'Charm of Khyber: you can expend the charm to gain truesight with a range of 60 feet for 1 minute.',
+    sense: 'truesight',
+    range: 60,
+    when: 'for 1 minute, after you expend the charm',
+  },
+  {
+    holder: { race: { baseName: 'Dwarf', source: 'XPHB' } },
+    label: 'Stonecunning',
+    text: 'Stonecunning: as a Bonus Action, you gain tremorsense with a range of 60 feet for 10 minutes, while on or touching a stone surface.',
+    sense: 'tremorsense',
+    range: 60,
+    when: 'for 10 minutes, after you use a Bonus Action on or touching stone',
+  },
   ...(['DMG', 'XDMG'] as const).map((source): SenseRule => ({
     holder: { reward: `Charm of Darkvision|${source}` },
     label: 'Charm of Darkvision',
@@ -245,6 +261,22 @@ const ITEM_SENSE_RULES: readonly SenseRule[] = [
       60,
       'you gain darkvision out to 60 feet, or an additional 60 feet of darkvision if you already have that sense.',
       60,
+    ),
+  ),
+  ...[
+    'Black Dragon Mask|HotDQ',
+    'Blue Dragon Mask|RoTOS',
+    'Green Dragon Mask|RoTOS',
+    'Red Dragon Mask|RoTOS',
+    'White Dragon Mask|RoTOS',
+  ].map((key) =>
+    itemSense(
+      key,
+      'blindsight',
+      30,
+      'once per day, you can gain blindsight out to 30 feet for 5 minutes.',
+      undefined,
+      'for 5 minutes, once per day',
     ),
   ),
   itemSense(

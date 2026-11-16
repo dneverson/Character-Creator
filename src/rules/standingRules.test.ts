@@ -2,11 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { SKILLS } from '../data/skills'
 import { holderId } from './holder'
 import { STANDING_RULES } from './standingRules'
-import { dataDir, recordId, records, textOf } from '../test/dataAudit'
-import {
-  STANDING_COLLECTIONS_EXCUSED,
-  STANDING_TEXT_EXCUSED,
-} from '../test/standingExcuses'
+import { dataDir, recordId, records, textOf, type Rec } from '../test/dataAudit'
+import { STANDING_TEXT_EXCUSED } from '../test/standingExcuses'
 
 describe('standing rules', () => {
   it('name each holder, scope and case once', () => {
@@ -20,7 +17,7 @@ describe('standing rules', () => {
     const skills = new Set(SKILLS.map((s) => s.key))
     for (const { scope } of STANDING_RULES) {
       if ('save' in scope) expect(scope.save.length).toBeGreaterThan(0)
-      else {
+      else if ('check' in scope) {
         expect(scope.check.length).toBeGreaterThan(0)
         for (const key of scope.check) expect(skills.has(key)).toBe(true)
       }
@@ -63,13 +60,31 @@ describe.skipIf(!dataDir)('standing notes against the data', () => {
         .some((s) => SELF.test(s)),
   )
 
+  /** Whether a row or an excuse names this item ("Name|Source") or variant of that name. */
+  const memberCovered = (member: string): boolean => {
+    const [name, source] = member.split('|')
+    return all.some(
+      (r) =>
+        (r.collection === 'item' || r.collection === 'magicvariant') &&
+        r.record.name === name &&
+        (source === undefined ||
+          r.collection === 'magicvariant' ||
+          r.record.source === source) &&
+        (rows.has(r.id) || r.id in STANDING_TEXT_EXCUSED),
+    )
+  }
+  /** A group is an index of items: covered when an item it lists is a row or an excuse. */
+  const groupCovered = (record: Rec): boolean =>
+    Array.isArray(record.items) &&
+    record.items.some((m) => typeof m === 'string' && memberCovered(m))
+
   it('rule or excuse every record that gives the character an edge', () => {
     const unknown = matching
       .filter(
-        ({ id, collection }) =>
+        ({ id, collection, record }) =>
           !rows.has(id) &&
           !(id in STANDING_TEXT_EXCUSED) &&
-          !(collection in STANDING_COLLECTIONS_EXCUSED),
+          !(collection === 'itemGroup' && groupCovered(record)),
       )
       .map((r) => r.id)
     expect([...new Set(unknown)]).toEqual([])
@@ -84,10 +99,6 @@ describe.skipIf(!dataDir)('standing notes against the data', () => {
     const found = new Set(matching.map((r) => r.id))
     expect(Object.keys(STANDING_TEXT_EXCUSED).filter((id) => !found.has(id))).toEqual([])
     expect(Object.keys(STANDING_TEXT_EXCUSED).filter((id) => rows.has(id))).toEqual([])
-    const collections = new Set(matching.map((r) => r.collection))
-    expect(
-      Object.keys(STANDING_COLLECTIONS_EXCUSED).filter((c) => !collections.has(c)),
-    ).toEqual([])
   })
 
   it('count what it ruled and excused', () => {

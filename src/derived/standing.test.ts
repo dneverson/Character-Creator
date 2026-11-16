@@ -106,4 +106,49 @@ describe('standing notes on saves and checks', () => {
       'skill|stealth|armor',
     )
   })
+
+  it('note a generic variant on every item made from it', () => {
+    const template = makeItem({
+      name: 'Holy Avenger',
+      source: 'DMG',
+      magic: true,
+      attunement: { required: true, optional: false, classes: [] },
+    })
+    const sheet = deriveSheet(
+      build('Fighter', 1, {}, [
+        stack('Holy Avenger Longsword', {
+          source: 'DMG',
+          variantOf: 'Holy Avenger|DMG',
+          base: 'Longsword|PHB',
+          attuned: true,
+        }),
+      ]),
+      deps([FIGHTER], [...ITEMS, template]),
+    )
+    expect(sheet.saves.wis.total.lines).toContainEqual(
+      expect.objectContaining({
+        label: 'Holy Avenger',
+        how: 'Advantage on the saving throw',
+        when: 'against spells and other magical effects',
+      }),
+    )
+  })
+
+  it('note advantage on death saves beside the hit point maximum, not in it', () => {
+    const armor = makeItem({ name: 'Powered Armor', source: 'LLK', magic: true })
+    const withArmor = deriveSheet(
+      build('Fighter', 1, {}, [stack('Powered Armor', { source: 'LLK' })]),
+      deps([FIGHTER], [...ITEMS, armor]),
+    ).hp
+    expect(withArmor.lines).toContainEqual(
+      expect.objectContaining({
+        label: 'Powered Armor',
+        op: 'note',
+        how: 'Advantage on the death saving throw',
+        status: 'applied',
+      }),
+    )
+    const without = deriveSheet(build('Fighter', 1, {}, []), deps([FIGHTER])).hp
+    expect(withArmor.value).toBe(without.value)
+  })
 })
