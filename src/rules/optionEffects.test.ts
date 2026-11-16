@@ -117,7 +117,7 @@ describe.skipIf(!dataDir)('every option against the effects it states', async ()
     expect(stale).toEqual([])
     // Every option of the books is one of the four, in the books of this writing.
     expect(tally.style + tally.applied + tally.excused + tally.play).toBe(catalog.length)
-    expect(tally).toEqual({ style: 13, applied: 144, excused: 5, play: 71 })
+    expect(tally).toEqual({ style: 13, applied: 145, excused: 5, play: 70 })
   })
 
   it('tells the truth in the "In this app" column: in play only when nothing applies it', () => {

@@ -7,6 +7,7 @@ import { loadClassOptions } from '../../data/classOptions'
 import { loadBookEditions } from '../../data/edition'
 import { loadItems } from '../../data/items'
 import { loadLanguages } from '../../data/languages'
+import { loadRewards } from '../../data/rewards'
 import type { Character } from '../../character/model'
 import { deriveSheet, sameBuild } from '../../derived'
 import type { DeriveDeps } from '../../derived/sources'
@@ -32,6 +33,7 @@ export function useDerivedSheet() {
   const languages = useAsyncData(loadLanguages)
   const options = useAsyncData(loadClassOptions)
   const editions = useAsyncData(loadBookEditions)
+  const rewards = useAsyncData(loadRewards)
 
   const deps = useMemo<DeriveDeps>(
     () => ({
@@ -43,6 +45,7 @@ export function useDerivedSheet() {
       languages: languages.data ?? undefined,
       optionCatalog: options.data ?? undefined,
       editionOf: editions.data ?? undefined,
+      rewards: rewards.data ?? undefined,
     }),
     [
       classByKey,
@@ -53,6 +56,7 @@ export function useDerivedSheet() {
       languages.data,
       options.data,
       editions.data,
+      rewards.data,
     ],
   )
 

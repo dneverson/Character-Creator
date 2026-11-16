@@ -95,7 +95,7 @@ describe('favored enemies and terrains', () => {
       'Undead',
       'Two humanoid races',
     ])
-    expect(enemy.label).toBe('Class · Ranger Favored Enemy')
+    expect(enemy.label).toBe('Class - Ranger Favored Enemy')
     expect(enemy.chips[0].detail?.entries).toEqual([
       'You have advantage on Wisdom (Survival) checks to track aberrations, and on Intelligence checks to recall information about them.',
     ])
@@ -196,7 +196,7 @@ describe('the choices inside a chosen feature or option', () => {
     expect([2, 3, 6, 11, 17].map(count)).toEqual([undefined, 2, 3, 4, 5])
     const [card] = featurePickCards(monk(3), { items: ITEMS })
     // The title names the subclass already, so only the class goes before it.
-    expect(card.label).toBe('Class · Monk Kensei Weapons')
+    expect(card.label).toBe('Class - Monk Kensei Weapons')
     // Greatsword is heavy; the longbow is heavy but named by the text.
     expect(card.chips.map((c) => c.label)).toEqual([
       'Dagger',
@@ -243,7 +243,7 @@ describe('the choices inside a chosen feature or option', () => {
     expect(card).toMatchObject({
       count: 2,
       used: 1,
-      label: 'Class · Agonizing Blast cantrip',
+      label: 'Class - Agonizing Blast cantrip',
     })
     // A cantrip since swapped out still shows, picked, to be taken back.
     expect(card.chips.map((x) => [x.label, x.state])).toEqual([
@@ -276,7 +276,7 @@ describe('the choices inside a chosen feature or option', () => {
     expect(ofFeat).toMatchObject({
       owner: 'feat:adept',
       kind: 'feat',
-      label: 'Feat · Agonizing Blast cantrip',
+      label: 'Feat - Agonizing Blast cantrip',
     })
   })
 

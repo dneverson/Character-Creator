@@ -5,7 +5,10 @@ import type { Line } from '../../derived/types'
 import { formatMod } from '../../dice/dice'
 
 function EffectLine({ line }: { line: Line }) {
-  const amount = line.amount === undefined ? '' : `${formatMod(line.amount)} `
+  const amount =
+    line.amount === undefined || line.status === 'inactive'
+      ? ''
+      : `${formatMod(line.amount)} `
   return (
     <li className={line.status === 'flag' ? 'text-warning-emphasis' : undefined}>
       <span className="fw-semibold">{line.label}</span>

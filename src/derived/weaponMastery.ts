@@ -21,7 +21,7 @@ export const MASTERY_MARK = '|mastery'
 export interface MasteryOwner {
   /** `<owner tag>|mastery`: the key the picks are stored under. */
   tag: string
-  /** "Class · Fighter", "Feat · Weapon Master". */
+  /** "Class - Fighter", "Feat - Weapon Master". */
   label: string
   name: string
   kind: PickCard['kind']
@@ -49,7 +49,7 @@ export function masteryOwners(sources: Sources): MasteryOwner[] {
       const prefix = index > 0 ? 'Multiclass' : 'Class'
       out.push({
         tag: `class:${c.row.name}|${c.row.source}${MASTERY_MARK}`,
-        label: `${prefix} · ${c.row.name} weapon mastery`,
+        label: `${prefix} - ${c.row.name} weapon mastery`,
         name: c.row.name,
         kind: index > 0 ? 'multiclass' : 'class',
         count: Number.parseInt(cell, 10) || grant.count,
@@ -68,7 +68,7 @@ export function masteryOwners(sources: Sources): MasteryOwner[] {
     if (!held) continue
     out.push({
       tag: `${held.source.tag}${MASTERY_MARK}`,
-      label: `Feat · ${held.source.label} weapon mastery`,
+      label: `Feat - ${held.source.label} weapon mastery`,
       name: held.source.label,
       kind: 'feat',
       count: grant.count,

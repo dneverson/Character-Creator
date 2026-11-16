@@ -73,7 +73,30 @@ export function pickClassOption(
   const held = options[tag] ?? []
   if (!remove) return { ...options, [tag]: [...held, key] }
   const at = held.lastIndexOf(key)
-  return { ...options, [tag]: at < 0 ? held : held.filter((_, i) => i !== at) }
+  if (at < 0) return { ...options, [tag]: held }
+  const next = { ...options, [tag]: held.filter((_, i) => i !== at) }
+  return Object.values(next).some((list) => list.includes(key))
+    ? next
+    : withoutSubChoices(next, tag, key)
+}
+
+/**
+ * The class options without the choices an option no longer taken asked for: those of its
+ * own (the humanoid races of a favored enemy pair, stored under "<tag>|<key>") and the
+ * picks of the option as a holder (the cantrip an invocation empowers, under
+ * "option:<key>|...") with their own, however deep.
+ */
+function withoutSubChoices(
+  options: Record<string, string[]>,
+  tag: string,
+  key: string,
+): Record<string, string[]> {
+  const owned = [`${tag}|${key}`, `option:${key}`]
+  return Object.fromEntries(
+    Object.entries(options).filter(
+      ([name]) => !owned.some((o) => name === o || name.startsWith(`${o}|`)),
+    ),
+  )
 }
 
 /** The skill picks of a character. */
@@ -114,7 +137,7 @@ export interface PickChipDetail {
 /** A source of picks as a card: its whole list, the picks it allows and the ones made. */
 export interface PickCard {
   tag: string
-  /** "Background · Acolyte": the card's heading. */
+  /** "Background - Acolyte": the card's heading. */
   label: string
   /** Short name: "Background", "Race", or the class or feat. */
   name: string

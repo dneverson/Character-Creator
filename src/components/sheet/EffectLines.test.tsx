@@ -39,4 +39,24 @@ describe('the lines of what a feature does to the sheet', () => {
       'text-warning-emphasis',
     )
   })
+
+  it('shows the reason of a line not in force and no amount', () => {
+    render(
+      <EffectLines
+        lines={[
+          {
+            id: 'c',
+            label: 'Lifedrinker',
+            source,
+            op: 'add',
+            amount: 4,
+            status: 'inactive',
+            why: 'Needs attunement.',
+          },
+        ]}
+      />,
+    )
+    expect(screen.getByText('Needs attunement.')).toBeInTheDocument()
+    expect(screen.queryByText(/\+4/)).not.toBeInTheDocument()
+  })
 })

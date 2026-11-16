@@ -31,6 +31,7 @@ export const SECTION_TITLES = {
   spells: 'Spells',
   wildshape: 'Wild Shape',
   equipment: 'Equipment',
+  rewards: 'Rewards',
 } as const
 
 export type SectionId = keyof typeof SECTION_TITLES
@@ -183,6 +184,7 @@ export function buildChecklist({
     featSlots: summary.slots,
     classByKey: deps.classByKey,
     options: chosenOptions(sources, deps),
+    rewards: sources.rewards.map((r) => r.reward),
   })
   const cardGrants = cardGrantsOf(grants, casters)
   const rooms = spellRooms(character, casters, cardGrants)

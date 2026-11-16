@@ -424,6 +424,22 @@ export function holdsRace(
 }
 
 /**
+ * Whether a trait of this name is still among the race's entries, at any depth: a subrace
+ * that replaces a trait of its race (`data.overwrite`) takes it out of the merged race.
+ */
+export function hasTrait(race: Pick<PlayableRace, 'entries'>, name: string): boolean {
+  const wanted = name.trim().toLowerCase()
+  const walk = (value: unknown): boolean => {
+    if (Array.isArray(value)) return value.some(walk)
+    if (!isBlock(value)) return false
+    if (typeof value.name === 'string' && value.name.trim().toLowerCase() === wanted)
+      return true
+    return walk(value.entries) || walk(value.items)
+  }
+  return walk(race.entries)
+}
+
+/**
  * The playable race a character's race reference points to, if loaded: with the option
  * of its trait and the size the character took, when it has those to take.
  */

@@ -94,7 +94,7 @@ function AlternativeChooser({
   return (
     <div className="border rounded p-3">
       <div className="fw-semibold mb-1" id={labelId}>
-        {choice.card.label.replace(' · ', ' - ')}: take one of
+        {choice.card.label}: take one of
       </div>
       <div className="d-flex flex-wrap gap-1" role="group" aria-labelledby={labelId}>
         {choice.options.map((text, i) => (
@@ -120,7 +120,7 @@ function OptionalToggle({
 }) {
   return (
     <OptionalRuleSwitch id={`optional-${option.id}`} on={option.on} onToggle={onToggle}>
-      <strong>{option.card.label.replace(' · ', ' - ')}:</strong> {option.text}
+      <strong>{option.card.label}:</strong> {option.text}
     </OptionalRuleSwitch>
   )
 }

@@ -841,7 +841,7 @@ const labelPrefix = (owner: OptionOwner) =>
   owner.kind === 'feat' ? 'Feat' : owner.kind === 'multiclass' ? 'Multiclass' : 'Class'
 
 const cardLabel = (owner: OptionOwner, what: string) =>
-  `${labelPrefix(owner)} · ${owner.name} ${what}`
+  `${labelPrefix(owner)} - ${owner.name} ${what}`
 
 /** The instance of a repeatable option a chip stands for: "Agonizing Blast|XPHB#2". */
 export const REPEAT_MARK = '#'
@@ -1077,7 +1077,7 @@ export function optionSkillSources(
         return [
           {
             tag: `option:${key}`,
-            label: `${labelPrefix(slot.owner)} · ${option.name}`,
+            label: `${labelPrefix(slot.owner)} - ${option.name}`,
             kind: slot.owner.kind,
             fixed,
             choices,

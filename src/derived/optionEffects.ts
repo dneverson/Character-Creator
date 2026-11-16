@@ -347,6 +347,28 @@ function summaryLine(
       }),
     )
   }
+  if (e.kind === 'spellRange' || e.kind === 'spellRangePick') {
+    const spells =
+      e.kind === 'spellRange'
+        ? e.spells
+        : (sources.character.classOptions[`option:${h.key}${PICK_MARK}${e.pick}`] ?? [])
+    if (spells.length === 0)
+      return [
+        line(id, h, undefined, {
+          status: 'flag',
+          why: 'No cantrip picked: pick it on its card in Class Features.',
+        }),
+      ]
+    return spells.map((spell, i) =>
+      e.kind === 'spellRange'
+        ? line(`${id}|${i}`, h, undefined, {
+            how: `Range of ${spellName(spell)} is ${e.feet} feet`,
+          })
+        : line(`${id}|${i}`, h, e.perLevel * h.level, {
+            how: `feet added to the range of ${spellName(spell)} (${e.perLevel} feet times ${h.level} class levels)`,
+          }),
+    )
+  }
   if (e.kind === 'checkAdvantage') {
     return [
       line(id, h, undefined, {

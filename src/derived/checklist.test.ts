@@ -314,6 +314,6 @@ describe('the status of each section', () => {
   })
 
   it('names every section once', () => {
-    expect(Object.keys(SECTION_TITLES)).toHaveLength(13)
+    expect(Object.keys(SECTION_TITLES)).toHaveLength(14)
   })
 })

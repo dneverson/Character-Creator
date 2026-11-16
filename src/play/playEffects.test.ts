@@ -213,6 +213,25 @@ describe('disadvantage on the checks of a passive score', () => {
     }
   })
 
+  it('flags Blinded and Deafened on Passive Perception without changing any score', () => {
+    for (const edition of ['classic', 'one'] as const) {
+      const before = sheetOf(edition)
+      const after = applyPlayEffects(before, play(0, ['Blinded', 'Deafened']))
+      for (const key of ['perception', 'investigation', 'insight']) {
+        expect(passive(after, key)?.value).toBe(passive(before, key)?.value)
+      }
+      const flags = passive(after, 'perception')?.lines.filter((l) => l.op === 'note')
+      expect(flags?.map((l) => [l.label, l.status])).toEqual([
+        ['Blinded', 'conditional'],
+        ['Deafened', 'conditional'],
+      ])
+      expect(flags?.[0].when).toBe('Only when what you would notice needs sight.')
+      expect(passive(after, 'insight')?.lines.some((l) => l.label === 'Blinded')).toBe(
+        false,
+      )
+    }
+  })
+
   it('shows fear as disadvantage only while its source is in sight', () => {
     const before = sheetOf('classic')
     const after = applyPlayEffects(before, play(0, ['Frightened']))

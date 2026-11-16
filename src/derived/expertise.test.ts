@@ -57,7 +57,7 @@ describe('expertise', () => {
     expect(one.expertise.cards).toHaveLength(1)
     expect(one.expertise.cards[0]).toMatchObject({
       tag: 'class:Rogue|PHB',
-      label: 'Class · Rogue expertise',
+      label: 'Class - Rogue expertise',
       count: 2,
       left: 2,
     })
@@ -169,7 +169,7 @@ describe('expertise', () => {
       },
     )
     const scholar = state.cards.find((x) => x.tag === 'class:Wizard|XPHB')
-    expect(scholar).toMatchObject({ label: 'Multiclass · Wizard expertise', count: 1 })
+    expect(scholar).toMatchObject({ label: 'Multiclass - Wizard expertise', count: 1 })
     expect(scholar?.chips.map((x) => x.value)).toEqual(['arcana'])
   })
 })

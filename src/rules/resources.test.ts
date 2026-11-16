@@ -97,6 +97,7 @@ function holderLabel(holder: Holder): string {
   if ('feat' in holder) return holder.feat.split('|')[0]
   if ('option' in holder) return holder.option.split('|')[0]
   if ('item' in holder) return holder.item.split('|')[0]
+  if ('reward' in holder) return holder.reward.split('|')[0]
   if ('race' in holder) return holder.race.subraceName ?? holder.race.baseName
   return 'classFeature' in holder ? holder.classFeature.name : holder.subclassFeature.name
 }

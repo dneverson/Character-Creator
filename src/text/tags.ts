@@ -39,6 +39,12 @@ function renderTag(tag: string, content: string): string {
     case 'scaledamage':
     case 'autodice':
       return parts[1] || first
+    // {@classFeature Rage|Barbarian|PHB|1|PHB|display}: the display text is the sixth part.
+    case 'classFeature':
+      return parts[5] || first
+    // {@subclassFeature name|class|classSource|subclass|subclassSource|level|source|display}.
+    case 'subclassFeature':
+      return parts[7] || first
     case 'book':
     case 'adventure':
     case 'quickref':

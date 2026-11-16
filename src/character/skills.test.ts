@@ -21,14 +21,14 @@ import type { PlayableRace } from '../data/race'
 const sources: SkillSource[] = [
   {
     tag: 'bg',
-    label: 'Background · Acolyte',
+    label: 'Background - Acolyte',
     kind: 'background',
     fixed: ['insight', 'religion'],
     choices: [],
   },
   {
     tag: 'class:Barbarian|PHB',
-    label: 'Class · Barbarian',
+    label: 'Class - Barbarian',
     kind: 'class',
     fixed: [],
     choices: [
@@ -146,8 +146,8 @@ describe('buildSkillSources', () => {
       classSourceTag('Rogue', 'PHB'),
       'race',
     ])
-    expect(built[1].label).toBe('Class · Barbarian')
-    expect(built[2].label).toBe('Multiclass · Rogue')
+    expect(built[1].label).toBe('Class - Barbarian')
+    expect(built[2].label).toBe('Multiclass - Rogue')
     expect(built.map((s) => s.kind)).toEqual([
       'background',
       'class',
@@ -174,7 +174,7 @@ describe('buildSkillSources', () => {
     expect(buildSkillSources(character, new Map(), bg)).toEqual([
       {
         tag: 'bg',
-        label: 'Background · Acolyte',
+        label: 'Background - Acolyte',
         kind: 'background',
         fixed: ['insight', 'religion'],
         choices: [],
@@ -228,7 +228,7 @@ describe('grantedLine', () => {
       ...sources,
       {
         tag: 'race',
-        label: 'Race · Elf',
+        label: 'Race - Elf',
         kind: 'race',
         fixed: ['insight', 'perception'],
         choices: [],
@@ -245,7 +245,7 @@ describe('grantedLine', () => {
     const all = SKILLS.map((s) => s.key)
     const boon: SkillSource = {
       tag: 'feat:x',
-      label: 'Feat · Boon of Skill',
+      label: 'Feat - Boon of Skill',
       kind: 'feat',
       fixed: all,
       choices: [],
@@ -297,7 +297,7 @@ describe('skillCards', () => {
     const withBg: SkillSource[] = [
       {
         tag: 'bg',
-        label: 'Background · Soldier',
+        label: 'Background - Soldier',
         kind: 'background',
         fixed: [],
         choices: [{ count: 1, from: ['athletics'] }],
@@ -305,7 +305,7 @@ describe('skillCards', () => {
       sources[1],
       {
         tag: 'race',
-        label: 'Race · Elf',
+        label: 'Race - Elf',
         kind: 'race',
         fixed: ['perception'],
         choices: [],
@@ -338,7 +338,7 @@ describe('skillCards', () => {
   it('unions two choose blocks of one source and skips sources with no choice', () => {
     const two: SkillSource = {
       tag: 'bg',
-      label: 'Background · Odd',
+      label: 'Background - Odd',
       kind: 'background',
       fixed: [],
       choices: [
@@ -371,7 +371,7 @@ describe('otherPicks', () => {
 describe('a budget shared with another kind of pick', () => {
   const skilled: SkillSource = {
     tag: 'feat:slot',
-    label: 'Feat · Skilled',
+    label: 'Feat - Skilled',
     kind: 'feat',
     fixed: [],
     choices: [{ count: 3, from: ['arcana', 'history', 'insight'] }],
@@ -398,15 +398,15 @@ describe('a budget shared with another kind of pick', () => {
 
 describe('withRepeats', () => {
   it('gives a source that repeats a skill a pick of any other skill after it', () => {
-    const bg = { tag: 'bg', label: 'Background · Acolyte', kind: 'background' as const }
-    const race = { tag: 'race', label: 'Race · Elf', kind: 'race' as const }
+    const bg = { tag: 'bg', label: 'Background - Acolyte', kind: 'background' as const }
+    const race = { tag: 'race', label: 'Race - Elf', kind: 'race' as const }
     const out = withRepeats([
       { ...bg, fixed: ['insight', 'religion'], choices: [] },
       { ...race, fixed: ['insight', 'perception'], choices: [] },
     ])
     expect(out.map((s) => s.tag)).toEqual(['bg', 'race', 'race:repeat'])
     expect(out[2]).toMatchObject({
-      label: 'Race · Elf · Already proficient',
+      label: 'Race - Elf - Already proficient',
       kind: 'race',
       fixed: [],
       choices: [{ count: 1, from: SKILLS.map((s) => s.key) }],

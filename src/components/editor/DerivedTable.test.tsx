@@ -106,4 +106,28 @@ describe('DerivedTable', () => {
     )
     expect(widths()).toEqual([])
   })
+
+  it('shows the reason of a line not in force and no amount', () => {
+    render(
+      <DerivedTable
+        quantity={quantity([
+          {
+            id: 'x',
+            label: 'Shield',
+            source: BASE_SOURCE,
+            amount: 2,
+            op: 'add',
+            status: 'inactive',
+            why: 'You are not wearing one.',
+          },
+        ])}
+        ariaLabel="Armor class breakdown"
+        amountHeader="AC"
+        totalLabel="Armor class"
+      />,
+    )
+    const row = screen.getByText('You are not wearing one.').closest('tr')
+    expect(row).not.toBeNull()
+    expect(row ? within(row).queryByText('+2') : null).toBeNull()
+  })
 })

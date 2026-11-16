@@ -99,7 +99,7 @@ describe('weapon mastery picks', () => {
     // Without the column, the number the feature's text names.
     expect(of(build('Rogue', 1, {}, []), [ROGUE])[0]).toMatchObject({
       tag: TAG('Rogue'),
-      label: 'Class · Rogue weapon mastery',
+      label: 'Class - Rogue weapon mastery',
       count: 2,
     })
   })

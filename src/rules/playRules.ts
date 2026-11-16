@@ -35,8 +35,16 @@ export interface PlayRules {
    * `when` is a condition the sheet cannot check (the source of fear in sight).
    */
   checkDisadvantage: readonly { condition: string; text: string; when?: string }[]
+  /**
+   * The conditions that fail the ability checks that need a sense, as that printing words
+   * it. The sheet cannot tell whether a noticing needs the sense, so Passive Perception
+   * shows the line, not counted.
+   */
+  senseLoss: readonly { condition: string; text: string; when: string }[]
 }
 
+const SIGHT = 'Only when what you would notice needs sight.'
+const HEARING = 'Only when what you would notice needs hearing.'
 const FEAR_IN_SIGHT = 'Only while the source of your fear is within line of sight.'
 
 export const PLAY_RULES: Record<Edition, PlayRules> = {
@@ -74,6 +82,18 @@ export const PLAY_RULES: Record<Edition, PlayRules> = {
       },
       { condition: 'Poisoned', text: 'disadvantage on attack rolls and ability checks' },
     ],
+    senseLoss: [
+      {
+        condition: 'Blinded',
+        text: "can't see and automatically fails any ability check that requires sight",
+        when: SIGHT,
+      },
+      {
+        condition: 'Deafened',
+        text: "can't hear and automatically fails any ability check that requires hearing",
+        when: HEARING,
+      },
+    ],
   },
   one: {
     inspiration: 'Heroic Inspiration',
@@ -89,6 +109,18 @@ export const PLAY_RULES: Record<Edition, PlayRules> = {
         when: FEAR_IN_SIGHT,
       },
       { condition: 'Poisoned', text: 'Disadvantage on attack rolls and ability checks' },
+    ],
+    senseLoss: [
+      {
+        condition: 'Blinded',
+        text: "You can't see and automatically fail any ability check that requires sight",
+        when: SIGHT,
+      },
+      {
+        condition: 'Deafened',
+        text: "You can't hear and automatically fail any ability check that requires hearing",
+        when: HEARING,
+      },
     ],
   },
 }

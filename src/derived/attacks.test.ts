@@ -116,6 +116,24 @@ describe('attacks', () => {
     expect(unarmed.damage.bonus.value).toBe(3)
   })
 
+  it('gives a Monk in armor or with a shield the plain unarmed strike', () => {
+    const monk = loadedClass('Monk', [], ['simple'])
+    monk.entry.classTableGroups = [
+      {
+        colLabels: ['Martial Arts'],
+        rows: [[{ type: 'dice', toRoll: [{ number: 1, faces: 6 }] }]],
+      },
+    ]
+    for (const worn of ['Leather Armor', 'Shield']) {
+      const c = build('Monk', 1, { str: 8, dex: 16 }, [stack(worn)])
+      const unarmed = rows(c, [monk]).find((a) => a.name === 'Unarmed strike')
+      expect(unarmed?.damage.dice).toBe('')
+      // Strength, not Dexterity, and the die is off.
+      expect(unarmed?.damage.bonus.value).toBe(1 - 1)
+      expect(unarmed?.notes.join(' ')).toMatch(/Martial Arts: not while you wear armor/)
+    }
+  })
+
   it('gives an Unarmed Fighting style a d8 with empty hands', () => {
     const c = build('Fighter', 1, { str: 10 }, [])
     const [unarmed] = withFeats(c, [style('Unarmed Fighting', 'XPHB')])

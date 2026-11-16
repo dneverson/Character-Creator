@@ -52,4 +52,19 @@ describe('stripTags', () => {
   it('coerces non-string input to a string', () => {
     expect(stripTags(42 as unknown as string)).toBe('42')
   })
+
+  it('shows the name of a class or subclass feature, not its class or book', () => {
+    expect(stripTags('{@classFeature Action Surge|Fighter|PHB|2}')).toBe('Action Surge')
+    expect(stripTags('{@classFeature Action Surge|Fighter|PHB|2|PHB|surge}')).toBe(
+      'surge',
+    )
+    expect(
+      stripTags('{@subclassFeature Improved Critical|Fighter|PHB|Champion|PHB|3}'),
+    ).toBe('Improved Critical')
+    expect(
+      stripTags(
+        '{@subclassFeature Improved Critical|Fighter|PHB|Champion|PHB|3|PHB|crits}',
+      ),
+    ).toBe('crits')
+  })
 })

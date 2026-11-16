@@ -45,7 +45,7 @@ export function heldFeatureGrants(sources: Sources): HeldFeatureGrant[] {
         row,
         source: held.source,
         tag: `${held.source.tag}|${row.card}`,
-        label: `${index > 0 ? 'Multiclass' : 'Class'} · ${held.source.label} ${row.card}`,
+        label: `${index > 0 ? 'Multiclass' : 'Class'} - ${held.source.label} ${row.card}`,
         kind: index > 0 ? 'multiclass' : 'class',
         classSkills: row.classSkills ? classSkillList(sources, held.source.tag) : [],
       },

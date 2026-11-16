@@ -67,7 +67,7 @@ function poolsOf(sources: Sources, choices: GrantChoices) {
     )
     add({
       source: held.source,
-      label: `${index > 0 ? 'Multiclass' : 'Class'} · ${held.source.label}`,
+      label: `${index > 0 ? 'Multiclass' : 'Class'} - ${held.source.label}`,
       name: held.source.label,
       kind: index > 0 ? 'multiclass' : 'class',
       count: row.count,

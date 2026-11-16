@@ -366,7 +366,8 @@ function unarmedRow(ctx: Context): AttackRow {
   const id = 'attack|unarmed'
   const str = abilityMod(ctx.totals.str)
   const dex = abilityMod(ctx.totals.dex)
-  const monk = ctx.martialArts
+  // Martial Arts is off while the monk wears armor or wields a shield.
+  const monk = ctx.martialArts && !ctx.martialArts.armor ? ctx.martialArts : undefined
   const monkFaces = monk?.faces
   const empty = ctx.weaponCount === 0 && !ctx.shield
   const style = ctx.styles.find((s) => s.style.effect.kind === 'unarmed')
@@ -415,7 +416,14 @@ function unarmedRow(ctx: Context): AttackRow {
       ]),
     },
     properties: [],
-    notes: source && faces > 0 ? [`${source.label}: the damage die is d${faces}.`] : [],
+    notes: [
+      ...(source && faces > 0 ? [`${source.label}: the damage die is d${faces}.`] : []),
+      ...(ctx.martialArts?.armor
+        ? [
+            `${MARTIAL_ARTS}: not while you wear armor or wield a shield (${ctx.martialArts.armor}).`,
+          ]
+        : []),
+    ],
   }
 }
 

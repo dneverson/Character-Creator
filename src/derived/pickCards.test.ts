@@ -147,7 +147,7 @@ describe('pickCards', () => {
     const [card] = cardsFor({ languageProficiencies: [{ anyStandard: 2 }] })
     expect(card).toMatchObject({
       tag: 'bg',
-      label: 'Background · Sage',
+      label: 'Background - Sage',
       noun: 'languages',
       count: 2,
       used: 0,
@@ -366,8 +366,8 @@ describe('a proficiency given twice', () => {
     const cards = pickCards(sources, {}, catalog, proficiencies(sources).listing)
     const repeats = cards.filter((card) => card.tag === 'bg:repeat')
     expect(repeats.map((card) => [card.label, card.count, card.left])).toEqual([
-      ['Background · Sage · Already proficient', 1, 1],
-      ['Background · Sage · Already proficient', 1, 1],
+      ['Background - Sage - Already proficient', 1, 1],
+      ['Background - Sage - Already proficient', 1, 1],
     ])
     // What the character already has is no pick.
     const tools = repeats.find((card) => card.kinds.includes('tool'))

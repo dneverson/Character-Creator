@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { createCharacter, type Character, type RaceRef } from '../character/model'
+import { recordId } from '../test/dataAudit'
 import { stripTags } from '../text/tags'
 import { featHpRule, HP_RULES, hpSources } from './hpSources'
 
@@ -133,7 +134,7 @@ const NOT_THE_CHARACTERS_OWN_MAXIMUM: Record<string, string> = {
 const dataDir = existsSync('.local/data/races.json') ? '.local/data' : undefined
 const SKIPPED = /fluff|bestiary|generated|adventure|\/book\//
 const INCREASE =
-  /hit points? maximum (increases|is increased|increase)|increases? your hit point/i
+  /hit points? maximum (increases|is increased|increase)|increases? (your|the beneficiary's) hit point/i
 
 function jsonFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -153,7 +154,11 @@ function foundInData(dir: string): Set<string> {
       for (const r of records as Record<string, unknown>[]) {
         if (!r || typeof r !== 'object') continue
         if (INCREASE.test(stripTags(JSON.stringify(r.entries ?? r)))) {
-          found.add(`${collection}|${String(r.name)}|${String(r.source ?? '')}`)
+          found.add(
+            collection === 'subrace'
+              ? recordId(collection, r)
+              : `${collection}|${String(r.name)}|${String(r.source ?? '')}`,
+          )
         }
       }
     }

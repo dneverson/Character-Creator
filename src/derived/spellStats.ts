@@ -102,6 +102,7 @@ export function characterGrants(sources: Sources, deps: DeriveDeps): SpellGrant[
     featSlots: sources.summary.slots,
     classByKey: deps.classByKey,
     options: chosenOptions(sources, deps),
+    rewards: sources.rewards.map((r) => r.reward),
   }).grants
 }
 

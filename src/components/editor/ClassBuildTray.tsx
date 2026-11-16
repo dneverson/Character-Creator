@@ -118,7 +118,7 @@ function BuildEntry({
             </Badge>
           )}
           <div className="small text-body-secondary">
-            {entry ? `${entry.source} · ${entry.subclassTitle ?? 'Subclass'}` : name}
+            {entry ? `${entry.source} - ${entry.subclassTitle ?? 'Subclass'}` : name}
           </div>
         </div>
         <div className="col-sm-2">

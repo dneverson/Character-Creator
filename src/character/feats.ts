@@ -4,8 +4,8 @@
 // problems are flagged on the slot, never blocked.
 
 import { ABILITIES, ABILITY_NAMES, type AbilityKey } from '../dice/dice'
-import { featuresForClass, type LoadedClass } from '../data/class'
-import type { ClassOption } from '../data/classOptions'
+import { featuresForClass, subclassOf, type LoadedClass } from '../data/class'
+import { pickGainedAt, type ClassOption } from '../data/classOptions'
 import {
   ABILITY_SCORE_MAX,
   increasesLeft,
@@ -209,14 +209,29 @@ export function optionFeatGrants(
  * The feat slots of the options a class's picks hold: one set each time the option is
  * taken. Only the picks under a class the character has count.
  */
-function optionSlots(character: Character, catalog: readonly ClassOption[]): FeatSlot[] {
+function optionSlots(
+  character: Character,
+  catalog: readonly ClassOption[],
+  classByKey: ReadonlyMap<string, LoadedClass>,
+): FeatSlot[] {
   const byKey = new Map(catalog.map((o) => [o.key, o]))
   const slots: FeatSlot[] = []
   character.classes.forEach((c, classIndex) => {
     const prefix = `class:${c.name}|${c.source}|`
+    const loaded = classByKey.get(`${c.name}|${c.source}`)
+    const progressions = [
+      ...(loaded?.entry.optionalfeatureProgression ?? []),
+      ...((loaded && subclassOf(loaded, c.subclass))?.optionalfeatureProgression ?? []),
+    ]
     for (const [tag, keys] of Object.entries(character.classOptions)) {
       if (!tag.startsWith(prefix)) continue
+      const progression = progressions.find(
+        (p) => `${prefix}${p.featureType.join(',')}` === tag,
+      )
       keys.forEach((key, time) => {
+        // The picks are kept in the order they were made: the level pick number `time` came at.
+        const gained =
+          (progression && pickGainedAt(progression, time, c.level)) ?? c.level
         const option = byKey.get(key)
         if (!option) return
         for (const grant of optionFeatGrants(option)) {
@@ -229,7 +244,7 @@ function optionSlots(character: Character, catalog: readonly ClassOption[]): Fea
               categories: grant.categories,
               named: [],
               preferred: grant.categories,
-              level: c.level,
+              level: gained,
               classIndex,
             })
           }
@@ -275,7 +290,7 @@ export function featSlots(character: Character, ctx: FeatContext): FeatSlot[] {
     )
   }
   slots.push(...classSlots(character, ctx.classByKey))
-  slots.push(...optionSlots(character, ctx.optionCatalog ?? []))
+  slots.push(...optionSlots(character, ctx.optionCatalog ?? [], ctx.classByKey))
   const bonus = character.feats.bonusSlots
   bonus.forEach((id, i) =>
     slots.push({
@@ -500,7 +515,7 @@ export function resolveFeats(character: Character, ctx: FeatContext): FeatSummar
         const shares = sharedKinds(feat.skillToolLanguageProficiencies)
         skillSources.push({
           tag: `${FEAT_SKILL_TAG_PREFIX}${slot.id}`,
-          label: `Feat · ${feat.label}`,
+          label: `Feat - ${feat.label}`,
           kind: 'feat',
           fixed: feat.skills.fixed,
           choices: feat.skills.choices,

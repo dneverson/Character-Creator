@@ -8,10 +8,12 @@ import { totalLevel } from '../character/derive'
 import type { Character } from '../character/model'
 import { holdsRace } from '../data/race'
 
-type Origin = 'Feat' | 'Race' | 'Subclass'
+type Origin = 'Feat' | 'Race' | 'Subclass' | 'Reward'
 
 type HpMatch =
   | { feat: string }
+  /** A reward the character has, by "Name|Source". */
+  | { reward: string }
   | { race: { baseName: string; source: string; subraceName?: string } }
   | {
       subclass: {
@@ -53,6 +55,24 @@ const classLevel = (
 ): HpMatch => ({ subclass: { className, shortName, source, from } })
 
 export const HP_RULES: readonly HpRule[] = [
+  {
+    id: 'reward|Boon of Fortitude|DMG',
+    label: 'Boon of Fortitude',
+    origin: 'Reward',
+    text: 'Boon of Fortitude: your hit point maximum increases by 40.',
+    perLevel: 0,
+    flat: 40,
+    match: { reward: 'Boon of Fortitude|DMG' },
+  },
+  {
+    id: 'reward|Dark Gift of Yog the Invincible|CoS',
+    label: 'Dark Gift of Yog',
+    origin: 'Reward',
+    text: 'Dark Gift of Yog: your hit point maximum increases by 30, for 10 days.',
+    perLevel: 0,
+    flat: 30,
+    match: { reward: 'Dark Gift of Yog the Invincible|CoS' },
+  },
   perLevelRule(
     'feat|Tough|PHB',
     'Tough',
@@ -79,7 +99,7 @@ export const HP_RULES: readonly HpRule[] = [
     match: { feat: 'boon of fortitude|xphb' },
   },
   perLevelRule(
-    'subrace|Hill|PHB',
+    'subrace|Hill|PHB|Dwarf',
     'Dwarven Toughness',
     'Race',
     1,
@@ -103,7 +123,7 @@ export const HP_RULES: readonly HpRule[] = [
     'Dwarf (Kaladesh): your hit point maximum increases by 1 for each level.',
   ),
   perLevelRule(
-    'subrace|Stensia|PSI',
+    'subrace|Stensia|PSI|Human (Innistrad)',
     'Tough',
     'Race',
     2,
@@ -189,6 +209,11 @@ export function hpSources(character: Character, featKeys: readonly string[]): Hp
     const m = rule.match
     if ('feat' in m) {
       if (taken.has(m.feat)) lines.push(lineOf(rule, 'Feat', 'character', level))
+    } else if ('reward' in m) {
+      const held = (character.rewards ?? []).some(
+        (r) => `${r.name}|${r.source}` === m.reward,
+      )
+      if (held) lines.push(lineOf(rule, 'Reward', 'character', 0))
     } else if ('race' in m) {
       if (holdsRace(race, m.race)) {
         lines.push(lineOf(rule, 'Race', 'character', level))

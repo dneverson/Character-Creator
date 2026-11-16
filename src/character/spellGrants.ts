@@ -25,7 +25,7 @@ import type { Character, SpellGrantChoices } from './model'
 import type { ResolvedFeatSlot } from './feats'
 
 export type SpellGrantOrigin =
-  'race' | 'background' | 'feat' | 'class' | 'subclass' | 'option'
+  'race' | 'background' | 'feat' | 'class' | 'subclass' | 'option' | 'reward'
 
 /** The spellcasting ability of a grant: fixed, one of a few, or the class's own. */
 export type GrantAbility =
@@ -73,7 +73,8 @@ export interface SpellGrant {
 export interface GrantLimit {
   /** A number, the proficiency bonus, or an ability's modifier. */
   count: number | 'pb' | AbilityKey
-  rest: 'long' | 'short'
+  /** What restores the casts; `none` for a gift spent once used (a charm). */
+  rest: 'long' | 'short' | 'none'
   /**
    * The casts are counted once for the spells that share them: the grants of one list
    * share one count, unless the data counts each spell on its own ("1e").
@@ -113,6 +114,8 @@ export interface SpellGrantContext {
   classByKey: Map<string, LoadedClass>
   /** The optional features taken; none until the character can choose them. */
   options?: ChosenOption[]
+  /** The supernatural gifts the character has (blessings, charms). */
+  rewards?: ChosenOption[]
 }
 
 type Json = Record<string, unknown>
@@ -191,6 +194,7 @@ function leavesOf(value: unknown, resource: string | undefined): Leaf[] {
     'long',
   )
   byCount(value.rest, (n) => times(Number(n), 'short or long rest'), 'short')
+  byCount(value.limited, (n) => `${n === '1' ? 'Once' : `${n} times`}, then gone`, 'none')
   byCount(value.resource, (n) => `Costs ${n} ${resource ?? 'points'}`)
   return out
 }
@@ -384,6 +388,15 @@ export function resolveSpellGrants(
         blocks: subclass.additionalSpells,
       })
   }
+  for (const reward of ctx.rewards ?? [])
+    sources.push({
+      id: `reward:${reward.key}`,
+      from: reward.name,
+      origin: 'reward',
+      level,
+      edition: reward.edition,
+      blocks: reward.additionalSpells,
+    })
   for (const option of ctx.options ?? [])
     sources.push({
       id: `option:${option.key}`,

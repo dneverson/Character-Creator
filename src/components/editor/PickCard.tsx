@@ -58,7 +58,7 @@ export function PickCard({ card: given, onPick, detailOf }: Props) {
   const full = card.left === 0
   const open = !full || card.over || changing
 
-  const heading = card.label.replace(' · ', ' - ')
+  const heading = card.label
 
   if (!open) {
     return (

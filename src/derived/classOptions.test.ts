@@ -101,7 +101,7 @@ describe('class option cards', () => {
     const [card] = cardsOf(build('Fighter', 1, {}, []), [fighter()])
     expect(card).toMatchObject({
       tag: 'class:Fighter|PHB|FS:F',
-      label: 'Class · Fighter fighting style',
+      label: 'Class - Fighter fighting style',
       noun: 'fighting styles',
       count: 1,
       left: 1,
@@ -153,7 +153,7 @@ describe('class option cards', () => {
     ]
     const maneuvers = cardsOf(c, [fighter()]).find((card) => card.tag.endsWith('|MV:B'))
     expect(maneuvers).toMatchObject({
-      label: 'Class · Fighter maneuvers',
+      label: 'Class - Fighter maneuvers',
       noun: 'maneuvers',
       count: 7,
     })
@@ -166,7 +166,7 @@ describe('class option cards', () => {
     const [f, p] = cardsOf(c, [fighter(), paladin()])
     expect(f).toMatchObject({ used: 1, left: 0, picks: ['Defense|PHB'] })
     expect(f.chips.map((chip) => chip.state)).toEqual(['full', 'picked', 'full'])
-    expect(p.label).toBe('Multiclass · Paladin fighting style')
+    expect(p.label).toBe('Multiclass - Paladin fighting style')
     expect(p.chips.map((chip) => [chip.label, chip.state, chip.takenBy])).toEqual([
       ['Defense', 'taken', 'Fighter'],
       ['Dueling', 'available', undefined],
@@ -330,8 +330,8 @@ describe('invocations', () => {
     expect(cardsOf(warlockOf(1), [warlock('PHB')], INVOCATIONS)).toEqual([])
     const cards = cardsOf(warlockOf(5), [warlock('PHB')], INVOCATIONS)
     expect(cards.map((c) => [c.label, c.count, c.noun])).toEqual([
-      ['Class · Warlock eldritch invocations', 3, 'invocations'],
-      ['Class · Warlock pact boon', 1, 'pact boons'],
+      ['Class - Warlock eldritch invocations', 3, 'invocations'],
+      ['Class - Warlock pact boon', 1, 'pact boons'],
     ])
     expect(invocationCard(warlockOf(1, 'XPHB', ['XPHB']), 'XPHB')?.count).toBe(1)
   })
@@ -519,7 +519,7 @@ describe('skills of options', () => {
     expect(optionSkillSources(collectSources(c, d), catalog)).toEqual([
       {
         tag: 'option:Beguiling Influence|PHB',
-        label: 'Class · Beguiling Influence',
+        label: 'Class - Beguiling Influence',
         kind: 'class',
         fixed: ['deception', 'persuasion'],
         choices: [],
@@ -551,12 +551,12 @@ describe('options from feats and from options', () => {
     const cards = optionCards({ ...sources, optionSlots: slots }, d)
     expect(cards.map((x) => [x.label, x.count])).toEqual(
       expect.arrayContaining([
-        ['Class · Fighter maneuvers', 1],
-        ['Feat · Martial Adept maneuvers', 2],
+        ['Class - Fighter maneuvers', 1],
+        ['Feat - Martial Adept maneuvers', 2],
       ]),
     )
     const maneuver = cards
-      .find((x) => x.label === 'Class · Fighter maneuvers')
+      .find((x) => x.label === 'Class - Fighter maneuvers')
       ?.chips.find((x) => x.label === 'Trip Attack')
     expect(maneuver?.unmet).toBeUndefined()
     expect(maneuver?.detail?.facts).toEqual(
@@ -618,7 +618,7 @@ describe('options from feats and from options', () => {
       },
     ]
     const [card] = cardsOf(c, [monk], disciplines)
-    expect(card).toMatchObject({ count: 1, label: 'Class · Monk elemental disciplines' })
+    expect(card).toMatchObject({ count: 1, label: 'Class - Monk elemental disciplines' })
     expect(card.note).toContain('Elemental Attunement: known outright')
     expect(card.chips.map((x) => [x.label, x.unmet])).toEqual([
       [
@@ -697,7 +697,7 @@ describe('features to choose from', () => {
     const [card] = cardsOf(totemOf(3), [barbarian()], [])
     expect(card).toMatchObject({
       tag: 'class:Barbarian|PHB|feature:Totem Spirit|3',
-      label: 'Class · Barbarian Totem Spirit',
+      label: 'Class - Barbarian Totem Spirit',
       noun: 'Totem Spirit options',
       count: 1,
       left: 1,

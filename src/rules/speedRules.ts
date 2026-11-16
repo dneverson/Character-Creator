@@ -61,6 +61,12 @@ export const SPEED_RULES: readonly SpeedRule[] = [
   unarmored('PHB'),
   unarmored('XPHB'),
   {
+    holder: { reward: 'Boon of Speed|DMG' },
+    label: 'Boon of Speed',
+    text: 'Boon of Speed: your walking speed increases by 30 feet.',
+    amount: 30,
+  },
+  {
     holder: classFeature('Ranger', 'XPHB', 'Roving'),
     label: 'Roving',
     text: 'Roving: your speed increases by 10 feet while you do not wear heavy armor.',
@@ -130,6 +136,33 @@ const walkSpeed = (
 const AFTER_BONUS = 'after the bonus action that starts it'
 
 export const MOVE_RULES: readonly MoveRule[] = [
+  {
+    holder: { reward: 'Dark Gift of Tarakamedes, the Grave Wyrm|CoS' },
+    label: 'Dark Gift of Tarakamedes',
+    text: 'Dark Gift of Tarakamedes: you grow skeletal wings and have a flying speed of 50 feet.',
+    mode: 'fly',
+    amount: 50,
+  },
+  walkSpeed(
+    { reward: 'Blessing of the Aquatic Companion|WoW' },
+    'Blessing of the Aquatic Companion',
+    'Blessing of the Aquatic Companion: you have a swimming speed equal to your Speed.',
+    'swim',
+    { when: 'while an aquatic companion has a Loyalty Score of 10 or higher' },
+  ),
+  walkSpeed(
+    { reward: 'Nangnang|ToA' },
+    'Nangnang',
+    'Nangnang: the host can move up, down and across vertical surfaces and ceilings, with a climbing speed equal to its walking speed.',
+    'climb',
+  ),
+  walkSpeed(
+    { reward: 'Manifest Charm of Syrania, the Azure Sky|EFA' },
+    'Manifest Charm of Syrania',
+    'Manifest Charm of Syrania: you can expend the charm as a bonus action to gain a flying speed equal to your Speed for 1 minute.',
+    'fly',
+    { when: `for 1 minute, after you expend the charm as a bonus action` },
+  ),
   ...(['TCE', 'EFA'] as const).map((source): MoveRule => ({
     holder: subclassFeature('Artificer', 'Alchemist', source, 'Experimental Elixir'),
     label: 'Experimental Elixir',

@@ -151,6 +151,7 @@ describe.skipIf(!dataDir)('speeds of other ways of moving against the data', () 
       'classFeature',
       'subclassFeature',
       'optionalfeature',
+      'reward',
       'feat',
       'race',
       'subrace',

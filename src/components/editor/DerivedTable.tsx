@@ -27,9 +27,12 @@ interface Props {
   aligned?: boolean
 }
 
-/** A base amount reads as it is, an added one with its sign. */
+/**
+ * A base amount reads as it is, an added one with its sign. A line not in force shows its
+ * reason and no amount.
+ */
 function amountText(line: Line): string {
-  if (line.amount === undefined) return ''
+  if (line.amount === undefined || line.status === 'inactive') return ''
   return line.op === 'add' ? formatMod(line.amount) : String(line.amount)
 }
 

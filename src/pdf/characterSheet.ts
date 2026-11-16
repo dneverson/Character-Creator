@@ -25,6 +25,7 @@ import { deriveSheet, type DerivedSheet } from '../derived'
 import type { DeriveDeps } from '../derived/sources'
 import type { Listing } from '../derived/types'
 import { raceSize } from '../data/race'
+import { rechargeShort } from '../components/sheet/usesText'
 
 /** What the sheet is built from: the same loaded data every derived number reads. */
 export type SheetDeps = DeriveDeps
@@ -158,8 +159,51 @@ export function attackLines(derived: DerivedSheet): string[] {
       ? ` (${damage(a.twoHanded.dice, a.twoHanded.bonus.value)} with two hands)`
       : ''
     const types = a.damage.types ? ` ${a.damage.types}` : ''
-    return `${a.name} ${formatMod(a.toHit.value)}, ${damage(a.damage.dice, a.damage.bonus.value)}${types}${two}`
+    const mastery = a.mastery ? `; Mastery: ${a.mastery.name}` : ''
+    return `${a.name} ${formatMod(a.toHit.value)}, ${damage(a.damage.dice, a.damage.bonus.value)}${types}${two}${mastery}`
   })
+}
+
+/** "30 ft." for the walking speed, as derived with every change to it. */
+export const walkSpeedText = (derived: DerivedSheet) => `${derived.speed.value} ft.`
+
+/** The other ways of moving, each with the derived speed: "Fly 60 ft. (hover)". */
+export function otherSpeedLines(derived: DerivedSheet): string[] {
+  return derived.speeds
+    .filter((row) => row.speed.value > 0)
+    .map((row) => `${row.label} ${row.speed.value} ft.${row.hover ? ' (hover)' : ''}`)
+}
+
+/** The senses with their ranges, and those a condition the sheet cannot check would give. */
+export function senseLines(derived: DerivedSheet): string[] {
+  return derived.senses.flatMap((row) => {
+    if (row.range.value > 0) return [`${row.label} ${row.range.value} ft.`]
+    return row.conditional
+      ? [`${row.label} ${row.conditional.range} ft. (${row.conditional.when})`]
+      : []
+  })
+}
+
+/** One line for each limited use: "Rage: 3 uses, Long rest". */
+export function usesLines(derived: DerivedSheet): string[] {
+  return derived.resources.map((r) => {
+    const count =
+      r.max === undefined ? 'unlimited uses' : `${r.max} ${r.max === 1 ? 'use' : 'uses'}`
+    const rest = rechargeShort(r)
+    return `${r.label}: ${count}${rest ? `, ${rest}` : ''}`
+  })
+}
+
+/** One line for each card of class options with a pick: "Fighting Style: Archery". */
+export function optionPickLines(derived: DerivedSheet): string[] {
+  return derived.classOptions
+    .filter((card) => card.picks.length > 0)
+    .map((card) => {
+      const names = card.picks.map(
+        (value) => card.chips.find((c) => c.value === value)?.label ?? value,
+      )
+      return `${card.label}: ${names.join(', ')}`
+    })
 }
 
 /** One line for each kind of proficiency the sheet has: "Armor: Light armor, Shields". */
@@ -303,7 +347,7 @@ export async function buildCharacterSheet(
     ['Proficiency Bonus', formatMod(s.prof)],
     ['Armor Class', String(s.derived.ac.value)],
     ['Initiative', formatMod(s.derived.combat.initiative.value)],
-    ['Speed', ''],
+    ['Speed', walkSpeedText(s.derived)],
     ['Hit Points (avg)', String(s.hp.averageHP || '')],
     ['Total Level', String(s.level)],
   ]
@@ -385,6 +429,23 @@ export async function buildCharacterSheet(
     y2 = drawWrapped(p2, ctx, line, MARGIN, y2, width - 2 * MARGIN, 9)
   }
   y2 -= 8
+
+  // Movement, senses, limited uses and the options picked, all as derived
+  const extras: [string, string[]][] = [
+    ['Other Speeds', otherSpeedLines(s.derived)],
+    ['Senses', senseLines(s.derived)],
+    ['Limited Uses', usesLines(s.derived)],
+    ['Class Options', optionPickLines(s.derived)],
+  ]
+  for (const [label, lines] of extras) {
+    if (lines.length === 0) continue
+    drawLabel(p2, ctx, label, MARGIN, y2 + 6)
+    y2 -= 8
+    for (const line of lines) {
+      y2 = drawWrapped(p2, ctx, line, MARGIN, y2, width - 2 * MARGIN, 9)
+    }
+    y2 -= 8
+  }
 
   // Proficiencies other than skills
   const profLines = proficiencyLines(s.derived)

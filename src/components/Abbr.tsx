@@ -1,5 +1,5 @@
 // Renders an acronym/code (STR, PHB, gp, …) with a tooltip spelling out its full
-// name, e.g. "Sourcebook · Player's Handbook (2014)". The expansion comes from
+// name, e.g. "Sourcebook - Player's Handbook (2014)". The expansion comes from
 // the glossary registry (data/glossary), so book sources stay data-driven and
 // the fixed rules vocabulary is maintained in one place.
 //
@@ -45,7 +45,7 @@ export function Abbr({ code, kind, className }: Props) {
       placement="top"
       overlay={
         <Tooltip>
-          <strong>{hit.category}</strong> · <ExpandedName code={code} full={hit.full} />
+          <strong>{hit.category}</strong> - <ExpandedName code={code} full={hit.full} />
         </Tooltip>
       }
     >

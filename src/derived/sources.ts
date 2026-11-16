@@ -22,6 +22,7 @@ import type { Item } from '../data/items'
 import type { ClassOption } from '../data/classOptions'
 import type { Language } from '../data/languages'
 import type { Edition } from '../data/edition'
+import { rewardKey, type Reward } from '../data/rewards'
 import type { Holder } from '../rules/holder'
 import type { SourceRef } from './types'
 import {
@@ -51,8 +52,15 @@ export interface DeriveDeps {
   languages?: readonly Language[]
   /** The optional features of the books (invocations, maneuvers...), for the class options. */
   optionCatalog?: readonly ClassOption[]
+  /** The supernatural gifts of the books, for the ones the character has. */
+  rewards?: readonly Reward[]
   /** The rules edition of each book, from the books list; the 2024 books by name without it. */
   editionOf?: (source: string) => Edition
+}
+
+export interface HeldReward {
+  reward: Reward
+  source: SourceRef
 }
 
 export interface ClassSource {
@@ -105,6 +113,8 @@ export interface Sources {
    * held: an offered one is held only when taken.
    */
   featureChoices: FeatureChoiceState
+  /** The supernatural gifts the character has (rewards), each with its source. */
+  rewards: HeldReward[]
   /** Whether a weapon of the item catalog, by lower-case name, is simple or martial. */
   weaponCategory: (name: string) => 'simple' | 'martial' | undefined
 }
@@ -168,8 +178,29 @@ export function collectSources(character: Character, deps: DeriveDeps): Sources 
     optionSlots: slots,
     featureSlots,
     featureChoices: featureChoiceState(character, featureSlots, variants),
+    rewards: heldRewards(character, deps.rewards ?? []),
     weaponCategory: weaponCategories(deps.items ?? []),
   }
+}
+
+/** The rewards the character has, found in the loaded list, in the order they were added. */
+function heldRewards(character: Character, rewards: readonly Reward[]): HeldReward[] {
+  const byKey = new Map(rewards.map((r) => [r.key, r]))
+  return (character.rewards ?? []).flatMap((ref) => {
+    const reward = byKey.get(rewardKey(ref))
+    return reward
+      ? [
+          {
+            reward,
+            source: {
+              kind: 'reward' as const,
+              tag: `reward:${reward.key}`,
+              label: reward.name,
+            },
+          },
+        ]
+      : []
+  })
 }
 
 /** The weapons of the catalog by lower-case name, read once per catalog. */
@@ -263,6 +294,10 @@ export function heldBy(sources: Sources, holder: Holder): Held | undefined {
           },
         }
       : undefined
+  }
+  if ('reward' in holder) {
+    const held = sources.rewards.find((r) => r.reward.key === holder.reward)
+    return held && { source: held.source }
   }
   if ('item' in holder) {
     const held = sources.items.find((i) => i.item.key === holder.item)

@@ -5,6 +5,7 @@
 
 import { ABILITY_NAMES, abilityMod } from '../dice/dice'
 import { subclassOf, type ClassTableGroup } from '../data/class'
+import { hasTrait } from '../data/race'
 import type { SpellGrant } from '../character/spellGrants'
 import { holderId, type Holder } from '../rules/holder'
 import {
@@ -114,6 +115,7 @@ function ruleLabel(rule: Pick<ResourceRule, 'holder' | 'label' | 'feature'>): st
   if ('feat' in h) return h.feat.split('|')[0]
   if ('option' in h) return h.option.split('|')[0]
   if ('item' in h) return h.item.split('|')[0]
+  if ('reward' in h) return h.reward.split('|')[0]
   if ('race' in h) return h.race.subraceName ?? h.race.baseName
   return 'classFeature' in h ? h.classFeature.name : h.subclassFeature.name
 }
@@ -159,6 +161,10 @@ function featureResources(
   for (const rule of RESOURCE_RULES) {
     const h = heldBy(sources, rule.holder)
     if (!h) continue
+    // A species trait a subrace replaces is gone, and so is its counter.
+    if ('race' in rule.holder && rule.feature && sources.race) {
+      if (!hasTrait(sources.race, rule.feature)) continue
+    }
     const ctx = {
       totals,
       prof,
@@ -222,6 +228,9 @@ function featureResources(
   })
 }
 
+/** The origins of a spell grant whose source is a row of the Features tab. */
+const ROW_ORIGINS: ReadonlySet<string> = new Set(['feat', 'option', 'reward'])
+
 /** A counter for each spell the data lets the character cast a number of times per rest. */
 function spellResources(
   grants: readonly SpellGrant[],
@@ -245,12 +254,15 @@ function spellResources(
               max: Math.max(1, abilityMod(totals[count])),
               basis: `${ABILITY_NAMES[count]} modifier, at least 1`,
             }
-    const recharge: Recharge = limit?.rest === 'short' ? 'short' : 'long'
+    const recharge: Recharge =
+      limit?.rest === 'short' ? 'short' : limit?.rest === 'none' ? 'none' : 'long'
     const names = list.map((g) => g.spell?.name ?? '').join(', ')
     return {
       id: `spell:${pool}`,
       label: names,
       from: list[0].from,
+      // A feat, an option and a reward have a row on the Features tab named by their source.
+      ...(ROW_ORIGINS.has(list[0].origin) ? { anchor: list[0].sourceId } : {}),
       kind: 'spell' as const,
       max,
       recharge,

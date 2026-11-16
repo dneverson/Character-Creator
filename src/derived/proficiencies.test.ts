@@ -172,7 +172,7 @@ describe('proficiencies', () => {
       expect(all.listing.tool.map((l) => l.value)).toEqual(["Thieves' Tools"])
       expect(all.listing.language.map((l) => l.value)).toEqual(['Common', 'Elvish'])
       expect(all.open.map((o) => o.spec.count)).toEqual([2])
-      expect(all.open[0].block.card.label).toBe('Background · Acolyte')
+      expect(all.open[0].block.card.label).toBe('Background - Acolyte')
     })
 
     it('counts a pick against its source and charges a stranger to non-standard', () => {

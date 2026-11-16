@@ -35,6 +35,48 @@ const subclassFeature = (
 
 const FEATURE_SENSE_RULES: readonly SenseRule[] = [
   {
+    holder: { reward: 'Boon of Truesight|DMG' },
+    label: 'Boon of Truesight',
+    text: 'Boon of Truesight: you have truesight out to a range of 60 feet.',
+    sense: 'truesight',
+    range: 60,
+  },
+  {
+    holder: { reward: 'Yuan-Ti Pureblood Transformation|ToA' },
+    label: 'Yuan-Ti Pureblood Transformation',
+    text: 'Yuan-Ti Pureblood Transformation, Darkvision: you can see in dim light within 60 feet as if it were bright light, and in darkness as if it were dim light.',
+    sense: 'darkvision',
+    range: 60,
+  },
+  {
+    holder: { reward: 'Blessing of Dumathoin|PaBTSO' },
+    label: 'Blessing of Dumathoin',
+    text: 'Blessing of Dumathoin: you gain darkvision (60 feet, the range of the rules for darkvision).',
+    sense: 'darkvision',
+    range: 60,
+  },
+  {
+    holder: { reward: 'Charm of Khyber|EFA' },
+    label: 'Charm of Khyber',
+    text: 'Charm of Khyber: while you have the charm, you have darkvision with a range of 120 feet.',
+    sense: 'darkvision',
+    range: 120,
+  },
+  {
+    holder: { reward: 'Dark Gift of Yrrga, the Eye of Shadows|CoS' },
+    label: 'Dark Gift of Yrrga',
+    text: 'Dark Gift of Yrrga: you have truesight out to a range of 60 feet, for 30 days.',
+    sense: 'truesight',
+    range: 60,
+  },
+  {
+    holder: { reward: 'Draconic Senses|FTD' },
+    label: 'Draconic Senses',
+    text: 'Draconic Senses: you have blindsight to a range of 10 feet.',
+    sense: 'blindsight',
+    range: 10,
+  },
+  {
     holder: { option: 'Blind Fighting|TCE' },
     label: 'Blind Fighting',
     text: 'Blind Fighting: you have blindsight with a range of 10 feet.',

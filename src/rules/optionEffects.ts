@@ -21,6 +21,13 @@ export type OptionEffect =
   | { kind: 'spellDamage'; ability: AbilityKey; spells: readonly string[] }
   /** An ability modifier added to the damage of the spells picked on the option's card. */
   | { kind: 'spellDamagePick'; ability: AbilityKey; pick: string }
+  /**
+   * A new range for named spells (Eldritch Spear 2014: "its range is 300 feet"), or the
+   * range of the spells picked on the option's card increased by `perLevel` feet for each
+   * level in the owning class (Eldritch Spear 2024).
+   */
+  | { kind: 'spellRange'; spells: readonly string[]; feet: number }
+  | { kind: 'spellRangePick'; pick: string; perLevel: number }
   /** A bonus to the attack and damage rolls with the item. */
   | {
       kind: 'weaponBonus'
@@ -96,6 +103,18 @@ export const OPTION_EFFECTS: readonly OptionEffectRule[] = [
     effects: [
       { kind: 'spellDamagePick', ability: 'cha', pick: 'Agonizing Blast cantrip' },
     ],
+  },
+  {
+    holder: option('Eldritch Spear|PHB'),
+    label: 'Eldritch Spear',
+    text: 'Eldritch Spear: when you cast eldritch blast, its range is 300 feet.',
+    effects: [{ kind: 'spellRange', spells: ['eldritch blast|phb'], feet: 300 }],
+  },
+  {
+    holder: option('Eldritch Spear|XPHB'),
+    label: 'Eldritch Spear',
+    text: 'Eldritch Spear: when you cast the Warlock cantrip you chose, one that deals damage and has a range of 10 feet or more, its range increases by 30 feet for each Warlock level you have.',
+    effects: [{ kind: 'spellRangePick', pick: 'Eldritch Spear cantrip', perLevel: 30 }],
   },
   {
     holder: option('Pact of the Blade|PHB'),

@@ -73,7 +73,7 @@ export function buildSkillSources(
     sources.push(
       ...grantSource(
         'bg',
-        `Background · ${background.name}`,
+        `Background - ${background.name}`,
         'background',
         background.skillProficiencies,
       ),
@@ -93,7 +93,7 @@ export function buildSkillSources(
     if (choices.length === 0) return
     sources.push({
       tag: classSourceTag(c.name, c.source),
-      label: i === 0 ? `Class · ${c.name}` : `Multiclass · ${c.name}`,
+      label: i === 0 ? `Class - ${c.name}` : `Multiclass - ${c.name}`,
       kind: i === 0 ? 'class' : 'multiclass',
       fixed: [],
       choices,
@@ -102,7 +102,7 @@ export function buildSkillSources(
 
   if (race) {
     sources.push(
-      ...grantSource('race', `Race · ${race.name}`, 'race', race.skillProficiencies),
+      ...grantSource('race', `Race - ${race.name}`, 'race', race.skillProficiencies),
     )
   }
 
@@ -131,7 +131,7 @@ export function repeatedSkillSources(sources: SkillSource[]): SkillSource[] {
     if (repeated.length === 0) continue
     out.push({
       tag: repeatTag(src.tag),
-      label: `${src.label} · ${REPEAT_LABEL}`,
+      label: `${src.label} - ${REPEAT_LABEL}`,
       kind: src.kind,
       fixed: [],
       choices: [{ count: repeated.length, from: SKILLS.map((s) => s.key) }],
@@ -288,7 +288,7 @@ export function skillRows(
 export function sourceName(source: SkillSource): string {
   if (source.kind === 'background') return 'Background'
   if (source.kind === 'race') return 'Race'
-  return source.label.split(' · ').slice(1).join(' · ') || source.label
+  return source.label.split(' - ').slice(1).join(' - ') || source.label
 }
 
 /** One fixed grant in the "Granted" line. */

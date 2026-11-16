@@ -633,6 +633,12 @@ export interface BeastRef {
   source: string
 }
 
+/** A reward of the books the character has, by its name and book. */
+export interface RewardRef {
+  name: string
+  source: string
+}
+
 /** Freeform roleplay / narrative fields for the character. */
 export interface StoryState {
   alignment: string
@@ -774,6 +780,12 @@ export interface Character {
 
   // --- Druid Wild Shape ---
   wildShapes: BeastRef[]
+
+  /**
+   * The supernatural gifts the DM granted (data/rewards.ts): blessings, charms, boons.
+   * Absent means none; no stored document needs migrating.
+   */
+  rewards?: RewardRef[]
 
   // --- Background story ---
   story: StoryState
@@ -1056,16 +1068,22 @@ function normalizeFeats(raw: Partial<FeatsState> | undefined): FeatsState {
  * The race of a stored character. A save from before the 2024 lineages (an elf's,
  * a tiefling's legacy) were the race's options kept the lineage only as the set of the
  * race's spells taken ("Drow"); it becomes the option taken, which the race's options
- * know by that name (data/race.ts `findPlayableRace`).
+ * know by that name (data/race.ts `findPlayableRace`), and a race with no recorded base
+ * book gets its own.
  */
 function storedRace(
   race: RaceRef | undefined,
   spellGrants: SpellGrantChoices | undefined,
 ): RaceRef | undefined {
+  if (!race) return race
   const lineage = spellGrants?.['race:variant']?.variant
-  return race && !race.trait && typeof lineage === 'string'
-    ? { ...race, trait: lineage }
-    : race
+  const named =
+    !race.trait && typeof lineage === 'string' ? { ...race, trait: lineage } : race
+  // A save from before the base race's book was kept: with no subrace, the race's own book
+  // is it. A subrace's base book is not in the record and is read from the loaded race.
+  return named.baseSource === undefined && !named.subraceName
+    ? { ...named, baseSource: named.source }
+    : named
 }
 
 const plainObject = (raw: SpellGrantChoices | undefined): SpellGrantChoices =>
@@ -1161,6 +1179,8 @@ export function ensureCharacterDefaults(raw: StoredCharacter | undefined): Chara
     starting: storedStarting(raw?.equipment?.starting),
   }
   merged.wildShapes = Array.isArray(raw?.wildShapes) ? raw!.wildShapes : []
+  if (Array.isArray(raw.rewards) && raw.rewards.length > 0) merged.rewards = raw.rewards
+  else delete merged.rewards
   merged.story = { ...defaultStory(), ...(raw?.story ?? {}) }
   merged.play = normalizePlay(raw.play)
   if (typeof raw.completedAt === 'number') merged.completedAt = raw.completedAt

@@ -8,6 +8,7 @@ import { characterCasters } from '../../character/spellcasting'
 import { resolveSpellGrants, spellsByName } from '../../character/spellGrants'
 import { loadClassOptions } from '../../data/classOptions'
 import { loadBookEditions } from '../../data/edition'
+import { loadRewards } from '../../data/rewards'
 import { loadSpells } from '../../data/spells'
 import { chosenOptions } from '../../derived/classOptions'
 import { collectSources } from '../../derived/sources'
@@ -20,6 +21,7 @@ export function useSpellList() {
   const spellsData = useAsyncData(loadSpells)
   const optionData = useAsyncData(loadClassOptions)
   const editions = useAsyncData(loadBookEditions)
+  const rewardData = useAsyncData(loadRewards)
   const { classByKey, race, background, summary, feats } = featSummary
 
   const casters = useMemo(
@@ -30,41 +32,39 @@ export function useSpellList() {
   const allSpells = useMemo(() => spellsData.data ?? [], [spellsData.data])
   const byKey = useMemo(() => new Map(allSpells.map((s) => [s.key, s])), [allSpells])
   const byName = useMemo(() => spellsByName(allSpells), [allSpells])
-  const resolved = useMemo(
-    () =>
-      character
-        ? resolveSpellGrants(character, {
-            race,
-            background,
-            featSlots: summary.slots,
-            classByKey,
-            options: chosenOptions(
-              collectSources(character, {
-                classByKey,
-                race,
-                background,
-                feats,
-                optionCatalog: optionData.data ?? undefined,
-              }),
-              {
-                classByKey,
-                optionCatalog: optionData.data ?? undefined,
-                editionOf: editions.data ?? undefined,
-              },
-            ),
-          })
-        : undefined,
-    [
-      character,
+  const resolved = useMemo(() => {
+    if (!character) return undefined
+    const held = collectSources(character, {
+      classByKey,
       race,
       background,
-      summary.slots,
-      classByKey,
       feats,
-      optionData.data,
-      editions.data,
-    ],
-  )
+      optionCatalog: optionData.data ?? undefined,
+      rewards: rewardData.data ?? undefined,
+    })
+    return resolveSpellGrants(character, {
+      race,
+      background,
+      featSlots: summary.slots,
+      classByKey,
+      options: chosenOptions(held, {
+        classByKey,
+        optionCatalog: optionData.data ?? undefined,
+        editionOf: editions.data ?? undefined,
+      }),
+      rewards: held.rewards.map((r) => r.reward),
+    })
+  }, [
+    character,
+    race,
+    background,
+    summary.slots,
+    classByKey,
+    feats,
+    optionData.data,
+    rewardData.data,
+    editions.data,
+  ])
   const grants = useMemo(() => resolved?.grants ?? [], [resolved])
 
   return {

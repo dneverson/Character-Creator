@@ -96,7 +96,7 @@ export const AC_NOT_APPLIED: Record<string, string> = {
     'an infusion on one shield; which shield is infused is not stored',
   'race|Shifter|EFA': 'only while shifted, which is not tracked',
   'race|Shifter|MPMM': 'only while shifted, which is not tracked',
-  'subrace|Beasthide|ERLW': 'only while shifted, which is not tracked',
+  'subrace|Beasthide|ERLW|Shifter': 'only while shifted, which is not tracked',
   'race|Tauren|WoW': 'natural armor depends on a lineage the character does not store',
   'item|Deck of Many More Things|BMT': 'a card of the deck, not the wielder',
   'item|Paper Bird|WDH': 'the armor class of the bird, an object of its own',

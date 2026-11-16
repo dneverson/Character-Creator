@@ -85,6 +85,7 @@ describe('CharacterEditor', () => {
       'Combat',
       'Spells',
       'Equipment',
+      'Rewards',
     ])
   })
 

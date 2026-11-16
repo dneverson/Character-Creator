@@ -22,7 +22,7 @@ describe('Abbr', () => {
     await user.hover(screen.getByText('STR'))
     const tip = await screen.findByRole('tooltip')
     // The matched letters are re-cased to the acronym (STR -> STRength).
-    expect(tip).toHaveTextContent('Ability Score · STRength')
+    expect(tip).toHaveTextContent('Ability Score - STRength')
   })
 
   it('expands a registered book source', async () => {
@@ -32,7 +32,7 @@ describe('Abbr', () => {
     await user.hover(screen.getByText('PHB'))
     const tip = await screen.findByRole('tooltip')
     // PHB -> Player's HandBook, matched letters re-cased to the acronym.
-    expect(tip).toHaveTextContent("Sourcebook · Player's HandBook (2014)")
+    expect(tip).toHaveTextContent("Sourcebook - Player's HandBook (2014)")
   })
 
   it('renders an unknown code as plain text with no tooltip affordance', () => {
@@ -57,7 +57,7 @@ describe('AbbrText', () => {
     expect(container).toHaveTextContent('Wizards RPG Team')
     await user.hover(el)
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
-      'Term · Role Playing Game',
+      'Term - Role Playing Game',
     )
   })
 

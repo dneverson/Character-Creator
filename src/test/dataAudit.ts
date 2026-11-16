@@ -42,6 +42,12 @@ export function records(dir: string): { collection: string; record: Rec }[] {
 export function recordId(collection: string, r: Rec): string {
   const base = `${collection}|${String(r.name)}|${String(r.source ?? '')}`
   if (collection === 'classFeature') return `${base}|${String(r.className)}`
+  // Two races can have a subrace of one name and book (Ixalan of the Goblin and the Vampire).
+  if (collection === 'subrace') {
+    // A subrace that copies another names its race inside the copy.
+    const copy = isRec(r._copy) ? r._copy : {}
+    return `${base}|${String(r.raceName ?? copy.raceName)}`
+  }
   if (collection === 'subclassFeature') {
     return `${base}|${String(r.className)}|${String(r.subclassShortName)}`
   }

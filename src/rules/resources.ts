@@ -241,6 +241,39 @@ export const RESOURCE_EXCUSED: Readonly<Record<string, string>> = {
 }
 
 export const RESOURCE_RULES: readonly ResourceRule[] = [
+  r({ reward: 'Boon of Luck|DMG' }, fixed(1), 'short'),
+  r({ reward: 'Boon of Speed|DMG' }, fixed(1), 'short', { label: 'Dash or Disengage' }),
+  ...(
+    [
+      ['Boon of Combat Prowess|DMG', 'short'],
+      ['Boon of Fate|DMG', 'short'],
+      ['Boon of Invincibility|DMG', 'short'],
+      ['Boon of Peerless Aim|DMG', 'short'],
+      ['Boon of Planar Travel|DMG', 'short'],
+      ['Boon of Recovery|DMG', 'long'],
+      ['Boon of Spell Recall|DMG', 'long'],
+      ['Blessing of Dumathoin|PaBTSO', 'long'],
+      ['Blessing of the Solipsistic Mind|PaBTSO', 'long'],
+      ["Ephara's Votary|MOT", 'long'],
+      ["Keranos's Votary|MOT", 'long'],
+      ["Iroas's Disciple|MOT", 'long'],
+      ["Karametra's Devotee|MOT", 'long'],
+      ["Karametra's Disciple|MOT", 'long'],
+      ['Fragment of Melancholy|CRCotN', 'long'],
+      ['Fragment of Rancor|CRCotN', 'short'],
+      ['Psionic Reach|FTD', 'long'],
+      // Expending the charm is the use, and nothing restores it.
+      ['Charm of Khyber|EFA', 'none'],
+      ['Manifest Charm of Syrania, the Azure Sky|EFA', 'none'],
+    ] as const
+  ).map(([key, recharge]) => r({ reward: key }, fixed(1), recharge)),
+  r({ reward: 'Frightful Presence|FTD' }, prof(), 'long'),
+  r({ reward: "Erebos's Devotee|MOT" }, ability('wis'), 'long'),
+  r({ reward: "Heliod's Devotee|MOT" }, ability('wis'), 'long'),
+  r({ reward: "Pharika's Disciple|MOT" }, ability('wis'), 'long'),
+  r({ reward: "Mogis's Devotee|MOT" }, ability('con'), 'long'),
+  r({ reward: "Keranos's Devotee|MOT" }, ability('int'), 'long'),
+  r({ reward: "Phenax's Devotee|MOT" }, ability('cha'), 'long'),
   r(cf("Tinker's Magic", 'EFA', 'Artificer'), ability('int'), 'long'),
   r(cf('Magic Item Tinker', 'EFA', 'Artificer'), fixed(1), 'long'),
   r(cf('Flash of Genius', 'EFA', 'Artificer'), ability('int'), 'long'),

@@ -20,7 +20,7 @@ const chip = (label: string, state: PickChip['state'], text: string): PickChip =
 
 const card = (chips: PickChip[], used = 0): PickCardModel => ({
   tag: 'class:Fighter|PHB|FS:F',
-  label: 'Class · Fighter fighting style',
+  label: 'Class - Fighter fighting style',
   name: 'Fighter',
   kind: 'class',
   noun: 'fighting styles',

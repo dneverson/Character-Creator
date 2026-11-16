@@ -87,6 +87,23 @@ describe('ensureCharacterDefaults', () => {
     expect(ensureCharacterDefaults({ race }).race?.trait).toBeUndefined()
   })
 
+  it('gives a race saved without its base book its own, unless it is a subrace', () => {
+    const race = {
+      name: 'Goblin',
+      baseName: 'Goblin',
+      source: 'MPMM',
+      abilityFixed: {},
+      abilityChoices: {},
+    }
+    expect(ensureCharacterDefaults({ race }).race?.baseSource).toBe('MPMM')
+    expect(
+      ensureCharacterDefaults({ race: { ...race, baseSource: 'PSZ' } }).race?.baseSource,
+    ).toBe('PSZ')
+    // A subrace's base book is not in the save; the loaded race tells it.
+    const sub = { ...race, subraceName: 'Ixalan', source: 'PSX' }
+    expect(ensureCharacterDefaults({ race: sub }).race?.baseSource).toBeUndefined()
+  })
+
   it('preserves supplied values and keeps the provided id/timestamps', () => {
     const raw = {
       id: 'fixed-id',
@@ -277,7 +294,7 @@ describe('ensureCharacterDefaults', () => {
       abilityChoices: {},
     }
     const c = ensureCharacterDefaults({ race })
-    expect(c.race).toEqual(race)
+    expect(c.race).toEqual({ ...race, baseSource: 'PHB' })
     expect(c.background).toBeUndefined()
   })
 

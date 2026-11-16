@@ -13,6 +13,7 @@ export type SourceKind =
   | 'feat'
   | 'item'
   | 'option'
+  | 'reward'
   | 'manual'
 
 /** Where a line comes from; `tag` is the form the skill sources already use. */

@@ -298,6 +298,37 @@ describe('the feats an option taken gives', () => {
     expect(new Set(slots.map((s) => s.id)).size).toBe(2)
   })
 
+  it('puts each slot at the class level its option was gained, not the current level', () => {
+    const fighter = classByKey.get('Fighter|XPHB')
+    if (!fighter) throw new Error('no fixture fighter')
+    // One invocation at level 2, a second at level 5 and a third at level 9.
+    const grown = new Map([
+      [
+        'Fighter|XPHB',
+        {
+          ...fighter,
+          entry: {
+            ...fighter.entry,
+            optionalfeatureProgression: [
+              {
+                name: 'Invocations',
+                featureType: ['EI'],
+                progression: { '2': 1, '5': 2, '9': 3 },
+              },
+            ],
+          },
+        },
+      ],
+    ])
+    const c = character([{ name: 'Fighter', source: 'XPHB', level: 12 }])
+    c.classOptions = { 'class:Fighter|XPHB|EI': [lessons.key, lessons.key, lessons.key] }
+    const slots = featSlots(
+      c,
+      ctx({ optionCatalog: [lessons], classByKey: grown }),
+    ).filter((s) => s.label.includes('Lessons'))
+    expect(slots.map((s) => s.level)).toEqual([2, 5, 9])
+  })
+
   it('reads only a well formed feat progression', () => {
     expect(
       optionFeatGrants({
@@ -551,7 +582,7 @@ describe('resolveFeats', () => {
     expect(summary.skillSources).toEqual([
       {
         tag: 'feat:bonus:b',
-        label: 'Feat · Skilled',
+        label: 'Feat - Skilled',
         kind: 'feat',
         fixed: ['athletics'],
         choices: [],

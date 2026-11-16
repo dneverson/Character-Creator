@@ -20,6 +20,8 @@ export type Holder =
   | { option: string }
   /** An item of the catalog, by its key "Name|Source". */
   | { item: string }
+  /** A supernatural gift of the rewards file (a blessing, a boon), by "Name|Source". */
+  | { reward: string }
 
 /** The data identity of a holder: collection, name and source, as the data audit finds it. */
 export function holderId(holder: Holder): string {
@@ -30,7 +32,7 @@ export function holderId(holder: Holder): string {
   if ('race' in holder) {
     const r = holder.race
     return r.subraceName
-      ? `subrace|${r.subraceName}|${r.source}`
+      ? `subrace|${r.subraceName}|${r.source}|${r.baseName}`
       : `race|${r.baseName}|${r.source}`
   }
   if ('classFeature' in holder) {
@@ -42,5 +44,6 @@ export function holderId(holder: Holder): string {
     return `subclassFeature|${s.name}|${s.source}|${s.className}|${s.shortName}`
   }
   if ('option' in holder) return `optionalfeature|${holder.option}`
+  if ('reward' in holder) return `reward|${holder.reward}`
   return `item|${holder.item}`
 }

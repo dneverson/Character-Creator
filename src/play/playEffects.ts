@@ -144,6 +144,22 @@ function passiveLines(
       }),
     )
   }
+  // A condition that takes a sense fails the checks that need it: Passive Perception shows
+  // the line, not counted, since the sheet cannot tell what the noticing needs.
+  if (key === 'perception') {
+    for (const { condition, text, when } of rules.senseLoss) {
+      if (!play.conditions.includes(condition)) continue
+      lines.push({
+        id: `passive|${key}|condition|${condition}`,
+        label: condition,
+        source: conditionSource(condition),
+        op: 'note',
+        status: 'conditional',
+        when,
+        text: `${condition}: ${text}.`,
+      })
+    }
+  }
   return lines
 }
 

@@ -28,6 +28,7 @@ import { CombatSection } from './CombatSection'
 import { HitPoints } from './HitPoints'
 import { RaceSelection } from './RaceSelection'
 import { ProficienciesSection } from './ProficienciesSection'
+import { RewardsSection } from './RewardsSection'
 import { SkillsSection } from './SkillsSection'
 import { SpellsSection } from './SpellsSection'
 import { WildShapeSection } from './WildShapeSection'
@@ -63,6 +64,7 @@ const SECTIONS: { id: SectionId; Section: ComponentType }[] = [
   { id: 'spells', Section: SpellsSection },
   { id: 'wildshape', Section: WildShapeSection },
   { id: 'equipment', Section: EquipmentSection },
+  { id: 'rewards', Section: RewardsSection },
 ]
 
 export function CharacterEditor() {

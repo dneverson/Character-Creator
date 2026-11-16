@@ -55,7 +55,7 @@ export interface GrantChoices {
 /** How a source is named on its card. */
 export interface CardSource {
   tag: string
-  /** "Background · Acolyte": the card's heading. */
+  /** "Background - Acolyte": the card's heading. */
   label: string
   /** "Background", or the class or feat: the short name. */
   name: string
@@ -121,7 +121,7 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
     const source: SourceRef = { kind: 'class', tag, label: c.row.name }
     const card: CardSource = {
       tag,
-      label: `${i === 0 ? 'Class' : 'Multiclass'} · ${c.row.name}`,
+      label: `${i === 0 ? 'Class' : 'Multiclass'} - ${c.row.name}`,
       name: c.row.name,
       kind: i === 0 ? 'class' : 'multiclass',
     }
@@ -135,7 +135,7 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
     const source: SourceRef = { kind: 'race', tag: 'race', label: sources.race.name }
     addAll(
       source,
-      { tag: 'race', label: `Race · ${sources.race.name}`, name: 'Race', kind: 'race' },
+      { tag: 'race', label: `Race - ${sources.race.name}`, name: 'Race', kind: 'race' },
       sources.race,
     )
     swapBlocks(sources, out)
@@ -150,7 +150,7 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
       source,
       {
         tag: 'bg',
-        label: `Background · ${sources.background.name}`,
+        label: `Background - ${sources.background.name}`,
         name: 'Background',
         kind: 'background',
       },
@@ -160,7 +160,7 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
   for (const { feat, source, increases } of sources.feats) {
     addAll(
       source,
-      { tag: source.tag, label: `Feat · ${feat.label}`, name: feat.label, kind: 'feat' },
+      { tag: source.tag, label: `Feat - ${feat.label}`, name: feat.label, kind: 'feat' },
       feat,
       increases,
     )
@@ -234,7 +234,7 @@ function repeatBlocks(sources: Sources, out: GrantBlock[]) {
     out.push({
       id: `${tag}|${block.field}`,
       source: { ...block.source, tag },
-      card: { ...block.card, tag, label: `${block.card.label} · ${REPEAT_LABEL}` },
+      card: { ...block.card, tag, label: `${block.card.label} - ${REPEAT_LABEL}` },
       field: block.field,
       kind: block.kind,
       read: { alternatives: [{ fixed: [], picks }], optional: [], unknown: [] },
@@ -304,7 +304,7 @@ function featureSaveBlocks(sources: Sources, out: GrantBlock[]) {
       source: held.source,
       card: {
         tag,
-        label: `${held.source.label} · ${rule.label}`,
+        label: `${held.source.label} - ${rule.label}`,
         name: rule.label,
         kind: 'class',
       },

@@ -146,6 +146,25 @@ export function progressionCount(
   return count
 }
 
+/**
+ * The level at which the player's pick number `index` (from 0) of a progression is gained:
+ * the first level the progression's count, less the options known outright, passes it.
+ * Undefined when the progression never reaches it by `upTo`.
+ */
+export function pickGainedAt(
+  progression: OptionalFeatureProgression,
+  index: number,
+  upTo: number,
+): number | undefined {
+  for (let level = 1; level <= upTo; level++) {
+    const own =
+      progressionCount(progression.progression, level) -
+      requiredAt(progression, level).length
+    if (own > index) return level
+  }
+  return undefined
+}
+
 /** The options a progression knows outright by a level ("Elemental Attunement|PHB"). */
 export function requiredAt(
   progression: OptionalFeatureProgression,

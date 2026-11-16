@@ -199,6 +199,7 @@ function cardGrants(sources: Sources, deps: DeriveDeps): { id: string; pick: boo
     featSlots: summary.slots,
     classByKey: deps.classByKey,
     options: chosenOptions(sources, deps),
+    rewards: sources.rewards.map((r) => r.reward),
   })
   return cardGrantsOf(grants, casters)
     .filter((g) => !g.locked)

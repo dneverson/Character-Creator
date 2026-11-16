@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { SpellGrant } from '../character/spellGrants'
 import { resolveClassFiles } from '../data/class'
+import type { PlayableRace } from '../data/race'
 import type { Item } from '../data/items'
 import { ability, byLevel, column, fixed, perLevel, prof } from '../rules/resources'
-import { build, deps, featOf, loadedClass } from '../test/derivedFixtures'
+import { build, deps, featOf, FIGHTER, loadedClass } from '../test/derivedFixtures'
 import { makeItem } from '../test/itemFixtures'
 import { deriveSheet } from '.'
 import { featureRows } from './features'
@@ -134,6 +135,42 @@ describe('the counters on the derived sheet', () => {
   })
 })
 
+describe('the counter of a species trait', () => {
+  const halfOrc = (trait: string, subraceName?: string): PlayableRace => ({
+    key: 'half-orc',
+    name: 'Half-Orc',
+    baseName: 'Half-Orc',
+    baseSource: 'PHB',
+    source: 'PHB',
+    ...(subraceName ? { subraceName } : {}),
+    speed: 30,
+    abilityOptions: [],
+    featGrants: [],
+    entries: [{ type: 'entries', name: trait, entries: ['Text.'] }],
+  })
+  const counters = (race: PlayableRace) => {
+    const c = build('Fighter', 1, {}, [])
+    c.race = {
+      name: 'Half-Orc',
+      baseName: 'Half-Orc',
+      baseSource: 'PHB',
+      source: 'PHB',
+      subraceName: race.subraceName,
+      abilityFixed: {},
+      abilityChoices: {},
+    }
+    return deriveSheet(c, { ...deps([FIGHTER]), race }).resources.map((r) => r.label)
+  }
+
+  it('is given while the race has the trait', () => {
+    expect(counters(halfOrc('Relentless Endurance'))).toEqual(['Relentless Endurance'])
+  })
+
+  it('is not given once a subrace replaces the trait', () => {
+    expect(counters(halfOrc("Finder's Magic", 'Variant; Mark of Finding'))).toEqual([])
+  })
+})
+
 describe('deriveResources', () => {
   it('gives a Fighter Second Wind and Action Surge, on the rows of those features', () => {
     const sources = sourcesOf('Fighter', 17)
@@ -204,6 +241,28 @@ describe('deriveResources', () => {
       ['hellish rebuke, darkness', 1, 'long'],
       ['thaumaturgy', 1, 'long'],
     ])
+  })
+
+  it('anchors the counter of a feat to its row on the Features tab, not that of a species', () => {
+    const grant = (origin: SpellGrant['origin'], sourceId: string): SpellGrant => ({
+      id: `${origin}:misty step`,
+      sourceId,
+      from: 'Fey Touched',
+      origin,
+      mode: 'innate',
+      gate: 0,
+      locked: false,
+      uses: '1 per long rest',
+      spell: { name: 'misty step', source: 'PHB', cantrip: false },
+      limit: { count: 1, rest: 'long', pool: origin },
+    })
+    const found = deriveResources(
+      sourcesOf('Fighter', 1),
+      [grant('feat', 'feat:one'), grant('race', 'race')],
+      TOTALS,
+      2,
+    ).filter((r) => r.kind === 'spell')
+    expect(found.map((r) => r.anchor)).toEqual(['feat:one', undefined])
   })
 
   it('counts the charges of an equipped item, restored by hand when they come at dawn', () => {

@@ -15,7 +15,7 @@ import type { AbilityTotals } from './armorClass'
 import { heldOptionEffects, optionRowLines } from './optionEffects'
 import type { Line } from './types'
 
-export type FeatureKind = 'Class' | 'Species' | 'Background' | 'Feat'
+export type FeatureKind = 'Class' | 'Species' | 'Background' | 'Feat' | 'Reward'
 
 export interface FeatureRow {
   /** Unique on the sheet. */
@@ -194,5 +194,14 @@ export function featureRows(
       anchor: source.tag,
     })
   }
+  for (const { reward, source } of sources.rewards)
+    out.push({
+      id: source.tag,
+      name: reward.name,
+      from: reward.type,
+      kind: 'Reward',
+      entries: reward.entries,
+      anchor: source.tag,
+    })
   return out
 }

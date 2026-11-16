@@ -126,9 +126,9 @@ export const PROFICIENCY_NOT_GRANTED: Record<string, string> = {
   'race|Skeleton|DMG': 'the languages known in life, not a grant',
   'race|Zombie|DMG': 'the languages known in life, not a grant',
   'race|Thri-kreen|AAG': 'how the languages are spoken, not a grant',
-  'subrace|Amonkhet|PSA':
+  'subrace|Amonkhet|PSA|Human':
     'its languages are in the text only; use a non-standard language pick',
-  'subrace|Vahadar|PSK':
+  'subrace|Vahadar|PSK|Elf (Kaladesh)':
     'its languages are in the text only; use a non-standard language pick',
 }
 

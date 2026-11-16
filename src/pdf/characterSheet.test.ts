@@ -4,7 +4,12 @@ import {
   attackLines,
   buildCharacterSheet,
   equipmentLines,
+  optionPickLines,
+  otherSpeedLines,
   proficiencyLines,
+  senseLines,
+  usesLines,
+  walkSpeedText,
   spellStatLines,
 } from './characterSheet'
 import { deriveSheet } from '../derived'
@@ -12,6 +17,8 @@ import { FIGHTER, ITEMS, build, loadedClass, stack } from '../test/derivedFixtur
 import { makeItem } from '../test/itemFixtures'
 import { createCharacter } from '../character/model'
 import type { LoadedClass } from '../data/class'
+import type { DerivedSheet } from '../derived'
+import { quantity } from '../derived/types'
 
 function loaded(name: string): LoadedClass {
   return {
@@ -227,6 +234,8 @@ describe('combat numbers on the sheet', () => {
       .map((f) => f.getText())
     // Chain mail 16 + shield 2.
     expect(fields).toContain('18')
+    // The Speed field has the derived walking speed.
+    expect(fields).toContain(walkSpeedText(deriveSheet(armed(), deps())))
   })
 
   it('lists each attack with its bonus and damage', () => {
@@ -250,5 +259,102 @@ describe('combat numbers on the sheet', () => {
       deriveSheet(c, { classByKey: new Map([['Wizard|PHB', wizard]]) }),
     )
     expect(lines).toEqual(['Wizard: spell save DC 13, spell attack +5'])
+  })
+})
+
+describe('derived values on the sheet, as the sheet derives them', () => {
+  const q = (n: number) =>
+    quantity([
+      {
+        id: 'x',
+        label: 'x',
+        source: { kind: 'base', tag: 'base', label: '' },
+        op: 'add',
+        amount: n,
+        status: 'applied',
+      },
+    ])
+  const derived = {
+    speed: q(25),
+    speeds: [
+      { label: 'Fly', speed: q(60), hover: true },
+      { label: 'Swim', speed: q(25), hover: false },
+      { label: 'Burrow', speed: q(0), hover: false },
+    ],
+    senses: [
+      { label: 'Darkvision', range: q(60) },
+      {
+        label: 'Truesight',
+        range: q(0),
+        conditional: { when: 'while raging', range: 30 },
+      },
+      { label: 'Tremorsense', range: q(0) },
+    ],
+    resources: [
+      {
+        label: 'Rage',
+        max: 3,
+        recharge: 'long',
+        shortRegain: 0,
+        restores: 'All on a long rest',
+      },
+      {
+        label: 'Channel',
+        max: undefined,
+        recharge: 'short',
+        shortRegain: 0,
+        restores: '',
+      },
+    ],
+    classOptions: [
+      {
+        label: 'Warlock - Invocations',
+        picks: ['agonizing blast|phb', 'x|y'],
+        chips: [{ value: 'agonizing blast|phb', label: 'Agonizing Blast' }],
+      },
+      { label: 'Fighter - Mastery', picks: [], chips: [] },
+    ],
+  } as unknown as DerivedSheet
+
+  it('writes the walking speed with its changes, and the other speeds beside it', () => {
+    expect(walkSpeedText(derived)).toBe('25 ft.')
+    expect(otherSpeedLines(derived)).toEqual(['Fly 60 ft. (hover)', 'Swim 25 ft.'])
+  })
+
+  it('lists the senses in force and those a condition would give', () => {
+    expect(senseLines(derived)).toEqual([
+      'Darkvision 60 ft.',
+      'Truesight 30 ft. (while raging)',
+    ])
+  })
+
+  it('lists the limited uses with what restores them', () => {
+    expect(usesLines(derived)).toEqual([
+      'Rage: 3 uses, Long rest',
+      'Channel: unlimited uses, Short or long rest',
+    ])
+  })
+
+  it('lists the options picked, by the name the card shows', () => {
+    expect(optionPickLines(derived)).toEqual([
+      'Warlock - Invocations: Agonizing Blast, x|y',
+    ])
+  })
+
+  it('writes the derived walking speed, and the weapon mastery of an attack', () => {
+    const sheet = deriveSheet(
+      build('Fighter', 1, { str: 10, dex: 10 }, [stack('Chain Mail')]),
+      {
+        classByKey: new Map([[FIGHTER.entry.name + '|PHB', FIGHTER]]),
+        items: ITEMS,
+      },
+    )
+    // The sheet writes the value the derived sheet has, whatever changed it.
+    expect(walkSpeedText(sheet)).toBe(`${sheet.speed.value} ft.`)
+    const mastered = {
+      ...sheet,
+      attacks: [{ ...sheet.attacks[0], mastery: { name: 'Sap', rule: '' } }],
+    }
+    expect(attackLines(mastered)[0]).toMatch(/; Mastery: Sap$/)
   })
 })

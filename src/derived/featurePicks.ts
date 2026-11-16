@@ -396,7 +396,7 @@ function card(
       : `${held.source.label} ${words.label}`
   return {
     tag,
-    label: `${held.prefix} · ${label}`,
+    label: `${held.prefix} - ${label}`,
     name: held.source.label,
     kind: held.owner?.kind ?? (held.prefix === 'Multiclass' ? 'multiclass' : 'class'),
     ...(held.owner ? { owner: held.owner.tag } : {}),

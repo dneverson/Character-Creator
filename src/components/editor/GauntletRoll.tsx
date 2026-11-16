@@ -64,11 +64,11 @@ export function GauntletRoll({
               <div className="small text-center mt-1">
                 {canImprove ? (
                   <span className="text-body-secondary">
-                    {formatChance(improve)} to beat {slot.total} · best {maxNext}
+                    {formatChance(improve)} to beat {slot.total} - best {maxNext}
                   </span>
                 ) : (
                   <span className="text-body-secondary">
-                    can't beat {slot.total} · best {maxNext}
+                    can't beat {slot.total} - best {maxNext}
                   </span>
                 )}
               </div>

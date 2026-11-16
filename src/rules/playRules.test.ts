@@ -123,4 +123,19 @@ describe.skipIf(!dataDir)('play rules against the data', () => {
       }
     }
   })
+
+  it('has a line for exactly the conditions that fail the checks needing a sense', () => {
+    const FAILS = /automatically fails? any ability check that requires/i
+    for (const rules of Object.values(PLAY_RULES)) {
+      const failing = conditions
+        .filter((r) => r.record.source === rules.conditionSource)
+        .filter((r) => FAILS.test(textOf(r.record)))
+        .map((r) => String(r.record.name))
+        .sort()
+      expect(rules.senseLoss.map((r) => r.condition)).toEqual(failing)
+      for (const { condition, text } of rules.senseLoss) {
+        expect(textOf(find(condition, rules.conditionSource) ?? {})).toContain(text)
+      }
+    }
+  })
 })

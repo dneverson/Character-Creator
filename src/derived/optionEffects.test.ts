@@ -45,6 +45,8 @@ const CATALOG: ClassOption[] = [
   option('Improved Pact Weapon|XGE', ['EI']),
   option('Lifedrinker|PHB', ['EI']),
   option('Eldritch Mind|TCE', ['EI']),
+  option('Eldritch Spear|PHB', ['EI']),
+  option('Eldritch Spear|XPHB', ['EI']),
   option('Pact of the Blade|PHB', ['PB']),
   option('Enhanced Defense|TCE', ['AI']),
   option('Enhanced Arcane Focus|TCE', ['AI']),
@@ -146,6 +148,28 @@ describe('a pact weapon', () => {
     expect(blast?.lines?.[0].how).toContain('Eldritch Blast')
     const pact = sheet.features.find((f) => f.name === 'Pact of the Blade')
     expect(pact?.lines?.some((l) => l.status === 'flag')).toBe(true)
+  })
+
+  it('gives Eldritch Spear (2014) a 300 foot eldritch blast on its row', () => {
+    const { sheet } = warlock({ 'class:Warlock|PHB|EI': ['Eldritch Spear|PHB'] })
+    const spear = sheet.features.find((f) => f.name === 'Eldritch Spear')
+    expect(spear?.lines?.[0].how).toBe('Range of Eldritch Blast is 300 feet')
+  })
+
+  it('adds 30 feet per Warlock level to the cantrip picked for Eldritch Spear (2024)', () => {
+    const { sheet } = warlock({
+      'class:Warlock|PHB|EI': ['Eldritch Spear|XPHB'],
+      'option:Eldritch Spear|XPHB|pick:Eldritch Spear cantrip': ['eldritch blast|phb'],
+    })
+    const spear = sheet.features.find((f) => f.name === 'Eldritch Spear')
+    expect(spear?.lines?.[0]).toMatchObject({ op: 'add', amount: 30 * 9 })
+    expect(spear?.lines?.[0].how).toContain('Eldritch Blast')
+  })
+
+  it('flags Eldritch Spear (2024) with no cantrip picked', () => {
+    const { sheet } = warlock({ 'class:Warlock|PHB|EI': ['Eldritch Spear|XPHB'] })
+    const spear = sheet.features.find((f) => f.name === 'Eldritch Spear')
+    expect(spear?.lines?.[0].status).toBe('flag')
   })
 
   it('offers the weapons of the inventory on the pact weapon card', () => {

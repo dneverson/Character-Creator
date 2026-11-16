@@ -46,7 +46,7 @@ describe('the skills, languages and tools a feature gives in text', () => {
     expect(at(3)).toEqual([
       {
         tag: 'class:Bard|PHB|Bonus Proficiencies',
-        label: 'Class · Bard, Lore Bonus Proficiencies',
+        label: 'Class - Bard, Lore Bonus Proficiencies',
         kind: 'class',
         fixed: [],
         choices: [{ count: 3, from: expect.arrayContaining(['arcana', 'stealth']) }],
