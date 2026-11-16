@@ -19,6 +19,7 @@ import type {
   ItemCharges,
   ItemArmor,
   ItemContainer,
+  ItemDefenses,
   ItemKind,
   ItemSpeedChange,
   ItemVehicle,
@@ -291,6 +292,22 @@ export function speedChangeOf(raw: unknown): ItemSpeedChange | undefined {
     multiply: part('multiply', isNumber),
   }
   return Object.values(change).some((p) => Object.keys(p).length > 0) ? change : undefined
+}
+
+/** The data's resistances, immunities, vulnerabilities and condition immunities of an item. */
+export function defensesOf(raw: Fields): ItemDefenses | undefined {
+  const defenses: ItemDefenses = {}
+  const fields = {
+    resist: 'resist',
+    immune: 'immune',
+    vulnerable: 'vulnerable',
+    condition: 'conditionImmune',
+  } as const
+  for (const [kind, field] of Object.entries(fields) as [keyof typeof fields, string][]) {
+    const names = listOf(raw[field])
+    if (names.length > 0) defenses[kind] = names
+  }
+  return Object.keys(defenses).length > 0 ? defenses : undefined
 }
 
 function speedChangeText(raw: unknown): string[] {

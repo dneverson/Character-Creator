@@ -9,6 +9,7 @@ import { halfLines, halfRules, itemCheckLines } from './combat'
 import type { AbilityTotals } from './armorClass'
 import { checkEffectLines, heldOptionEffects } from './optionEffects'
 import type { Sources } from './sources'
+import { armorStealthLines, checkNoteLines, heldStanding } from './standing'
 import { BASE_SOURCE, quantity, type Line, type SourceRef, type Quantity } from './types'
 
 export type DerivedSkill = SkillRow & { total: Quantity }
@@ -22,9 +23,11 @@ export function skillTotals(
   totals: AbilityTotals,
   prof: number,
   expertise: ReadonlyMap<string, SourceRef>,
+  armorLines: readonly Line[],
 ): DerivedSkill[] {
   const byTag = new Map(skillSources.map((s) => [s.tag, s]))
   const effects = heldOptionEffects(sources)
+  const standing = heldStanding(sources)
   return rows.map((row) => {
     const lines: Line[] = [
       {
@@ -73,6 +76,8 @@ export function skillTotals(
       ),
       ...itemCheckLines(sources, `skill|${row.key}`),
       ...checkEffectLines(effects, row.key, `skill|${row.key}|edge`),
+      ...checkNoteLines(standing, row.key, `skill|${row.key}|standing`),
+      ...(row.key === 'stealth' ? armorStealthLines(armorLines) : []),
     )
     return { ...row, total: quantity(lines) }
   })

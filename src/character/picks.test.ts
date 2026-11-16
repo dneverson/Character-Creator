@@ -67,4 +67,35 @@ describe('pickClassOption', () => {
       'option:Agonizing Blast|XPHB|pick:Cantrip',
     ])
   })
+
+  it('takes the choices of the last instance with it while another of the option remains', () => {
+    const feTag = 'class:Ranger|PHB|pick:Favored Enemy'
+    const held = {
+      [feTag]: ['humanoids', 'undead', 'humanoids'],
+      [`${feTag}|humanoids`]: ['gnoll', 'orc', 'ogre', 'goblin'],
+      [tag]: ['Agonizing Blast|XPHB', 'Agonizing Blast|XPHB'],
+      'option:Agonizing Blast|XPHB|pick:Agonizing Blast cantrip': [
+        'eldritch blast|phb',
+        'chill touch|phb',
+      ],
+    }
+    const fewerRaces = pickClassOption(held, feTag, 'humanoids#2', true)
+    expect(fewerRaces[feTag]).toEqual(['humanoids', 'undead'])
+    expect(fewerRaces[`${feTag}|humanoids`]).toEqual(['gnoll', 'orc'])
+    const fewerBlasts = pickClassOption(held, tag, 'Agonizing Blast|XPHB#2', true)
+    expect(
+      fewerBlasts['option:Agonizing Blast|XPHB|pick:Agonizing Blast cantrip'],
+    ).toEqual(['eldritch blast|phb'])
+  })
+
+  it('leaves the choices alone when the instance taken away had made none', () => {
+    const feTag = 'class:Ranger|PHB|pick:Favored Enemy'
+    const held = {
+      [feTag]: ['humanoids', 'humanoids'],
+      [`${feTag}|humanoids`]: ['gnoll', 'orc'],
+    }
+    expect(
+      pickClassOption(held, feTag, 'humanoids#2', true)[`${feTag}|humanoids`],
+    ).toEqual(['gnoll', 'orc'])
+  })
 })

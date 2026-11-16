@@ -13,7 +13,19 @@ import { titleCase } from '../text/titleCase'
 import { isOnClassList, type ListCaster, type Spell } from './spells'
 
 export type GrantKind =
-  'language' | 'tool' | 'weapon' | 'armor' | 'skill' | 'expertise' | 'save' | 'mixed'
+  | 'language'
+  | 'tool'
+  | 'weapon'
+  | 'armor'
+  | 'skill'
+  | 'expertise'
+  | 'save'
+  | 'mixed'
+  /** What a source lets a character resist, be immune to or vulnerable to, or ignore. */
+  | 'resist'
+  | 'immune'
+  | 'vulnerable'
+  | 'condition'
 
 /** The fields a race or background lists its proficiencies in, as blocks. */
 export const PROFICIENCY_FIELDS = [

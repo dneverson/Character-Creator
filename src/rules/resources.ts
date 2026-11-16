@@ -264,6 +264,10 @@ export const RESOURCE_RULES: readonly ResourceRule[] = [
       ['Psionic Reach|FTD', 'long'],
       // Expending the charm is the use, and nothing restores it.
       ['Charm of Khyber|EFA', 'none'],
+      // Used once, then 7 days must pass: no rest restores it, so the text says when.
+      ['Blessing of Valhalla|DMG', 'none'],
+      ['Blessing of Valhalla|XDMG', 'none'],
+      ['Blessing of Valhalla|WoW', 'none'],
       ['Manifest Charm of Syrania, the Azure Sky|EFA', 'none'],
     ] as const
   ).map(([key, recharge]) => r({ reward: key }, fixed(1), recharge)),

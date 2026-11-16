@@ -39,6 +39,22 @@ const RULED = new Set([
 ])
 
 describe('reward excuses', () => {
+  it('models the speed, the sense and the counters of the rewards once excused', () => {
+    for (const id of [
+      'reward|Blessing of the Flying Companion|WoW',
+      'reward|Charm of Darkvision|DMG',
+      'reward|Charm of Darkvision|XDMG',
+      'reward|Blessing of Valhalla|DMG',
+      'reward|Blessing of Valhalla|XDMG',
+    ])
+      expect(RULED.has(id)).toBe(true)
+    const flying = SPEED_RULES.find((r) =>
+      holderId(r.holder).includes('Flying Companion'),
+    )
+    expect(flying?.when).toBeDefined()
+    expect(SENSE_RULES.filter((r) => r.label === 'Charm of Darkvision')).toHaveLength(2)
+  })
+
   it('never both rule and excuse a reward', () => {
     expect(Object.keys(REWARD_EXCUSED).filter((id) => RULED.has(id))).toEqual([])
   })

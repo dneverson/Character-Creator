@@ -28,6 +28,10 @@ const NOUNS: Partial<Record<PickKind, string>> = {
   weapon: 'weapons',
   armor: 'kinds of armor',
   save: 'saving throws',
+  resist: 'damage resistances',
+  immune: 'damage immunities',
+  vulnerable: 'damage vulnerabilities',
+  condition: 'condition immunities',
 }
 
 /** Where a value already comes from, by lower-case label, for each kind the sheet lists. */

@@ -9,6 +9,7 @@ import type { AbilityTotals } from './armorClass'
 import { itemBonus } from './itemBonus'
 import { heldOptionEffects, saveEffectLines } from './optionEffects'
 import type { Proficiencies } from './proficiencies'
+import { heldStanding, saveNoteLines } from './standing'
 import { heldBy, type Sources } from './sources'
 import { BASE_SOURCE, quantity, type Line, type Quantity } from './types'
 
@@ -33,6 +34,7 @@ export function saveRows(
       : []
   })
   const effects = heldOptionEffects(sources)
+  const standing = heldStanding(sources)
   return Object.fromEntries(
     ABILITIES.map((key) => {
       const name = ABILITY_NAMES[key]
@@ -83,7 +85,10 @@ export function saveRows(
           status: 'applied',
         })
       }
-      lines.push(...saveEffectLines(effects, key, `save|${key}|edge`))
+      lines.push(
+        ...saveEffectLines(effects, key, `save|${key}|edge`),
+        ...saveNoteLines(standing, key, `save|${key}|standing`),
+      )
       return [
         key,
         { key, label: name, proficient: given !== undefined, total: quantity(lines) },

@@ -12,6 +12,10 @@ const KIND = {
   skillToolLanguageProficiencies: 'mixed',
   expertise: 'expertise',
   savingThrowProficiencies: 'save',
+  resist: 'resist',
+  immune: 'immune',
+  vulnerable: 'vulnerable',
+  conditionImmune: 'condition',
 } as const
 
 describe('readGrant', () => {

@@ -77,6 +77,11 @@ export interface ItemSpeedChange {
   multiply: Record<string, number>
 }
 
+/** The damage types and conditions an item gives its bearer, as the data states them. */
+export type ItemDefenses = Partial<
+  Record<'resist' | 'immune' | 'vulnerable' | 'condition', string[]>
+>
+
 /** A spell an item holds, and how it can be cast. */
 export interface AttachedSpell {
   name: string
@@ -217,6 +222,8 @@ export interface Item {
   bonuses: Bonus[]
   /** What the item does to the bearer's speeds, when it does anything. */
   speed?: ItemSpeedChange
+  /** The resistances, immunities and vulnerabilities the item gives, when it gives any. */
+  defenses?: ItemDefenses
   charges?: ItemCharges
   spells: AttachedSpell[]
   container?: ItemContainer

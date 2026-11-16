@@ -5,6 +5,7 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 import { ABILITIES, ABILITY_NAMES, formatMod } from '../../dice/dice'
 import type { DerivedSheet } from '../../derived'
+import type { DefenseRow } from '../../derived/defenses'
 import { Abbr } from '../Abbr'
 import { feet } from '../../data/labels'
 import { DerivedNumber } from '../derived/DerivedNumber'
@@ -123,6 +124,49 @@ export function SensesPanel({ sheet }: { sheet: DerivedSheet }) {
             />
           </li>
         ))}
+      </ul>
+    </FixedPanel>
+  )
+}
+
+const DEFENSE_WORD: Record<DefenseRow['kind'], string> = {
+  resist: 'Resistance',
+  immune: 'Immunity',
+  vulnerable: 'Vulnerability',
+  condition: 'Immunity',
+}
+
+/** The resistances, immunities and vulnerabilities, and the conditions the character is immune to. */
+export function DefensesPanel({ sheet }: { sheet: DerivedSheet }) {
+  if (sheet.defenses.length === 0) return null
+  return (
+    <FixedPanel title="Defenses" area="defenses">
+      <ul className="sheet-rows" aria-label="Defenses">
+        {sheet.defenses.map((defense) => {
+          const word = DEFENSE_WORD[defense.kind]
+          return (
+            <li key={defense.key} className="sheet-row">
+              <span className="sheet-row__name">
+                {defense.label}
+                {defense.conditional && (
+                  <span className="d-block small text-body-secondary">
+                    Conditional: {defense.conditional}
+                  </span>
+                )}
+              </span>
+              <DerivedNumber
+                id={`defense:${defense.key}`}
+                label={`${defense.label} ${word.toLowerCase()}`}
+                quantity={defense.held}
+                format={(held) => (held > 0 ? 'Yes' : 'Under its condition')}
+                amountHeader="In force"
+                title={`${defense.label}: ${word.toLowerCase()}`}
+              >
+                {word}
+              </DerivedNumber>
+            </li>
+          )
+        })}
       </ul>
     </FixedPanel>
   )

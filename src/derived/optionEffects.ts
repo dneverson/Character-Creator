@@ -319,6 +319,86 @@ function itemWords(sources: Sources, h: HeldEffect, item: EffectItem) {
       }
 }
 
+/** What an option does to one spell: its key, the number it adds, and what that is. */
+interface SpellPart {
+  spell: string
+  amount?: number
+  /** In words, for the spell named: a spell's name, or "this spell" on the spell's own row. */
+  how: (subject: string) => string
+}
+
+const isSpellEffect = (e: OptionEffect) =>
+  e.kind === 'spellDamage' ||
+  e.kind === 'spellDamagePick' ||
+  e.kind === 'spellRange' ||
+  e.kind === 'spellRangePick'
+
+/** The picked spell keys of an option's card. */
+const pickedSpells = (sources: Sources, h: HeldEffect, pick: string) =>
+  sources.character.classOptions[`option:${h.key}${PICK_MARK}${pick}`] ?? []
+
+/**
+ * What an effect that changes a spell's damage or range does, once per spell it is on:
+ * an empty list when it is on the spells picked and none is. Not a spell effect: undefined.
+ */
+function spellParts(
+  sources: Sources,
+  h: HeldEffect,
+  totals: AbilityTotals,
+): SpellPart[] | undefined {
+  const e = h.effect
+  if (e.kind === 'spellDamage' || e.kind === 'spellDamagePick') {
+    const amount = abilityMod(totals[e.ability])
+    const spells = e.kind === 'spellDamage' ? e.spells : pickedSpells(sources, h, e.pick)
+    return spells.map((spell) => ({
+      spell,
+      amount,
+      how: (subject) =>
+        `${ABILITY_NAMES[e.ability]} modifier to the damage of ${subject}`,
+    }))
+  }
+  if (e.kind === 'spellRange') {
+    return e.spells.map((spell) => ({
+      spell,
+      how: (subject) => `Range of ${subject} is ${e.feet} feet`,
+    }))
+  }
+  if (e.kind === 'spellRangePick') {
+    const feet = e.perLevel * h.level
+    return pickedSpells(sources, h, e.pick).map((spell) => ({
+      spell,
+      amount: feet,
+      how: (subject) =>
+        `feet added to the range of ${subject} (${e.perLevel} feet times ${h.level} class levels)`,
+    }))
+  }
+  return undefined
+}
+
+/**
+ * What the options the character holds do to each spell, by the spell's key ("eldritch
+ * blast|phb"), as lines for that spell's own row and detail: the one place the effect table
+ * names a spell or a pick, read here for the spell and for the option's row alike.
+ */
+export function spellEffectLines(
+  sources: Sources,
+  effects: readonly HeldEffect[],
+  totals: AbilityTotals,
+): Record<string, Line[]> {
+  const out: Record<string, Line[]> = {}
+  for (const h of effects) {
+    const parts = spellParts(sources, h, totals) ?? []
+    for (const [i, p] of parts.entries()) {
+      const spell = out[p.spell] ?? []
+      spell.push(
+        line(`spell|${p.spell}|${h.key}|${i}`, h, p.amount, { how: p.how('this spell') }),
+      )
+      out[p.spell] = spell
+    }
+  }
+  return out
+}
+
 /** What one effect does, as a line of the option's row. */
 function summaryLine(
   sources: Sources,
@@ -328,46 +408,18 @@ function summaryLine(
 ): Line[] {
   const e = h.effect
   const id = `feature|${h.key}|${index}`
-  if (e.kind === 'spellDamage' || e.kind === 'spellDamagePick') {
-    const mod = abilityMod(totals[e.ability])
-    const spells =
-      e.kind === 'spellDamage'
-        ? e.spells
-        : (sources.character.classOptions[`option:${h.key}${PICK_MARK}${e.pick}`] ?? [])
-    if (spells.length === 0)
-      return [
-        line(id, h, undefined, {
-          status: 'flag',
-          why: 'No cantrip picked: pick it on its card in Class Features.',
-        }),
-      ]
-    return spells.map((spell, i) =>
-      line(`${id}|${i}`, h, mod, {
-        how: `${ABILITY_NAMES[e.ability]} modifier to the damage of ${spellName(spell)}`,
-      }),
-    )
-  }
-  if (e.kind === 'spellRange' || e.kind === 'spellRangePick') {
-    const spells =
-      e.kind === 'spellRange'
-        ? e.spells
-        : (sources.character.classOptions[`option:${h.key}${PICK_MARK}${e.pick}`] ?? [])
-    if (spells.length === 0)
-      return [
-        line(id, h, undefined, {
-          status: 'flag',
-          why: 'No cantrip picked: pick it on its card in Class Features.',
-        }),
-      ]
-    return spells.map((spell, i) =>
-      e.kind === 'spellRange'
-        ? line(`${id}|${i}`, h, undefined, {
-            how: `Range of ${spellName(spell)} is ${e.feet} feet`,
-          })
-        : line(`${id}|${i}`, h, e.perLevel * h.level, {
-            how: `feet added to the range of ${spellName(spell)} (${e.perLevel} feet times ${h.level} class levels)`,
+  if (isSpellEffect(e)) {
+    const parts = spellParts(sources, h, totals) ?? []
+    return parts.length === 0
+      ? [
+          line(id, h, undefined, {
+            status: 'flag',
+            why: 'No cantrip picked: pick it on its card in Class Features.',
           }),
-    )
+        ]
+      : parts.map((p, i) =>
+          line(`${id}|${i}`, h, p.amount, { how: p.how(spellName(p.spell)) }),
+        )
   }
   if (e.kind === 'checkAdvantage') {
     return [

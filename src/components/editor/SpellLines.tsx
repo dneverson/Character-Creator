@@ -3,6 +3,7 @@
 // whole list. The same stats as every spell table (spellFacts), drawn once more
 // around a spell line instead of a bare spell.
 
+import type { Line } from '../../derived/types'
 import type { Spell } from '../../data/spells'
 import { BrowseTable, type BrowseTableProps } from '../table/BrowseTable'
 import type { DetailTarget } from '../table/types'
@@ -18,6 +19,8 @@ export interface SpellLine {
   from: string[]
   /** How it is cast: "At will", "1 per long rest", "Always prepared"; empty for a pick. */
   cast: string
+  /** What the character's class options do to this spell (Agonizing Blast's damage). */
+  effects?: Line[]
   /** Why it cannot be used yet ("Unlocks at level 5"): the row is greyed. */
   locked?: string
   /** Taking it away; absent for what the character cannot remove. */

@@ -3,6 +3,7 @@
 // that granted it, the way skills always were. One shape for every kind of pick, so one
 // card, one budget rule and one migration serve them all.
 
+import { FEATURE_PICKS } from '../rules/featurePicks'
 import type { Entry } from '../text/Entries'
 
 /** What a pick can be of. */
@@ -15,6 +16,8 @@ export type PickKind =
   | 'save'
   | 'expertise'
   | 'resist'
+  | 'immune'
+  | 'vulnerable'
   | 'condition'
   /** A class option (an invocation, a maneuver): stored in `classOptions`, not in the picks. */
   | 'option'
@@ -76,8 +79,40 @@ export function pickClassOption(
   if (at < 0) return { ...options, [tag]: held }
   const next = { ...options, [tag]: held.filter((_, i) => i !== at) }
   return Object.values(next).some((list) => list.includes(key))
-    ? next
+    ? withoutLastInstanceChoices(next, tag, key)
     : withoutSubChoices(next, tag, key)
+}
+
+/**
+ * The class options once one of several instances of an option is taken away: the choices
+ * that instance asked for go with it. Each instance asks for the same number (the cantrip
+ * an Agonizing Blast empowers is one for each time it is taken; a pair of favored humanoid
+ * races is two), and the instance taken away is the last, so the choices past what the
+ * instances left ask for are the last ones.
+ */
+function withoutLastInstanceChoices(
+  options: Record<string, string[]>,
+  tag: string,
+  key: string,
+): Record<string, string[]> {
+  const kept = { ...options }
+  const trim = (name: string, count: number) => {
+    const list = kept[name]
+    if (list && list.length > count) kept[name] = list.slice(0, count)
+  }
+  const here = (options[tag] ?? []).filter((k) => k === key).length
+  const left = Object.values(options)
+    .flat()
+    .filter((k) => k === key).length
+  for (const pick of FEATURE_PICKS) {
+    const holder = pick.holders[0]
+    if ('option' in holder && holder.option === key && !pick.byLevel) {
+      trim(`option:${key}|pick:${pick.title}`, left)
+    }
+    const sub = pick.options.find((o) => o.key === key)?.sub
+    if (sub) trim(`${tag}|${key}`, sub.count * here)
+  }
+  return kept
 }
 
 /**

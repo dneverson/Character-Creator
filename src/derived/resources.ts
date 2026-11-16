@@ -17,6 +17,7 @@ import {
 } from '../rules/resources'
 import type { Entry } from '../text/Entries'
 import type { AbilityTotals } from './armorClass'
+import type { FeatureKind, FeatureRow } from './features'
 import { columnCell } from './classTable'
 import { heldBy, type Held, type Sources } from './sources'
 
@@ -231,11 +232,46 @@ function featureResources(
 /** The origins of a spell grant whose source is a row of the Features tab. */
 const ROW_ORIGINS: ReadonlySet<string> = new Set(['feat', 'option', 'reward'])
 
+/** The kind of Features tab row that grants the spells of a species, a background or a class. */
+const GRANT_ROW_KINDS: Partial<Record<SpellGrant['origin'], FeatureKind>> = {
+  race: 'Species',
+  background: 'Background',
+  class: 'Class',
+  subclass: 'Class',
+}
+
+/** Whether a text names the spell with the tag of the data: "{@spell darkness}". */
+const mentionsSpell = (entries: readonly Entry[], name: string) =>
+  JSON.stringify(entries).toLowerCase().includes(`{@spell ${name}`)
+
+/**
+ * The row of the Features tab that grants the spells of a pool when no row is named by
+ * the grant's source: the first trait or feature of the species, the background or the
+ * class whose text tags one of the spells (Infernal Legacy for Hellish Rebuke).
+ */
+function grantAnchor(
+  list: readonly SpellGrant[],
+  features: readonly FeatureRow[],
+): string | undefined {
+  const kind = GRANT_ROW_KINDS[list[0].origin]
+  if (!kind) return undefined
+  const owner = list[0].classKey?.split('|')[0]
+  const names = list.flatMap((g) => (g.spell ? [g.spell.name.toLowerCase()] : []))
+  return features.find(
+    (f) =>
+      f.kind === kind &&
+      f.anchor !== undefined &&
+      (owner === undefined || f.from === owner) &&
+      names.some((n) => mentionsSpell(f.entries, n)),
+  )?.anchor
+}
+
 /** A counter for each spell the data lets the character cast a number of times per rest. */
 function spellResources(
   grants: readonly SpellGrant[],
   totals: AbilityTotals,
   prof: number,
+  features: readonly FeatureRow[],
 ): DerivedResource[] {
   const pools = new Map<string, SpellGrant[]>()
   for (const grant of grants) {
@@ -257,12 +293,17 @@ function spellResources(
     const recharge: Recharge =
       limit?.rest === 'short' ? 'short' : limit?.rest === 'none' ? 'none' : 'long'
     const names = list.map((g) => g.spell?.name ?? '').join(', ')
+    const row = ROW_ORIGINS.has(list[0].origin)
+      ? list[0].sourceId
+      : grantAnchor(list, features)
+    const anchor = row === undefined ? {} : { anchor: row }
     return {
       id: `spell:${pool}`,
       label: names,
       from: list[0].from,
-      // A feat, an option and a reward have a row on the Features tab named by their source.
-      ...(ROW_ORIGINS.has(list[0].origin) ? { anchor: list[0].sourceId } : {}),
+      // A feat, an option and a reward have a row on the Features tab named by their source;
+      // a species, a background and a class have the row whose text grants the spell.
+      ...anchor,
       kind: 'spell' as const,
       max,
       recharge,
@@ -307,10 +348,11 @@ export function deriveResources(
   grants: readonly SpellGrant[],
   totals: AbilityTotals,
   prof: number,
+  features: readonly FeatureRow[] = [],
 ): DerivedResource[] {
   return [
     ...featureResources(sources, totals, prof),
-    ...spellResources(grants, totals, prof),
+    ...spellResources(grants, totals, prof, features),
     ...itemResources(sources),
   ]
 }

@@ -62,6 +62,14 @@ const FEATURE_SENSE_RULES: readonly SenseRule[] = [
     sense: 'darkvision',
     range: 120,
   },
+  ...(['DMG', 'XDMG'] as const).map((source): SenseRule => ({
+    holder: { reward: `Charm of Darkvision|${source}` },
+    label: 'Charm of Darkvision',
+    text: 'Charm of Darkvision: the charm casts the darkvision spell, which gives darkvision with a range of 60 feet for 8 hours.',
+    sense: 'darkvision',
+    range: 60,
+    when: 'for 8 hours, after the charm casts darkvision',
+  })),
   {
     holder: { reward: 'Dark Gift of Yrrga, the Eye of Shadows|CoS' },
     label: 'Dark Gift of Yrrga',

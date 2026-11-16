@@ -7,6 +7,7 @@ import {
   optionPickLines,
   otherSpeedLines,
   proficiencyLines,
+  defenseLines,
   senseLines,
   usesLines,
   walkSpeedText,
@@ -290,6 +291,14 @@ describe('derived values on the sheet, as the sheet derives them', () => {
       },
       { label: 'Tremorsense', range: q(0) },
     ],
+    defenses: [
+      { kind: 'resist', label: 'Fire', held: q(1) },
+      { kind: 'resist', label: 'Poison', held: q(1) },
+      { kind: 'immune', label: 'Cold', held: q(1) },
+      { kind: 'vulnerable', label: 'Radiant', held: q(1) },
+      { kind: 'condition', label: 'Charmed', held: q(1) },
+      { kind: 'resist', label: 'Slashing', held: q(0), conditional: 'while raging' },
+    ],
     resources: [
       {
         label: 'Rage',
@@ -325,6 +334,15 @@ describe('derived values on the sheet, as the sheet derives them', () => {
     expect(senseLines(derived)).toEqual([
       'Darkvision 60 ft.',
       'Truesight 30 ft. (while raging)',
+    ])
+  })
+
+  it('lists the defenses by kind, a conditional one with its condition', () => {
+    expect(defenseLines(derived)).toEqual([
+      'Resistance: Fire, Poison, Slashing (while raging)',
+      'Immunity: Cold',
+      'Vulnerability: Radiant',
+      'Condition immunity: Charmed',
     ])
   })
 

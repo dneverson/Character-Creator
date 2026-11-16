@@ -7,7 +7,7 @@ import { ability, byLevel, column, fixed, perLevel, prof } from '../rules/resour
 import { build, deps, featOf, FIGHTER, loadedClass } from '../test/derivedFixtures'
 import { makeItem } from '../test/itemFixtures'
 import { deriveSheet } from '.'
-import { featureRows } from './features'
+import { featureRows, type FeatureRow } from './features'
 import { countUses, deriveResources, type CountContext } from './resources'
 import { collectSources, type Sources } from './sources'
 
@@ -263,6 +263,48 @@ describe('deriveResources', () => {
       2,
     ).filter((r) => r.kind === 'spell')
     expect(found.map((r) => r.anchor)).toEqual(['feat:one', undefined])
+  })
+
+  it('anchors the counter of a species, a background or a class to the row that grants the spell', () => {
+    const grant = (origin: SpellGrant['origin'], classKey?: string): SpellGrant => ({
+      id: `${origin}:hellish rebuke`,
+      sourceId: origin,
+      from: 'Tiefling',
+      origin,
+      ...(classKey ? { classKey } : {}),
+      mode: 'innate',
+      gate: 0,
+      locked: false,
+      uses: '1 per long rest',
+      spell: { name: 'hellish rebuke', source: 'PHB', cantrip: false },
+      limit: { count: 1, rest: 'long', pool: origin },
+    })
+    const row = (
+      kind: FeatureRow['kind'],
+      from: string,
+      anchor: string,
+      text: string,
+    ): FeatureRow => ({ id: anchor, name: anchor, from, kind, entries: [text], anchor })
+    const features = [
+      row(
+        'Species',
+        'Tiefling',
+        'race#Darkvision',
+        'You see hellish rebuke in the dark.',
+      ),
+      row('Species', 'Tiefling', 'race#Infernal Legacy', 'Cast {@spell hellish rebuke}.'),
+      row('Background', 'Acolyte', 'background#Shelter', 'Cast {@spell hellish rebuke}.'),
+      row('Class', 'Paladin', 'class:Paladin|PHB#Oath', 'Cast {@spell hellish rebuke}.'),
+      row('Class', 'Cleric', 'class:Cleric|PHB#Order', 'Cast {@spell hellish rebuke}.'),
+    ]
+    const anchorOf = (g: SpellGrant) =>
+      deriveResources(sourcesOf('Fighter', 1), [g], TOTALS, 2, features).find(
+        (r) => r.kind === 'spell',
+      )?.anchor
+    expect(anchorOf(grant('race'))).toBe('race#Infernal Legacy')
+    expect(anchorOf(grant('background'))).toBe('background#Shelter')
+    expect(anchorOf(grant('class', 'Cleric|PHB'))).toBe('class:Cleric|PHB#Order')
+    expect(anchorOf(grant('subclass', 'Paladin|PHB'))).toBe('class:Paladin|PHB#Oath')
   })
 
   it('counts the charges of an equipped item, restored by hand when they come at dawn', () => {

@@ -3,6 +3,7 @@
 // draw the same cells and the same text for a favorite spell.
 
 import type { Spell } from '../../data/spells'
+import { formatMod } from '../../dice/dice'
 import { factColumn, type Describe, type Fact, type FactGroup } from '../table/facts'
 import type { Column } from '../table/types'
 import type { SpellLine } from './SpellLines'
@@ -17,6 +18,18 @@ const castFact: Fact<SpellLine> = {
   key: 'cast',
   label: 'How it is cast',
   text: (line) => [line.cast, line.locked].filter(Boolean).join('; '),
+}
+
+const effectsFact: Fact<SpellLine> = {
+  key: 'effects',
+  label: 'Your options',
+  text: (line) =>
+    (line.effects ?? [])
+      .map(
+        (l) =>
+          `${l.label}: ${l.amount === undefined ? '' : `${formatMod(l.amount)} `}${l.how}`,
+      )
+      .join('; '),
 }
 
 const ofSpell =
@@ -38,7 +51,7 @@ const lineFact = (fact: Fact<Spell>): Fact<SpellLine> => ({
 })
 
 export const describeLines: Describe<SpellLine> = (lines) => [
-  { key: 'source', title: 'On your character', facts: [fromFact, castFact] },
+  { key: 'source', title: 'On your character', facts: [fromFact, castFact, effectsFact] },
   ...describeSpells(lines.map((l) => l.spell)).map((group): FactGroup<SpellLine> => ({
     ...group,
     entryTitle: group.entryTitle && ofSpell(group.entryTitle),

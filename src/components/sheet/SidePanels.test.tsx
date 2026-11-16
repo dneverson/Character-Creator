@@ -1,9 +1,16 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { ProficienciesPanel, SavesPanel, SensesPanel, SkillsPanel } from './SidePanels'
+import {
+  DefensesPanel,
+  ProficienciesPanel,
+  SavesPanel,
+  SensesPanel,
+  SkillsPanel,
+} from './SidePanels'
 import { SheetDetailProvider } from './SheetDetail'
 import { deriveSheet } from '../../derived'
+import { quantity } from '../../derived/types'
 import { build, deps, FIGHTER } from '../../test/derivedFixtures'
 
 function sheetOf() {
@@ -63,6 +70,63 @@ describe('sheet side panels', () => {
       .closest('li') as HTMLElement
     expect(within(row).getByText('While in dim light or darkness')).toBeInTheDocument()
     expect(row).toHaveTextContent('60 ft., conditional')
+  })
+
+  it('lists the defenses, a conditional one with its reason, and opens its sources', async () => {
+    const user = userEvent.setup()
+    const sheet = sheetOf()
+    const source = { kind: 'race' as const, tag: 'race', label: 'Tiefling' }
+    const held = quantity([
+      {
+        id: 'defense|resist|fire|0',
+        label: 'Tiefling',
+        source,
+        op: 'base',
+        amount: 1,
+        status: 'applied',
+        text: 'Resistance to fire damage',
+      },
+    ])
+    const none = quantity([
+      {
+        id: 'defense|resist|slashing|0',
+        label: 'Rage',
+        source,
+        op: 'note',
+        status: 'conditional',
+        when: 'Only while your Rage is active.',
+        text: 'Resistance to slashing damage',
+      },
+    ])
+    const defenses = [
+      { key: 'resist|fire', kind: 'resist' as const, label: 'Fire', held },
+      {
+        key: 'resist|slashing',
+        kind: 'resist' as const,
+        label: 'Slashing',
+        held: none,
+        conditional: 'Only while your Rage is active.',
+      },
+    ]
+    render(
+      <SheetDetailProvider>
+        <DefensesPanel sheet={{ ...sheet, defenses }} />
+      </SheetDetailProvider>,
+    )
+    const list = screen.getByRole('list', { name: 'Defenses' })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(2)
+    const slashing = within(list).getByText('Slashing').closest('li') as HTMLElement
+    expect(slashing).toHaveTextContent('Conditional: Only while your Rage is active.')
+    expect(slashing).toHaveTextContent('Resistance')
+    await user.click(within(list).getAllByRole('button', { name: /Fire resistance/ })[0])
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Fire: resistance')).toBeInTheDocument()
+    expect(within(dialog).getAllByText(/Tiefling/).length).toBeGreaterThan(0)
+  })
+
+  it('shows no defenses block when there are none', () => {
+    const { container } = render(<DefensesPanel sheet={sheetOf()} />)
+    expect(container).toBeEmptyDOMElement()
   })
 
   it('lists each proficiency group as a comma line that opens where each comes from', async () => {

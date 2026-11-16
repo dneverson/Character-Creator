@@ -18,8 +18,10 @@ import {
 import type { ClassEntry } from '../data/class'
 import type { GrantValue } from '../data/grants'
 import { originValueText, swapPick, swapRowOf, swapTag } from '../rules/customOrigin'
+import { DEFENSE_RULES, type DefenseKind } from '../rules/defenseRules'
 import { SAVE_RULES } from '../rules/saveRules'
 import { featureGrantFields, heldFeatureGrants } from './featureGrants'
+import { holderName } from '../rules/holder'
 import { heldBy, type Sources } from './sources'
 import type { SourceRef } from './types'
 
@@ -32,8 +34,19 @@ export const GRANT_FIELDS = [
   'skillToolLanguageProficiencies',
   'expertise',
   'savingThrowProficiencies',
+  'resist',
+  'immune',
+  'vulnerable',
+  'conditionImmune',
 ] as const
 export type GrantField = (typeof GRANT_FIELDS)[number]
+
+const DEFENSE_FIELDS: ReadonlySet<GrantField> = new Set([
+  'resist',
+  'immune',
+  'vulnerable',
+  'conditionImmune',
+])
 
 const FIELD_KIND: Record<GrantField, GrantKind> = {
   languageProficiencies: 'language',
@@ -43,6 +56,28 @@ const FIELD_KIND: Record<GrantField, GrantKind> = {
   skillToolLanguageProficiencies: 'mixed',
   expertise: 'expertise',
   savingThrowProficiencies: 'save',
+  resist: 'resist',
+  immune: 'immune',
+  vulnerable: 'vulnerable',
+  conditionImmune: 'condition',
+}
+
+/** A field's blocks read as the kind of grant the field is. */
+const readField = (field: GrantField, blocks: readonly unknown[]) =>
+  readGrant(DEFENSE_FIELDS.has(field) ? listBlock(blocks) : blocks, FIELD_KIND[field])
+
+/**
+ * A plain list of damage types or conditions, every item given, as one block: a name is
+ * given outright, a choice is a pick (the data writes `{ choose: { from, count } }`).
+ */
+function listBlock(list: readonly unknown[]): unknown[] {
+  const block: Record<string, unknown> = {}
+  for (const item of list) {
+    if (typeof item === 'string') block[item] = true
+    else if (item && typeof item === 'object' && 'choose' in item)
+      block.choose = item.choose
+  }
+  return Object.keys(block).length > 0 ? [block] : []
 }
 
 /** What the player decided about the alternatives of grants. */
@@ -101,10 +136,17 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
     increases?: GrantBlock['increases'],
   ) => {
     if (!blocks || blocks.length === 0) return
-    const kind = FIELD_KIND[field]
-    const read = readGrant(blocks, kind)
+    const read = readField(field, blocks)
     if (read.alternatives.length === 0 && read.optional.length === 0) return
-    out.push({ id: `${card.tag}|${field}`, source, card, field, kind, read, increases })
+    out.push({
+      id: `${card.tag}|${field}`,
+      source,
+      card,
+      field,
+      kind: FIELD_KIND[field],
+      read,
+      increases,
+    })
   }
   const addAll = (
     source: SourceRef,
@@ -167,6 +209,7 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
   }
   repeatBlocks(sources, out)
   featureSaveBlocks(sources, out)
+  featureDefenseBlocks(sources, out)
   for (const held of heldFeatureGrants(sources)) {
     const { id, fields } = featureGrantFields(held)
     const card: CardSource = {
@@ -178,14 +221,13 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
     for (const field of GRANT_FIELDS) {
       const blocks = fields[field]
       if (!blocks) continue
-      const kind = FIELD_KIND[field]
       out.push({
         id: `${id}|${field}`,
         source: held.source,
         card,
         field,
-        kind,
-        read: readGrant(blocks, kind),
+        kind: FIELD_KIND[field],
+        read: readField(field, blocks),
       })
     }
   }
@@ -312,6 +354,42 @@ function featureSaveBlocks(sources: Sources, out: GrantBlock[]) {
       kind: 'save',
       read: readGrant(blocks, 'save'),
       feature: rule.label,
+    })
+  }
+}
+
+const DEFENSE_FIELD: Record<DefenseKind, GrantField> = {
+  resist: 'resist',
+  immune: 'immune',
+  vulnerable: 'vulnerable',
+  condition: 'conditionImmune',
+}
+
+/**
+ * A feature that gives a damage resistance of a type the player chooses (Fiendish
+ * Resilience, a Dragonborn's ancestry): a card of its own, the same pick as the data's
+ * `{ choose: { from } }` in a species or a feat.
+ */
+function featureDefenseBlocks(sources: Sources, out: GrantBlock[]) {
+  for (const rule of DEFENSE_RULES) {
+    if (!rule.choose) continue
+    const held = heldBy(sources, rule.holder)
+    if (!held) continue
+    const field = DEFENSE_FIELD[rule.kind]
+    const name = holderName(rule.holder)
+    const tag = `${held.source.tag}|${name}`
+    out.push({
+      id: `${tag}|${field}`,
+      source: held.source,
+      card: {
+        tag,
+        label: `${held.source.label} - ${name}`,
+        name,
+        kind: held.source.kind === 'feat' ? 'feat' : 'class',
+      },
+      field,
+      kind: FIELD_KIND[field],
+      read: readField(field, [{ choose: rule.choose }]),
     })
   }
 }

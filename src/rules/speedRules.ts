@@ -18,6 +18,8 @@ export interface SpeedRule {
   amount: number | readonly (readonly [number, number])[]
   /** What the character may not wear for the bonus to count. */
   without?: SpeedLimit
+  /** It holds only in a case the sheet cannot check: shown with when, not counted. */
+  when?: string
 }
 
 const classFeature = (className: string, source: string, name: string): Holder => ({
@@ -65,6 +67,13 @@ export const SPEED_RULES: readonly SpeedRule[] = [
     label: 'Boon of Speed',
     text: 'Boon of Speed: your walking speed increases by 30 feet.',
     amount: 30,
+  },
+  {
+    holder: { reward: 'Blessing of the Flying Companion|WoW' },
+    label: 'Blessing of the Flying Companion',
+    text: 'Blessing of the Flying Companion: your Speed increases by 5 feet.',
+    amount: 5,
+    when: 'while a flying companion has a Loyalty Score of 10 or higher',
   },
   {
     holder: classFeature('Ranger', 'XPHB', 'Roving'),

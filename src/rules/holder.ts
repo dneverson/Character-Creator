@@ -47,3 +47,14 @@ export function holderId(holder: Holder): string {
   if ('reward' in holder) return `reward|${holder.reward}`
   return `item|${holder.item}`
 }
+
+/** The name of the feature, option, gift, item or feat a holder is, as the sheet shows it. */
+export function holderName(holder: Holder): string {
+  if ('feat' in holder) return holder.feat.split('|')[0]
+  if ('race' in holder) return holder.race.subraceName ?? holder.race.baseName
+  if ('classFeature' in holder) return holder.classFeature.name
+  if ('subclassFeature' in holder) return holder.subclassFeature.name
+  if ('option' in holder) return holder.option.split('|')[0]
+  if ('reward' in holder) return holder.reward.split('|')[0]
+  return holder.item.split('|')[0]
+}

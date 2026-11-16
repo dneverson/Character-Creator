@@ -1,10 +1,17 @@
 // What each tab of the sheet's switching box shows.
 
 import type { DerivedSheet } from '../../derived'
+import { sideClass } from './sideClass'
 import { FavoritesBlock } from './FavoritesBlock'
 import { SheetAttacks } from './SheetAttacks'
 import { SheetUses } from './SheetUses'
-import { ProficienciesPanel, SavesPanel, SensesPanel, SkillsPanel } from './SidePanels'
+import {
+  DefensesPanel,
+  ProficienciesPanel,
+  SavesPanel,
+  SensesPanel,
+  SkillsPanel,
+} from './SidePanels'
 
 export interface SheetPanelProps {
   sheet: DerivedSheet
@@ -23,9 +30,10 @@ export function ActionsPanel({ sheet }: SheetPanelProps) {
 /** On a phone the left column is two tabs; this is the first, the skills the second. */
 export function CorePanel({ sheet }: SheetPanelProps) {
   return (
-    <div className="sheet-side">
+    <div className={sideClass(sheet)}>
       <SavesPanel sheet={sheet} />
       <SensesPanel sheet={sheet} />
+      <DefensesPanel sheet={sheet} />
       <ProficienciesPanel sheet={sheet} />
     </div>
   )

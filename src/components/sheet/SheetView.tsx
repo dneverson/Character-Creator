@@ -1,3 +1,4 @@
+import { sideClass } from './sideClass'
 import { memo, useMemo } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
@@ -22,7 +23,13 @@ import { HpBox } from './HpBox'
 import { PlayStrip } from './PlayStrip'
 import { SheetRoot } from './SheetRoot'
 import { SheetTabs } from './SheetTabs'
-import { ProficienciesPanel, SavesPanel, SensesPanel, SkillsPanel } from './SidePanels'
+import {
+  DefensesPanel,
+  ProficienciesPanel,
+  SavesPanel,
+  SensesPanel,
+  SkillsPanel,
+} from './SidePanels'
 import { TemplateMenu } from './TemplateMenu'
 import { useSheetTemplate } from '../../sheet/useSheetTemplate'
 import '../../sheet/sheet.css'
@@ -194,10 +201,11 @@ const SheetBody = memo(function SheetBody({
       </div>
       <div className="sheet-main">
         {!phone && (
-          <div className="sheet-side">
+          <div className={sideClass(sheet)}>
             <SavesPanel sheet={sheet} />
             <SkillsPanel sheet={sheet} />
             <SensesPanel sheet={sheet} />
+            <DefensesPanel sheet={sheet} />
             <ProficienciesPanel sheet={sheet} />
           </div>
         )}

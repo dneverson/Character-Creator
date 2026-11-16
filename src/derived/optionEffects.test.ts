@@ -166,6 +166,36 @@ describe('a pact weapon', () => {
     expect(spear?.lines?.[0].how).toContain('Eldritch Blast')
   })
 
+  it("lists each option's effect on the spell it changes, for that spell's own row", () => {
+    const { sheet } = warlock({
+      'class:Warlock|PHB|EI': ['Agonizing Blast|PHB', 'Eldritch Spear|PHB'],
+    })
+    expect(Object.keys(sheet.spellEffects)).toEqual(['eldritch blast|phb'])
+    const [damage, range] = sheet.spellEffects['eldritch blast|phb']
+    expect(damage).toMatchObject({
+      label: 'Agonizing Blast',
+      amount: 4,
+      how: 'Charisma modifier to the damage of this spell',
+    })
+    expect(range).toMatchObject({
+      label: 'Eldritch Spear',
+      how: 'Range of this spell is 300 feet',
+    })
+  })
+
+  it('lists the 2024 range the picked cantrip gets, and nothing while none is picked', () => {
+    const picked = warlock({
+      'class:Warlock|PHB|EI': ['Eldritch Spear|XPHB'],
+      'option:Eldritch Spear|XPHB|pick:Eldritch Spear cantrip': ['eldritch blast|phb'],
+    })
+    expect(picked.sheet.spellEffects['eldritch blast|phb']?.[0]).toMatchObject({
+      amount: 270,
+      how: 'feet added to the range of this spell (30 feet times 9 class levels)',
+    })
+    const none = warlock({ 'class:Warlock|PHB|EI': ['Eldritch Spear|XPHB'] })
+    expect(none.sheet.spellEffects).toEqual({})
+  })
+
   it('flags Eldritch Spear (2024) with no cantrip picked', () => {
     const { sheet } = warlock({ 'class:Warlock|PHB|EI': ['Eldritch Spear|XPHB'] })
     const spear = sheet.features.find((f) => f.name === 'Eldritch Spear')

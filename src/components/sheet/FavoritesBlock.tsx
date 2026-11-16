@@ -176,7 +176,7 @@ function FavoritesList({
   const spellDetail = useSheetRowDetail('spells')
   const itemDetail = useSheetRowDetail('inventory')
   const featureDetail = useSheetRowDetail('features')
-  const { lines, loading: spellsLoading } = useSpellLines()
+  const { lines, loading: spellsLoading } = useSpellLines(sheet.spellEffects)
   const { data: items, loading: itemsLoading } = useAsyncData(loadItems)
   const { owned, stackOf } = useOwnedItems(items, stacks)
   const featureUses = useFeatureUses(sheet)

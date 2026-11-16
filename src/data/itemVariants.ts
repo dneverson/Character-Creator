@@ -2,6 +2,7 @@
 // template, not an item. It is one row of the item table; a made item is the
 // template laid over the base item it is applied to (applyVariant).
 
+import { VARIANT_DEFENSES } from '../rules/defenseRules'
 import { codeOf, strengthOf } from './itemText'
 import { readItem, type ItemLookups, type RawItem } from './itemRead'
 import type { Item, ItemKind, ItemProperty, VariantClause } from './itemTypes'
@@ -154,6 +155,7 @@ export function readVariant(
   const kind = variantKind(requires, raw, kindOfNamed)
   return {
     ...made,
+    defenses: made.defenses ?? VARIANT_DEFENSES[raw.name],
     kind,
     type: undefined,
     category: `${ITEM_KIND_LABELS[kind]} (generic variant)`,
@@ -261,6 +263,7 @@ export function applyVariant(template: Item, base: Item): Item {
     attunement: template.attunement,
     bonuses: [...base.bonuses, ...template.bonuses],
     speed: template.speed ?? base.speed,
+    defenses: template.defenses ?? base.defenses,
     charges: template.charges,
     spells: [...base.spells, ...template.spells],
     traits: [...base.traits, ...template.traits],

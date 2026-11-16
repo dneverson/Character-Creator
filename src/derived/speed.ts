@@ -220,7 +220,9 @@ export function speedQuantity(
     lines.push(
       blocked
         ? { ...base, status: 'inactive', why: `You are wearing ${blocked}.` }
-        : { ...base, status: 'applied' },
+        : rule.when
+          ? { ...base, status: 'conditional', when: rule.when }
+          : { ...base, status: 'applied' },
     )
   }
   lines.push(...speedEffectLines(sources, heldOptionEffects(sources)))

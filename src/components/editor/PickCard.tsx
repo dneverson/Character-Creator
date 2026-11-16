@@ -23,6 +23,9 @@ interface Props {
   detailOf?: (chip: PickChip) => PickChipDetail | undefined
 }
 
+/** The kinds of pick that are a damage type or a condition: nothing outside a source's list. */
+const DEFENSE_KINDS: readonly string[] = ['resist', 'immune', 'vulnerable', 'condition']
+
 /** Why a chip cannot be clicked, in plain words (RAW: pick another). */
 function whyDisabled(chip: PickChip, card: PickCardModel): string | undefined {
   if (chip.state === 'taken')
@@ -31,6 +34,9 @@ function whyDisabled(chip: PickChip, card: PickCardModel): string | undefined {
       : `Already proficient from ${chip.takenBy}. Pick another.`
   if (chip.state === 'full') {
     if (card.kinds[0] === 'option' || card.kinds[0] === 'expertise') {
+      return `${card.name}: all ${card.count} are chosen. Remove one to pick another.`
+    }
+    if (DEFENSE_KINDS.includes(card.kinds[0])) {
       return `${card.name}: all ${card.count} are chosen. Remove one to pick another.`
     }
     const other = card.kinds[0] === 'skill' ? 'Other skills' : 'Other (DM approval)'

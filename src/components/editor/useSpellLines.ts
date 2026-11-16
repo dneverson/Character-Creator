@@ -3,11 +3,17 @@
 
 import { useMemo } from 'react'
 import { useCharacter } from '../../character/useCharacterDoc'
+import type { Line } from '../../derived/types'
 import type { SpellLine } from './SpellLines'
 import { useSpellList } from './useSpellList'
 import { yourSpellLines } from './yourSpellLines'
 
-export function useSpellLines() {
+const NO_EFFECTS: Record<string, Line[]> = {}
+
+/** The spell's key as a class option names it: "eldritch blast|phb". */
+const keyOf = (line: SpellLine) => `${line.spell.name}|${line.spell.source}`.toLowerCase()
+
+export function useSpellLines(effects: Record<string, Line[]> = NO_EFFECTS) {
   const character = useCharacter()
   const { casters, grants, byKey, byName, loading } = useSpellList()
   const list = useMemo(() => {
@@ -21,7 +27,13 @@ export function useSpellLines() {
       removeClassPick: () => undefined,
       removeGrantPick: () => undefined,
     })
-    return { lines: lines.map((l) => ({ ...l, remove: undefined })), granted }
-  }, [character, casters, grants, byKey, byName])
+    return {
+      lines: lines.map((l) => {
+        const own = effects[keyOf(l)]
+        return { ...l, remove: undefined, ...(own ? { effects: own } : {}) }
+      }),
+      granted,
+    }
+  }, [character, casters, grants, byKey, byName, effects])
   return { casters, ...list, loading }
 }

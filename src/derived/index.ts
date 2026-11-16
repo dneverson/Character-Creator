@@ -27,6 +27,7 @@ import { proficiencies, type Proficiencies } from './proficiencies'
 import type { Edition } from '../data/edition'
 import { characterEdition } from './edition'
 import { hitDice, type HitDie } from './hitDice'
+import { defenseRows, type DefenseRow } from './defenses'
 import { senseRows, type SenseRow } from './senses'
 import { deriveSlots, type DerivedSlots } from './slots'
 import { moveSpeeds, speedQuantity, type SpeedRow } from './speed'
@@ -41,7 +42,8 @@ import { featureRows, type FeatureRow } from './features'
 import { collectSources, type DeriveDeps } from './sources'
 import { characterGrants, spellStats, type SpellStatRow } from './spellStats'
 import { deriveResources, type DerivedResource } from './resources'
-import { BASE_SOURCE, quantity, type Quantity } from './types'
+import { BASE_SOURCE, quantity, type Line, type Quantity } from './types'
+import { heldOptionEffects, spellEffectLines } from './optionEffects'
 
 export interface DerivedSheet {
   prof: Quantity
@@ -57,6 +59,8 @@ export interface DerivedSheet {
   speeds: SpeedRow[]
   /** The senses, each with its range in feet. */
   senses: SenseRow[]
+  /** The resistances, immunities, vulnerabilities and condition immunities. */
+  defenses: DefenseRow[]
   /** The hit dice by die size. */
   hitDice: HitDie[]
   /** The spell slots, the Pact Magic slots and the combined caster level. */
@@ -67,6 +71,8 @@ export interface DerivedSheet {
   combat: CombatNumbers
   attacks: AttackRow[]
   spellStats: SpellStatRow[]
+  /** What the class options do to each spell, by its key ("eldritch blast|phb"). */
+  spellEffects: Record<string, Line[]>
   /** Every feature and trait: of the classes, the species, the background and the feats. */
   features: FeatureRow[]
   /**
@@ -199,6 +205,7 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
     characterGrants(sources, deps),
     totals,
     prof.value,
+    features,
   ).map((r) => {
     if (!r.anchor) return r
     const anchor = featureText.has(r.anchor)
@@ -219,12 +226,14 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
     speed,
     speeds: moveSpeeds(sources, speed, totals.str, edition),
     senses: senseRows(sources),
+    defenses: defenseRows(sources, blocks, choices),
     hitDice: hitDice(character, deps.classByKey),
     slots: deriveSlots(character, deps.classByKey, sources),
     edition,
     combat: combatNumbers(sources, totals, table.rows, prof.value, edition),
     attacks: attackRows(sources, totals, prof.value, known, ac.lines),
     spellStats: spellStats(sources, deps, totals, prof.value, ac.lines),
+    spellEffects: spellEffectLines(sources, heldOptionEffects(sources), totals),
     features,
     withheldFeatures: [...sources.featureChoices.offered].filter(
       (id) => !sources.featureChoices.chosen.has(id),
@@ -239,6 +248,7 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
       totals,
       prof.value,
       table.expertise.held,
+      ac.lines,
     ),
     expertise: table.expertise,
     picks: pickCards(sources, choices, catalog, known.listing),

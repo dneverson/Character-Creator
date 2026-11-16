@@ -181,6 +181,7 @@ export function featureRows(
           from: background.name,
           kind: 'Background',
           entries: textOf(e),
+          anchor: `background#${e.name}`,
         }),
       )
   }

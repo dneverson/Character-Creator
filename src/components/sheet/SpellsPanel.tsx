@@ -35,7 +35,7 @@ function allowance(caster: ClassCaster, character: Character): string {
 export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
   const applyPlay = useApplyPlay()
   const character = useCharacter()
-  const { casters, lines, granted, loading } = useSpellLines()
+  const { casters, lines, granted, loading } = useSpellLines(sheet.spellEffects)
   const detailTarget = useSheetRowDetail('spells')
   if (!character) return null
   return (

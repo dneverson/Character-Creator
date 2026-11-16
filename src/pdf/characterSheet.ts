@@ -184,6 +184,25 @@ export function senseLines(derived: DerivedSheet): string[] {
   })
 }
 
+const DEFENSE_HEADS = {
+  resist: 'Resistance',
+  immune: 'Immunity',
+  vulnerable: 'Vulnerability',
+  condition: 'Condition immunity',
+} as const
+
+/** The defenses by kind: "Resistance: Fire, Poison", a conditional one with its condition. */
+export function defenseLines(derived: DerivedSheet): string[] {
+  return (Object.keys(DEFENSE_HEADS) as (keyof typeof DEFENSE_HEADS)[]).flatMap(
+    (kind) => {
+      const names = derived.defenses
+        .filter((row) => row.kind === kind)
+        .map((row) => (row.conditional ? `${row.label} (${row.conditional})` : row.label))
+      return names.length > 0 ? [`${DEFENSE_HEADS[kind]}: ${names.join(', ')}`] : []
+    },
+  )
+}
+
 /** One line for each limited use: "Rage: 3 uses, Long rest". */
 export function usesLines(derived: DerivedSheet): string[] {
   return derived.resources.map((r) => {
@@ -434,6 +453,7 @@ export async function buildCharacterSheet(
   const extras: [string, string[]][] = [
     ['Other Speeds', otherSpeedLines(s.derived)],
     ['Senses', senseLines(s.derived)],
+    ['Defenses', defenseLines(s.derived)],
     ['Limited Uses', usesLines(s.derived)],
     ['Class Options', optionPickLines(s.derived)],
   ]
