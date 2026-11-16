@@ -8,6 +8,8 @@
 //   #/c/<id>/sheet          a character's sheet
 //   #/c/<id>/sheet/<tab>    the sheet, on one tab
 //   #/c/<id>/levelup        a character gaining a level
+//   #/lookup                Quick lookup, open over whatever view was open
+//   #/lookup/<entry id>     Quick lookup, opened on one entry
 //
 // The store is the source of truth. A change of view, character or tab writes the hash
 // (a new history entry when the view or character changed, so Back and Forward work; the
@@ -16,11 +18,14 @@
 // not understood, leads to the list.
 
 import { selectSheetTab, useCharacterStore, type View } from '../character/store'
+import { useLookupStore } from '../lookup/state'
 
 export interface Place {
   view: View
   id?: string
   tab?: string | null
+  /** Quick lookup is open (over the view), on this entry when one is named. */
+  lookup?: { entryId: string | null }
 }
 
 const VIEW_SEGMENT = { editor: 'edit', sheet: 'sheet', levelUp: 'levelup' } as const
@@ -31,7 +36,10 @@ const SEGMENT_VIEW: Record<string, Exclude<View, 'list'>> = {
 }
 
 /** The hash for a place. */
-export function formatHash({ view, id, tab }: Place): string {
+export function formatHash({ view, id, tab, lookup }: Place): string {
+  if (lookup) {
+    return lookup.entryId ? `#/lookup/${encodeURIComponent(lookup.entryId)}` : '#/lookup'
+  }
   if (view === 'list' || !id) return '#/'
   const base = `#/c/${encodeURIComponent(id)}/${VIEW_SEGMENT[view]}`
   return view === 'sheet' && tab ? `${base}/${encodeURIComponent(tab)}` : base
@@ -41,6 +49,14 @@ export function formatHash({ view, id, tab }: Place): string {
 export function parseHash(hash: string): Place {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean)
   const [head, id, segment, tab] = parts
+  if (head === 'lookup') {
+    if (parts.length > 2) return { view: 'list' }
+    try {
+      return { view: 'list', lookup: { entryId: id ? decodeURIComponent(id) : null } }
+    } catch {
+      return { view: 'list' }
+    }
+  }
   const view = segment ? SEGMENT_VIEW[segment] : undefined
   if (head !== 'c' || !id || !view || parts.length > (view === 'sheet' ? 4 : 3)) {
     return { view: 'list' }
@@ -56,9 +72,12 @@ export function parseHash(hash: string): Place {
 function placeOf(): Place {
   const state = useCharacterStore.getState()
   const { view, activeId } = state
-  return view === 'list' || !activeId
-    ? { view: 'list' }
-    : { view, id: activeId, tab: selectSheetTab(state) }
+  const place: Place =
+    view === 'list' || !activeId
+      ? { view: 'list' }
+      : { view, id: activeId, tab: selectSheetTab(state) }
+  const { open, entryId } = useLookupStore.getState()
+  return open ? { ...place, lookup: { entryId } } : place
 }
 
 /**
@@ -89,7 +108,12 @@ function follow(): () => void {
     const place = parseHash(window.location.hash)
     applying = true
     try {
-      useCharacterStore.getState().restoreLocation(place)
+      // The lookup opens over the view that is open; any other address closes it.
+      if (place.lookup) useLookupStore.getState().openLookup(place.lookup.entryId)
+      else {
+        useLookupStore.getState().closeLookup()
+        useCharacterStore.getState().restoreLocation(place)
+      }
     } finally {
       applying = false
     }
@@ -105,7 +129,9 @@ function follow(): () => void {
     const before = last
     last = place
     if (applying || hash === formatHash(parseHash(window.location.hash))) return
-    const sameEntry = before.view === place.view && before.id === place.id
+    const sameEntry = before.lookup
+      ? place.lookup !== undefined
+      : place.lookup === undefined && before.view === place.view && before.id === place.id
     if (sameEntry) window.history.replaceState(null, '', hash)
     else window.history.pushState(null, '', hash)
   }
@@ -113,10 +139,12 @@ function follow(): () => void {
   apply()
   last = placeOf()
   const unsubscribe = useCharacterStore.subscribe(write)
+  const unsubscribeLookup = useLookupStore.subscribe(write)
   window.addEventListener('popstate', apply)
   window.addEventListener('hashchange', apply)
   return () => {
     unsubscribe()
+    unsubscribeLookup()
     window.removeEventListener('popstate', apply)
     window.removeEventListener('hashchange', apply)
   }

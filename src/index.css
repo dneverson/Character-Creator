@@ -249,6 +249,11 @@ body {
 .data-table-fullscreen .data-table-split__detail {
   max-height: calc(100vh - 9rem);
 }
+/* Quick lookup keeps its search above the table, so the table has that much less. */
+.lookup-body .data-table-grid,
+.lookup-body .data-table-split__detail {
+  max-height: calc(100vh - 14rem);
+}
 .data-table-grid thead th {
   position: sticky;
   top: 0;
@@ -934,4 +939,28 @@ body {
   border-top: 1px solid var(--detail-rule-color);
   font-size: 0.78rem;
   font-style: italic;
+}
+
+/*
+ * A reference to an entry in a text ("{@spell fireball}"): reads as a link, is a button
+ * so the keyboard reaches it, and its tooltip has room for a summary.
+ */
+.tag-ref {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--bs-link-color);
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+  text-align: inherit;
+}
+.tag-ref:hover {
+  color: var(--bs-link-hover-color);
+}
+.tag-tooltip {
+  --bs-tooltip-max-width: 22rem;
+  text-align: left;
 }

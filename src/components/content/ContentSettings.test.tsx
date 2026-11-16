@@ -178,7 +178,9 @@ describe('ContentSettings with the full content in use', () => {
       ),
     )
     act(() => useContentStatus.setState({ activity: 'idle', done: 0, total: 0 }))
-    expect(screen.getByRole('status')).toHaveTextContent('Updated')
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Updated: the content is now at version abcdef0.',
+    )
   })
 
   it('reports an update that could not be downloaded', async () => {
@@ -256,6 +258,13 @@ describe('ContentSettings importing a copy from this device', () => {
     new File(['{}'], 'feats.json', { type: 'application/json' }),
     new File(['{}'], 'races.json', { type: 'application/json' }),
   ]
+
+  it('says which folder and files are expected, with an example', () => {
+    open()
+    expect(screen.getByText(/Choose a 5etools copy as a folder/)).toHaveTextContent(
+      'For example, choose "5etools-src" (it holds "data/books.json"), or choose "data" (it holds "books.json").',
+    )
+  })
 
   it('stores the picked files and says how many', async () => {
     const user = userEvent.setup()

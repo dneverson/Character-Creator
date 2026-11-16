@@ -44,8 +44,8 @@ export interface BrowseTableProps<T> {
   /** Short tags shown with the name (the edition year). */
   tagsOf?: (row: T) => string[]
   describe: Describe<T>
-  /** Flat text a row contributes to the search box. */
-  searchText: (row: T) => string
+  /** Flat text a row contributes to the search box; without it the table has none. */
+  searchText?: (row: T) => string
   /** The action column, first in the table by default. */
   action?: {
     /** The column's key in the remembered layout. */
@@ -81,6 +81,10 @@ export interface BrowseTableProps<T> {
   tableShare?: number
   /** Shows the clicked row's detail in another pane instead of beside the table. */
   detailTarget?: DetailTarget
+  /** The row whose detail is open to begin with. */
+  initialFocusId?: string
+  /** Shown instead of "Nothing to show." when there are no rows. */
+  emptyLabel?: ReactNode
   /**
    * A short table to read (a section's picks): no search box, no column chooser
    * and no switch for non-standard rows. Compare, the detail pane, sorting and
@@ -93,7 +97,7 @@ export interface BrowseTableProps<T> {
     /** Title of the compare window ("Compare races"). */
     compare: string
     /** Placeholder of the search box. */
-    search: string
+    search?: string
     /** Shown in the detail pane before a row is clicked. */
     /** Accessible name of the table. */
     table: string
@@ -123,6 +127,8 @@ export function BrowseTable<T>({
   detailFooter,
   tableShare,
   detailTarget,
+  initialFocusId,
+  emptyLabel,
   compact,
   toolbar,
   labels,
@@ -344,6 +350,8 @@ export function BrowseTable<T>({
         }}
         detail={{ tableShare }}
         detailTarget={detailTarget}
+        initialFocusId={initialFocusId}
+        emptyLabel={emptyLabel}
         searchPlaceholder={labels.search}
         ariaLabel={labels.table}
       />

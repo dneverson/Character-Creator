@@ -8,6 +8,7 @@ import { ContentPrompt } from './components/content/ContentPrompt'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { CharacterEditor } from './components/editor/CharacterEditor'
 import { LevelUpView } from './components/levelup/LevelUpView'
+import { LookupView } from './components/lookup/LookupView'
 import { SheetView } from './components/sheet/SheetView'
 import { StorageNotice } from './components/StorageNotice'
 import { useCharacterStore } from './character/store'
@@ -45,6 +46,7 @@ export default function App() {
         {view === 'levelUp' && <LevelUpView />}
         {view === 'list' && <CharacterList />}
       </ErrorBoundary>
+      <LookupView />
       <AppFooter />
     </>
   )

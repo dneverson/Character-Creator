@@ -175,6 +175,8 @@ export interface DataTableProps<T> {
    * no column chooser (a column filter still shows its Clear filters).
    */
   compact?: boolean
+  /** The row whose detail is open to begin with (a reference that leads to one row). */
+  initialFocusId?: string
   /** Placeholder text for the search box. */
   searchPlaceholder?: string
   /** Shown when there are no rows (before or after filtering). */

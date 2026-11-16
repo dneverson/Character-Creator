@@ -31,6 +31,7 @@ export function DataTable<T>({
   allowNonStandard = true,
   standardFirst,
   compact = false,
+  initialFocusId,
   searchPlaceholder,
   emptyLabel,
   ariaLabel,
@@ -45,6 +46,7 @@ export function DataTable<T>({
     onSelectionChange,
     allowNonStandard,
     standardFirst,
+    initialFocusedId: initialFocusId,
   })
 
   const layout = useColumnLayout(tableId, columns)

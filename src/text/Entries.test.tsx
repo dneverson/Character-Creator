@@ -9,7 +9,8 @@ function renderEntries(entries: Entry[]) {
 describe('Entries', () => {
   it('renders strings and numbers as paragraphs with tags stripped', () => {
     renderEntries(['Cast {@spell fireball}', 7])
-    expect(screen.getByText('Cast fireball')).toBeInTheDocument()
+    expect(screen.getByText('Cast').textContent).toBe('Cast fireball')
+    expect(screen.getByRole('button', { name: 'fireball' })).toBeInTheDocument()
     expect(screen.getByText('7')).toBeInTheDocument()
   })
 
@@ -20,7 +21,7 @@ describe('Entries', () => {
         items: ['Simple {@item longsword|phb}', { type: 'entries', entries: ['Nested'] }],
       },
     ])
-    expect(screen.getByText('Simple longsword')).toBeInTheDocument()
+    expect(screen.getByText('Simple').textContent).toBe('Simple longsword')
     expect(screen.getByText('Nested')).toBeInTheDocument()
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
   })
@@ -46,7 +47,7 @@ describe('Entries', () => {
     expect(screen.getByText('d6')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('1–2')).toBeInTheDocument()
-    expect(screen.getByText('A gem')).toBeInTheDocument()
+    expect(screen.getByText('A').textContent).toBe('A gem')
     expect(screen.getByText('plain')).toBeInTheDocument()
   })
 

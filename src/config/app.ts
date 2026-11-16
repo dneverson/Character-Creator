@@ -51,6 +51,19 @@ export const appConfig = {
    * does not answer, and the characters still appear once it does.
    */
   characterLoadWaitMs: 1500,
+  /** Quick lookup: the search across everything the loaded content holds. */
+  lookup: {
+    /** The key that opens it from any page, when no field has the focus. */
+    shortcut: '/',
+    /** Most rows the table of results holds; a longer list asks for a narrower search. */
+    maxRows: 1000,
+    /** Characters of text shown on each side of the match in a result. */
+    snippetChars: 120,
+    /** Longest stretch, in milliseconds, the index is built before the page is given back. */
+    sliceMs: 8,
+    /** Characters of an entry's text a tooltip on a reference shows. */
+    summaryChars: 240,
+  },
   /** The record of what was done to a character (see src/character/history.ts). */
   history: {
     /**

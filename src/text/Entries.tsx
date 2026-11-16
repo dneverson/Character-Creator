@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from 'react'
 import Table from 'react-bootstrap/Table'
+import { TaggedText } from './TaggedText'
 import { stripTags } from './tags'
 
 // Minimal shapes for the 5etools "entries" structures we render.
@@ -22,15 +23,17 @@ type ObjEntry =
   ListEntry | NamedEntry | TableEntry | { type?: string; [k: string]: unknown }
 export type Entry = string | number | ObjEntry
 
-function cellText(cell: Entry): string {
-  if (typeof cell === 'string' || typeof cell === 'number') return stripTags(String(cell))
+function cellText(cell: Entry): ReactNode {
+  if (typeof cell === 'string' || typeof cell === 'number')
+    return <TaggedText text={String(cell)} />
   const obj = cell as Record<string, unknown>
   if (obj.type === 'cell' && obj.roll) {
     const roll = obj.roll as { exact?: number; min?: number; max?: number }
     if (roll.exact != null) return String(roll.exact)
     if (roll.min != null && roll.max != null) return `${roll.min}–${roll.max}`
   }
-  if ('entry' in obj && typeof obj.entry === 'string') return stripTags(obj.entry)
+  if ('entry' in obj && typeof obj.entry === 'string')
+    return <TaggedText text={obj.entry} />
   return ''
 }
 
@@ -38,7 +41,7 @@ function renderEntry(entry: Entry, key: number): ReactNode {
   if (typeof entry === 'string' || typeof entry === 'number') {
     return (
       <p key={key} className="mb-2">
-        {stripTags(String(entry))}
+        <TaggedText text={String(entry)} />
       </p>
     )
   }
@@ -50,7 +53,7 @@ function renderEntry(entry: Entry, key: number): ReactNode {
           {(obj as ListEntry).items.map((item, i) => (
             <li key={i}>
               {typeof item === 'string' || typeof item === 'number' ? (
-                stripTags(String(item))
+                <TaggedText text={String(item)} />
               ) : (
                 <Entries entries={[item]} />
               )}
@@ -111,7 +114,11 @@ function renderEntry(entry: Entry, key: number): ReactNode {
               </span>{' '}
             </>
           )}
-          {it.entry && <span>{stripTags(it.entry)}</span>}
+          {it.entry && (
+            <span>
+              <TaggedText text={it.entry} />
+            </span>
+          )}
           {it.entries && <Entries entries={it.entries} />}
         </div>
       )

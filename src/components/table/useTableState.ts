@@ -20,6 +20,8 @@ export interface UseTableStateArgs<T> {
   allowNonStandard: boolean
   /** Standard rows come before non-standard ones under any sort. */
   standardFirst?: boolean
+  /** The row whose detail is open to begin with. */
+  initialFocusedId?: string
 }
 
 export interface TableState<T> {
@@ -73,11 +75,12 @@ export function useTableState<T>({
   onSelectionChange,
   allowNonStandard,
   standardFirst = false,
+  initialFocusedId,
 }: UseTableStateArgs<T>): TableState<T> {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<FilterState>({})
   const [sort, setSort] = useState<SortState | null>(null)
-  const [focusedId, setFocusedId] = useState<string | null>(null)
+  const [focusedId, setFocusedId] = useState<string | null>(initialFocusedId ?? null)
   const [internalSelected, setInternalSelected] = useState<string[]>([])
   // The last row the user plainly toggled; the pivot a shift-click ranges from.
   const anchorId = useRef<string | null>(null)
