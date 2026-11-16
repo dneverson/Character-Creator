@@ -197,6 +197,35 @@ export type HistoryAction =
     }
   /** The last level up taken back, by the Undo the sheet offers right after it. */
   | { type: 'level-up-undone' }
+  /**
+   * A change to what is carried, made in play on the sheet. The item and coin changes are
+   * in the entry's `changes` (the coins before and after); this says what it was. `price`
+   * is the copper paid or received, `short` the copper a purse could not cover.
+   */
+  | {
+      type: 'inventory'
+      change: InventoryChange
+      item?: string
+      quantity?: number
+      price?: number
+      short?: number
+    }
+  /** Experience points gained on the sheet; the total is in the changes. */
+  | { type: 'experience'; amount: number }
+
+/** What a change to the inventory in play was. */
+export type InventoryChange =
+  | 'add'
+  | 'buy'
+  | 'sell'
+  | 'drop'
+  | 'quantity'
+  | 'equip'
+  | 'unequip'
+  | 'attune'
+  | 'unattune'
+  | 'note'
+  | 'coins'
 
 /**
  * The hit die of a level gained by a character that rolls its hit points: its size
@@ -293,6 +322,11 @@ export interface PlayState {
    * first long rest, so no stored document needs migrating.
    */
   masteryAtRest?: Record<string, string[]>
+  /**
+   * The experience points earned, when the player tracks them. Absent means the character
+   * levels by milestone (the DM says when), so no stored document needs migrating.
+   */
+  xp?: number
 }
 
 export function defaultPlayState(): PlayState {
@@ -985,6 +1019,7 @@ function normalizePlay(raw: Partial<PlayState> | undefined): PlayState {
         ? { name: concentration.name, source: concentration.source }
         : null,
     ...(raw?.masteryAtRest ? { masteryAtRest: optionMap(raw.masteryAtRest) } : {}),
+    ...(typeof raw?.xp === 'number' ? { xp: count(raw.xp) } : {}),
   }
 }
 

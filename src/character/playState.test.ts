@@ -76,6 +76,12 @@ describe('the play state of a stored document', () => {
     expect(c.play.masteryAtRest).toEqual({ 'class:Fighter|XPHB|mastery': ['dagger'] })
   })
 
+  it('keeps tracked experience points, and reads a missing or broken total as milestone', () => {
+    expect(ensureCharacterDefaults(stored({ xp: 6500.7 })).play.xp).toBe(6500)
+    expect('xp' in ensureCharacterDefaults(stored({})).play).toBe(false)
+    expect('xp' in ensureCharacterDefaults(stored({ xp: 'lots' })).play).toBe(false)
+  })
+
   it('is complete for a document with no play state at all', () => {
     const old = stored(undefined)
     delete old.play

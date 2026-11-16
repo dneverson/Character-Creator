@@ -50,6 +50,7 @@ export function LevelUpView() {
       <Container as="main" fluid className="sheet levelup py-3">
         <CharacterHeader
           mode="levelup"
+          edition={sheet?.edition}
           ruleset={sheet ? `${editionYear(sheet.edition)} rules` : undefined}
         />
         {(loading || (!ready && !error)) && (

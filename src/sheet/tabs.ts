@@ -6,12 +6,12 @@ import type { DerivedSheet } from '../derived'
 import { ExtrasPanel } from '../components/sheet/ExtrasPanel'
 import { FeaturesPanel } from '../components/sheet/FeaturesPanel'
 import { InventoryPanel } from '../components/sheet/InventoryPanel'
-import { NotesPanel } from '../components/sheet/NotesPanel'
 import { SpellsPanel } from '../components/sheet/SpellsPanel'
 import { StoryPanel } from '../components/sheet/StoryPanel'
 import {
   ActionsPanel,
   CorePanel,
+  NotesTabPanel,
   SkillsTabPanel,
   type SheetPanelProps,
 } from '../components/sheet/SheetPanels'
@@ -49,7 +49,7 @@ export const SHEET_TABS: readonly SheetTab[] = [
     Panel: FeaturesPanel,
   },
   { id: 'story', label: 'Story', shows: () => true, Panel: StoryPanel },
-  { id: 'notes', label: 'Notes', shows: () => true, Panel: NotesPanel },
+  { id: 'notes', label: 'Notes', shows: () => true, Panel: NotesTabPanel },
   {
     id: 'extras',
     label: 'Extras',

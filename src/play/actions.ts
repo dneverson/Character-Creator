@@ -185,3 +185,21 @@ export function setConcentration(
 ): PlayState {
   return { ...play, concentration: spell }
 }
+
+/**
+ * Start tracking experience points at `xp` (the points that reach the character's level),
+ * or stop and go back to levelling by milestone with `null`.
+ */
+export function trackXp(play: PlayState, xp: number | null): PlayState {
+  if (xp === null) {
+    const { xp: _dropped, ...rest } = play
+    return rest
+  }
+  return { ...play, xp: Math.max(0, Math.trunc(xp)) }
+}
+
+/** Experience points gained: whole points added to the total, never below none. */
+export function addXp(play: PlayState, amount: number): PlayState {
+  if (play.xp === undefined) return play
+  return { ...play, xp: play.xp + Math.max(0, Math.trunc(amount)) }
+}

@@ -36,6 +36,7 @@ import { abilityQuantities } from './abilities'
 import { saveRows, type SaveRow } from './saves'
 import { skillTotals, type DerivedSkill } from './skillTotals'
 import { buildChecklist, type Checklist } from './checklist'
+import { collectExceptions, type RuleException } from './exceptions'
 import { combatNumbers, type CombatNumbers } from './combat'
 import { optionCards, optionSkillSources } from './classOptions'
 import { featureSkillSources } from './featureGrants'
@@ -104,6 +105,8 @@ export interface DerivedSheet {
   choicesOpen: number
   /** What the build still needs, and which creator sections are open or complete. */
   checklist: Checklist
+  /** Where the build departs from the standard rules, and where each is set. */
+  exceptions: RuleException[]
   hp: Quantity
 }
 
@@ -218,6 +221,10 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
       entries: r.entries.length > 0 ? r.entries : (featureText.get(anchor) ?? []),
     }
   })
+  const skillPickCards = skillCards(character, skillSources, table.rows)
+  const optionals = optionalSwitches(blocks, choices)
+  const pickCardList = pickCards(sources, choices, catalog, known.listing)
+  const grantTags = [...new Set(blocks.map((b) => b.card.tag))]
   return {
     prof,
     totals,
@@ -252,11 +259,11 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
       ac.lines,
     ),
     expertise: table.expertise,
-    picks: pickCards(sources, choices, catalog, known.listing),
+    picks: pickCardList,
     classOptions,
     alternatives: altChoices(blocks, choices),
-    optionals: optionalSwitches(blocks, choices),
-    grantTags: [...new Set(blocks.map((b) => b.card.tag))],
+    optionals,
+    grantTags,
     // The expertise of a feat is a pick of its own card, counted there with the classes'.
     choicesOpen:
       known.open
@@ -273,9 +280,19 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
       sources,
       deps,
       openPicks: known.open,
-      skills: skillCards(character, skillSources, table.rows),
+      skills: skillPickCards,
       expertise: table.expertise.cards,
       classOptions,
+    }),
+    exceptions: collectExceptions({
+      sources,
+      deps,
+      classOptions,
+      picks: pickCardList,
+      skills: skillPickCards,
+      expertise: table.expertise.cards,
+      optionals,
+      grantTags,
     }),
   }
 }

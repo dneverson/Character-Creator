@@ -4,6 +4,9 @@ import ButtonGroup from 'react-bootstrap/ButtonGroup'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Stack from 'react-bootstrap/Stack'
 import Tooltip from 'react-bootstrap/Tooltip'
+import type { Edition } from '../../data/edition'
+import { totalLevel } from '../../character/derive'
+import { xpStanding } from '../../rules/experience'
 import { canLevelUp, useCharacterStore } from '../../character/store'
 import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { identityLine } from '../../character/identity'
@@ -25,6 +28,8 @@ interface Props {
   mode: 'sheet' | 'edit' | 'levelup'
   /** The rules the character plays by ("2024 rules"), shown after who it is. */
   ruleset?: string
+  /** The edition the character plays by, once known; it lets the header say a level is earned. */
+  edition?: Edition
   /** Buttons at the right-hand end. */
   actions?: ReactNode
 }
@@ -33,7 +38,7 @@ interface Props {
  * The top of an open character, shared by the sheet and the editor: the way back, the
  * name, the Sheet | Edit | Level up switch and whatever the view adds on the right.
  */
-export function CharacterHeader({ mode, ruleset, actions }: Props) {
+export function CharacterHeader({ mode, ruleset, edition, actions }: Props) {
   const character = useCharacter()
   const backToList = useCharacterStore((s) => s.backToList)
   const setView = useCharacterStore((s) => s.setView)
@@ -45,6 +50,11 @@ export function CharacterHeader({ mode, ruleset, actions }: Props) {
     : character.completedAt === undefined
       ? NOT_DONE_REASON
       : LEVEL_CAP_REASON
+  // A character that tracks experience, with enough of it for the next level.
+  const levelWaiting =
+    edition !== undefined &&
+    character.play.xp !== undefined &&
+    xpStanding(edition, character.play.xp, totalLevel(character)).ready
   const line = [identityLine(character), ruleset].filter(Boolean).join(' - ')
 
   return (
@@ -96,7 +106,9 @@ export function CharacterHeader({ mode, ruleset, actions }: Props) {
             aria-pressed={mode === 'levelup'}
             onClick={() => setView('levelUp')}
           >
+            {levelWaiting && <Icon name="check" className="me-1" />}
             Level up
+            {levelWaiting && <span className="ms-1">available</span>}
           </Button>
         ) : (
           <OverlayTrigger overlay={<Tooltip>{levelUpReason}</Tooltip>}>

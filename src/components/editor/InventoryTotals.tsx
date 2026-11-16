@@ -6,7 +6,6 @@ import Form from 'react-bootstrap/Form'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 import { appConfig } from '../../config/app'
-import { lookup } from '../../data/glossary'
 import { goldLabel, type Item } from '../../data/items'
 import { useEditEquipment } from '../../character/inventoryEdit'
 import type { Currency, InventoryItem } from '../../character/model'
@@ -20,13 +19,7 @@ import {
 import { NonStandardBadge } from '../NonStandardBadge'
 import { DraftInput } from './DraftInput'
 import { oneDecimal } from './inventoryColumns'
-
-const COINS: (keyof Currency)[] = ['pp', 'gp', 'ep', 'sp', 'cp']
-
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
-/** "Gold pieces": a coin spelled out, from the glossary the tooltips use. */
-const coinName = (coin: keyof Currency) =>
-  capitalize(lookup(coin, 'currency')?.full ?? coin)
+import { COIN_ORDER, coinName } from '../../rules/coins'
 
 interface TotalsProps {
   stacks: InventoryItem[]
@@ -95,17 +88,28 @@ export function InventoryTotals({
   )
 }
 
-/** The five coins, each a number to type, and what the purse is worth. */
-export function CoinPurse({ currency }: { currency: Currency }) {
+/**
+ * The five coins, each a number to type, and what the purse is worth. `onSet` takes over
+ * what typing a count does (the sheet records it as a change made in play).
+ */
+export function CoinPurse({
+  currency,
+  onSet,
+}: {
+  currency: Currency
+  onSet?: (coin: keyof Currency, value: number) => void
+}) {
   const editEquipment = useEditEquipment()
-  const setCoin = (coin: keyof Currency, value: number) =>
-    editEquipment((equipment) => ({
-      ...equipment,
-      currency: { ...equipment.currency, [coin]: Math.max(0, value || 0) },
-    }))
+  const setCoin =
+    onSet ??
+    ((coin: keyof Currency, value: number) =>
+      editEquipment((equipment) => ({
+        ...equipment,
+        currency: { ...equipment.currency, [coin]: Math.max(0, value || 0) },
+      })))
   return (
     <div className="d-flex flex-wrap align-items-end gap-2 mb-3">
-      {COINS.map((coin) => (
+      {COIN_ORDER.map((coin) => (
         <div key={coin} style={{ width: 110 }}>
           <OverlayTrigger
             placement="top"

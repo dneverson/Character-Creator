@@ -4,6 +4,8 @@ import type { DerivedSheet } from '../../derived'
 import { sideClass } from './sideClass'
 import { FavoritesBlock } from './FavoritesBlock'
 import { SheetAttacks } from './SheetAttacks'
+import { NotesPanel } from './NotesPanel'
+import { RulesExceptions } from './RulesExceptions'
 import { SheetUses } from './SheetUses'
 import {
   DefensesPanel,
@@ -44,5 +46,15 @@ export function SkillsTabPanel({ sheet }: SheetPanelProps) {
     <div className="sheet-side">
       <SkillsPanel sheet={sheet} />
     </div>
+  )
+}
+
+/** The Notes tab: where the build departs from the standard rules, then the player's notes. */
+export function NotesTabPanel({ sheet }: SheetPanelProps) {
+  return (
+    <>
+      <RulesExceptions sheet={sheet} />
+      <NotesPanel />
+    </>
   )
 }

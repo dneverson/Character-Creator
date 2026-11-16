@@ -5,6 +5,7 @@
 import { useCallback } from 'react'
 import { useLatestCharacter, useUpdateCharacter } from './useCharacterDoc'
 import type { EquipmentState, InventoryItem } from './model'
+import type { Outcome } from './inventoryPlay'
 
 /** Changes the equipment as it is now; one edit, so one entry of the history. */
 export function useEditEquipment() {
@@ -26,5 +27,24 @@ export function useEditItems() {
     (change: (current: InventoryItem[]) => InventoryItem[]) =>
       editEquipment((equipment) => ({ ...equipment, items: change(equipment.items) })),
     [editEquipment],
+  )
+}
+
+/**
+ * The way the sheet changes what is carried in play: `build` makes the change from the
+ * equipment as it is now (see inventoryPlay.ts) and it is recorded as an inventory action,
+ * which is not a change to the build. Returns what was done, undefined when nothing was.
+ */
+export function useCarry() {
+  const latest = useLatestCharacter()
+  const update = useUpdateCharacter()
+  return useCallback(
+    (build: (equipment: EquipmentState) => Outcome | undefined) => {
+      const equipment = latest()?.equipment
+      const out = equipment ? build(equipment) : undefined
+      if (out) update({ equipment: out.equipment }, out.action)
+      return out
+    },
+    [latest, update],
   )
 }

@@ -13,12 +13,12 @@ import {
   loadBackgrounds,
   type PlayableBackground,
 } from '../../data/background'
-import { editionYear } from '../../data/labels'
 import { findPlayableRace, loadRaces, type PlayableRace } from '../../data/race'
 import { parseSkillGrants } from '../../data/skills'
-import type { BackgroundRef, Character } from '../../character/model'
+import type { BackgroundRef } from '../../character/model'
 import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { useAsyncData } from '../../hooks/useAsyncData'
+import { editionMix, editionMixReason } from '../../rules/originMix'
 import { NonStandardBadge } from '../NonStandardBadge'
 import { PickOne } from '../table/PickOne'
 import { AbilityOptionPicker } from './AbilityOptionPicker'
@@ -41,21 +41,9 @@ function backgroundRef(bg: PlayableBackground, abilityOption = 0): BackgroundRef
   return { name: bg.name, source: bg.source, abilityOption, abilityChoices: {} }
 }
 
-// Off-standard: ability increases from both the race and the background.
-function editionMix(character: Character): boolean {
-  const race = character.race
-  const raceGrants =
-    !!race &&
-    (Object.keys(race.abilityFixed).length > 0 ||
-      Object.keys(race.abilityChoices).length > 0)
-  const bg = character.background
-  return raceGrants && !!bg && Object.keys(bg.abilityChoices).length > 0
-}
-
 /**
  * Marks ability increases taken from both origins, naming the edition of each as its record
- * has it: the 2014 rules give them to the race, the 2024 rules to the background. A race
- * not loaded yet is named without its edition.
+ * has it: the 2014 rules give them to the race, the 2024 rules to the background.
  */
 function EditionMixBadge({
   race,
@@ -64,16 +52,7 @@ function EditionMixBadge({
   race: PlayableRace | undefined
   background: PlayableBackground
 }) {
-  const raceYear = race && editionYear(race.edition)
-  const bgYear = editionYear(background.edition)
-  const mixed =
-    `This character gets ability bonuses from both ${raceYear ? `a ${raceYear} race` : 'its race'} ` +
-    `and a ${bgYear} background. `
-  const why =
-    raceYear === bgYear
-      ? 'Standard play takes them from one of the two, not both.'
-      : "Standard play uses one edition's origin rules, not both."
-  return <NonStandardBadge reason={mixed + why} />
+  return <NonStandardBadge reason={editionMixReason(race, background)} />
 }
 
 export function BackgroundSelection() {

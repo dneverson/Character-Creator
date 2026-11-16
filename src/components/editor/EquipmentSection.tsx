@@ -8,7 +8,6 @@ import { useMemo, useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
 import Spinner from 'react-bootstrap/Spinner'
-import { applyVariant } from '../../data/itemVariants'
 import { loadItems, type Item } from '../../data/items'
 import { useCharacter } from '../../character/useCharacterDoc'
 import { useEditItems } from '../../character/inventoryEdit'
@@ -16,6 +15,8 @@ import type { InventoryItem } from '../../character/model'
 import { characterAbilityTotals } from '../../character/derive'
 import {
   CUSTOM_SOURCE,
+  addStack,
+  addVariantStack,
   inventoryKey,
   uniqueCustomName,
   unpackStack,
@@ -37,6 +38,7 @@ import {
   describeItems,
   itemColumns,
   itemKey,
+  lookupItems,
   itemName,
   itemRowMeta,
   itemSearchText,
@@ -47,34 +49,10 @@ import {
 function useInventoryEdits() {
   const editItems = useEditItems()
   const editStack = useEditStack()
-  const addItem = (item: Item) =>
-    editItems((all) =>
-      all.some((s) => inventoryKey(s) === item.key)
-        ? all.map((s) =>
-            inventoryKey(s) === item.key ? { ...s, quantity: s.quantity + 1 } : s,
-          )
-        : [...all, { name: item.name, source: item.source, quantity: 1 }],
-    )
+  const addItem = (item: Item) => editItems((all) => addStack(all, item))
   /** A stack of one more of an item that is made of a template and a base item. */
-  const addVariant = (template: Item, base: Item) => {
-    const made = applyVariant(template, base)
-    editItems((all) =>
-      all.some((s) => inventoryKey(s) === made.key)
-        ? all.map((s) =>
-            inventoryKey(s) === made.key ? { ...s, quantity: s.quantity + 1 } : s,
-          )
-        : [
-            ...all,
-            {
-              name: made.name,
-              source: template.source,
-              quantity: 1,
-              variantOf: template.key,
-              base: base.key,
-            },
-          ],
-    )
-  }
+  const addVariant = (template: Item, base: Item) =>
+    editItems((all) => addVariantStack(all, template, base))
   /** Saves an item of the player's own: a new stack, or the one being edited in place. */
   const saveCustom = (draft: CustomItemDraft, editing?: InventoryItem) =>
     editItems((all) => {
@@ -107,11 +85,10 @@ export function EquipmentSection() {
   const { background, classByKey, race, summary } = useFeatSummary()
 
   const selectedBooks = character?.selectedBooks
-  const lookupRows = useMemo(() => {
-    const books = new Set(selectedBooks ?? [])
-    // Coins belong to the purse. A generic variant stays: adding it asks for its base.
-    return (items ?? []).filter((i) => books.has(i.source) && i.kind !== 'coin')
-  }, [items, selectedBooks])
+  const lookupRows = useMemo(
+    () => lookupItems(items ?? [], selectedBooks ?? []),
+    [items, selectedBooks],
+  )
   const baseRows = useMemo(() => lookupRows.filter((i) => !i.variant), [lookupRows])
   const [choosing, setChoosing] = useState<Item>()
   // The custom item form: closed, new (`true`), or editing a stack.

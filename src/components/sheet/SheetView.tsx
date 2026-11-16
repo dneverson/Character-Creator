@@ -97,6 +97,7 @@ export function SheetView() {
         <Container as="main" fluid className="sheet py-3">
           <CharacterHeader
             mode="sheet"
+            edition={sheet?.edition}
             ruleset={sheet ? `${editionYear(sheet.edition)} rules` : undefined}
             actions={actions}
           />

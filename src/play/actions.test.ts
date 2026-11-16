@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { defaultPlayState, type PlayState } from '../character/model'
 import {
+  addXp,
   damage,
   gainTemp,
   heal,
@@ -18,6 +19,7 @@ import {
   spendSlot,
   spendUse,
   stepExhaustion,
+  trackXp,
   toggleCondition,
   toggleDeathSave,
   toggleInspiration,
@@ -190,5 +192,20 @@ describe('conditions, exhaustion, inspiration, concentration', () => {
       setConcentration(a, { name: 'Haste', source: 'PHB' }).concentration?.name,
     ).toBe('Haste')
     expect(setConcentration(a, null).concentration).toBeNull()
+  })
+})
+
+describe('experience points', () => {
+  it('starts tracking at a total and goes back to milestones with null', () => {
+    const tracked = trackXp(defaultPlayState(), 6500)
+    expect(tracked.xp).toBe(6500)
+    expect('xp' in trackXp(tracked, null)).toBe(false)
+  })
+
+  it('adds whole points, never a negative amount, and only while tracking', () => {
+    const tracked = trackXp(defaultPlayState(), 100)
+    expect(addXp(tracked, 250.9).xp).toBe(350)
+    expect(addXp(tracked, -50).xp).toBe(100)
+    expect(addXp(defaultPlayState(), 50).xp).toBeUndefined()
   })
 })

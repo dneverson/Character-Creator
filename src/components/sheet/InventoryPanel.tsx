@@ -1,13 +1,24 @@
 // The Inventory tab: what is carried against what can be, who is attuned, the coins, and
 // the items as the Equipment section's short table, each with its full text one click
 // away in the sheet's detail pane. Wearing and attuning are toggled here, as in the editor.
+// What is carried changes here as play: items added, bought, sold or dropped, a count up or
+// down, coins in and out. None of it is a change to the build (see inventoryPlay.ts).
 
-import { useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import Button from 'react-bootstrap/Button'
 import { useCharacter } from '../../character/useCharacterDoc'
 import { loadItems, type Item } from '../../data/items'
 import { useAsyncData } from '../../hooks/useAsyncData'
-import { inventoryColumns, useEditStack } from '../editor/inventoryColumns'
-import { CoinPurse, InventoryTotals } from '../editor/InventoryTotals'
+import { useCarry } from '../../character/inventoryEdit'
+import { patchStack } from '../../character/inventoryPlay'
+import type { InventoryItem } from '../../character/model'
+import { Icon } from '../Icon'
+import { inventoryColumns } from '../editor/inventoryColumns'
+import { InventoryTotals } from '../editor/InventoryTotals'
+import { QuantityCell } from '../table/QuantityCell'
+import { AddItemModal } from './AddItemModal'
+import { CoinsPanel } from './CoinsPanel'
+import { RemoveItemModal } from './RemoveItemModal'
 import { useOwnedItems } from '../editor/useOwnedItems'
 import {
   describeItems,
@@ -29,7 +40,15 @@ import { raceSize } from '../../data/race'
 
 export function InventoryPanel({ sheet }: SheetPanelProps) {
   const character = useCharacter()
-  const editStack = useEditStack()
+  const carry = useCarry()
+  // A change to a stack made on the sheet is play: recorded as an inventory action.
+  const editStack = useCallback(
+    (key: string, patch: Partial<InventoryItem>) =>
+      carry((equipment) => patchStack(equipment, key, patch)),
+    [carry],
+  )
+  const [adding, setAdding] = useState(false)
+  const [removing, setRemoving] = useState<Item>()
   const { data: items, loading } = useAsyncData(loadItems)
   const { race } = useFeatSummary()
   const stacks = useMemo(() => character?.equipment.items ?? [], [character])
@@ -55,7 +74,13 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
       key: 'quantity',
       header: 'Qty',
       priority: 0,
-      render: (item) => stackOf.get(item.key)?.quantity ?? 1,
+      render: (item) => (
+        <QuantityCell
+          name={item.name}
+          quantity={stackOf.get(item.key)?.quantity ?? 1}
+          onChange={(n) => editStack(item.key, { quantity: n })}
+        />
+      ),
       sortValue: (item) => stackOf.get(item.key)?.quantity ?? 1,
       filterable: false,
     }
@@ -81,7 +106,13 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
         strength={strength}
         size={raceSize(race)}
       />
-      <CoinPurse currency={character.equipment.currency} />
+      <CoinsPanel currency={character.equipment.currency} />
+      <div className="mb-2">
+        <Button variant="primary" onClick={() => setAdding(true)}>
+          <Icon name="add" className="me-1" />
+          Add item
+        </Button>
+      </div>
       {loading ? (
         <div className="text-body-secondary">Loading items...</div>
       ) : (
@@ -97,10 +128,34 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
           rowMeta={rowMeta}
           compact
           detailTarget={detailTarget}
+          action={{
+            key: 'remove',
+            header: 'Remove',
+            of: (item) => ({
+              label: `Sell or drop ${item.name}`,
+              detailLabel: 'Sell or drop',
+              variant: 'danger',
+              run: () => setRemoving(item),
+            }),
+          }}
           pin={(item) => <PinButton kind="item" id={itemKey(item)} />}
           labels={{ compare: 'Compare items', search: 'Search items...', table: 'Items' }}
         />
       )}
+      <AddItemModal
+        show={adding}
+        onHide={() => setAdding(false)}
+        catalog={items ?? []}
+        books={character.selectedBooks}
+        edition={sheet.edition}
+        currency={character.equipment.currency}
+      />
+      <RemoveItemModal
+        item={removing}
+        stack={removing ? stackOf.get(removing.key) : undefined}
+        edition={sheet.edition}
+        onHide={() => setRemoving(undefined)}
+      />
     </div>
   )
 }

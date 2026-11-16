@@ -358,6 +358,37 @@ describe('character store', () => {
       expect(selectCanUndoLevelUp(state())).toBe(false)
     })
 
+    it('keeps the undo through changes to what is carried made in play', () => {
+      finished()
+      state().confirmLevelUp(
+        { classes: [{ name: 'Fighter', source: 'PHB', level: 4 }] },
+        LEVEL_UP,
+      )
+      const equipment = active().equipment
+      state().updateActive(
+        { equipment: { ...equipment, currency: { ...equipment.currency, gp: 5 } } },
+        { type: 'inventory', change: 'coins', item: 'gp', quantity: 5 },
+      )
+      expect(selectCanUndoLevelUp(state())).toBe(true)
+      // The same change without the action is an edit of the build.
+      state().updateActive({ equipment: { ...equipment, items: [] } })
+      expect(selectCanUndoLevelUp(state())).toBe(false)
+    })
+
+    it('keeps the undo through experience points gained in play', () => {
+      finished()
+      state().confirmLevelUp(
+        { classes: [{ name: 'Fighter', source: 'PHB', level: 4 }] },
+        LEVEL_UP,
+      )
+      const play = active().play
+      state().updateActive(
+        { play: { ...play, xp: 100 } },
+        { type: 'experience', amount: 100 },
+      )
+      expect(selectCanUndoLevelUp(state())).toBe(true)
+    })
+
     it('offers no undo after another build change, or on another character', () => {
       finished()
       state().confirmLevelUp(

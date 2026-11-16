@@ -240,6 +240,33 @@ describe('CharacterEditor', () => {
       expect(expanded('Class & Level')).toBe('false')
     })
 
+    it('goes to the section the sheet linked to on arriving, once', async () => {
+      const c = seedActive()
+      const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => {})
+      useCharacterStore.setState({ editorTarget: { id: c.id, section: 'equipment' } })
+      renderEditor()
+      await waitFor(() => expect(scrollBy).toHaveBeenCalled())
+      expect(state().editorTarget).toBeNull()
+      expect(
+        screen
+          .getByRole('heading', { name: 'Equipment' })
+          .closest('.card')
+          ?.querySelector('[aria-expanded]')
+          ?.getAttribute('aria-expanded'),
+      ).toBe('true')
+    })
+
+    it('ignores a link left for another character', async () => {
+      seedActive()
+      const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => {})
+      useCharacterStore.setState({
+        editorTarget: { id: 'someone-else', section: 'equipment' },
+      })
+      renderEditor()
+      await waitFor(() => expect(state().editorTarget).toBeNull())
+      expect(scrollBy).not.toHaveBeenCalled()
+    })
+
     it('takes the name link to the name field', async () => {
       const user = userEvent.setup()
       seedActive('New Character')

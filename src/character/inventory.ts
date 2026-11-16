@@ -122,3 +122,35 @@ export function unpackStack(
   }
   return next
 }
+
+/** The stacks with one more of a catalog item: onto its stack, else a new one. */
+export function addStack(stacks: readonly InventoryItem[], item: Item): InventoryItem[] {
+  return stacks.some((s) => inventoryKey(s) === item.key)
+    ? stacks.map((s) =>
+        inventoryKey(s) === item.key ? { ...s, quantity: s.quantity + 1 } : s,
+      )
+    : [...stacks, { name: item.name, source: item.source, quantity: 1 }]
+}
+
+/** The stacks with one more of an item made of a generic variant and a base item. */
+export function addVariantStack(
+  stacks: readonly InventoryItem[],
+  template: Item,
+  base: Item,
+): InventoryItem[] {
+  const made = applyVariant(template, base)
+  return stacks.some((s) => inventoryKey(s) === made.key)
+    ? stacks.map((s) =>
+        inventoryKey(s) === made.key ? { ...s, quantity: s.quantity + 1 } : s,
+      )
+    : [
+        ...stacks,
+        {
+          name: made.name,
+          source: template.source,
+          quantity: 1,
+          variantOf: template.key,
+          base: base.key,
+        },
+      ]
+}

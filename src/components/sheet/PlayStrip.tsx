@@ -19,6 +19,7 @@ import {
 } from '../../play/actions'
 import { PLAY_RULES } from '../../rules/playRules'
 import { Icon } from '../Icon'
+import { ExperienceRow } from './ExperienceRow'
 import { ConditionsDetail, ExhaustionDetail } from './ConditionsDetail'
 import { useSheetDetail } from './SheetDetail'
 import { RestButtons } from './RestWindows'
@@ -172,6 +173,7 @@ export function PlayStrip({ sheet }: { sheet: DerivedSheet }) {
         ))}
         <SlotPips sheet={sheet} />
       </div>
+      <ExperienceRow edition={edition} />
     </section>
   )
 }

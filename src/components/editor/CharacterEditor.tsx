@@ -6,6 +6,7 @@ import { ErrorBoundary } from '../ErrorBoundary'
 import { CharacterHeader } from '../sheet/CharacterHeader'
 import { downloadCharacter } from '../../character/io'
 import { exportCharacterPdf } from '../../pdf/exportPdf'
+import { useCharacterStore } from '../../character/store'
 import { useCharacter } from '../../character/useCharacterDoc'
 import { useContentNames } from '../../hooks/useContentNames'
 import {
@@ -71,9 +72,16 @@ export function CharacterEditor() {
   const character = useCharacter()
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfError, setPdfError] = useState<string | null>(null)
-  const [sectionCommand, setSectionCommand] = useState<SectionCommand | null>(null)
+  // Arriving from a link of the sheet (Rules exceptions): the section it names opens first.
+  const [arrival] = useState(() => {
+    const target = useCharacterStore.getState().editorTarget
+    return target && target.id === character?.id ? target.section : null
+  })
+  const [sectionCommand, setSectionCommand] = useState<SectionCommand | null>(
+    arrival && arrival !== 'name' ? { open: true, only: arrival, nonce: 1 } : null,
+  )
   const [jump, setJump] = useState<{ target: ChecklistTarget; nonce: number } | null>(
-    null,
+    arrival ? { target: arrival, nonce: 1 } : null,
   )
   const { sheet, loading } = useDerivedSheet()
   useContentNames()
@@ -96,6 +104,10 @@ export function CharacterEditor() {
     }
     setJump((j) => ({ target, nonce: (j?.nonce ?? 0) + 1 }))
   }
+
+  // The link is used up once the editor has it.
+  const clearEditorTarget = useCharacterStore((s) => s.clearEditorTarget)
+  useEffect(() => clearEditorTarget(), [clearEditorTarget])
 
   function setAllSections(open: boolean) {
     setSectionCommand((c) => ({ open, nonce: (c?.nonce ?? 0) + 1 }))
@@ -120,6 +132,7 @@ export function CharacterEditor() {
     <Container as="main" className="py-4">
       <CharacterHeader
         mode="edit"
+        edition={sheet?.edition}
         actions={
           <>
             <FinishBuild

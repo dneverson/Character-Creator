@@ -533,6 +533,15 @@ export const itemRowMeta =
         }
       : { standard: true }
 
+/**
+ * The items a character can look up and add: those of its books, but for coins (they
+ * belong to the purse). A generic variant stays: adding it asks for its base item.
+ */
+export const lookupItems = (items: readonly Item[], books: readonly string[]): Item[] => {
+  const enabled = new Set(books)
+  return items.filter((i) => enabled.has(i.source) && i.kind !== 'coin')
+}
+
 /** Everything the search box looks through for an item: what it is and what it does. */
 export const itemSearchText = perEntry((item: Item) =>
   [

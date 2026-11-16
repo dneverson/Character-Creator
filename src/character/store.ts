@@ -5,6 +5,7 @@
 // `connectCharacterStorage` (see persistence.ts).
 
 import { create } from 'zustand'
+import type { ChecklistTarget } from '../derived/checklist'
 import { edited, type CharacterPatch } from './history'
 import { canGainLevel } from './levelUp'
 import {
@@ -12,6 +13,7 @@ import {
   historyEntry,
   type Character,
   type HistoryAction,
+  type HistoryEntry,
 } from './model'
 
 export type View = 'list' | 'editor' | 'sheet' | 'levelUp'
@@ -43,6 +45,11 @@ interface CCState {
   sheetTab: { id: string; tab: string } | null
   /** The last level up of the open character, while it can still be undone. */
   levelUpUndo: LevelUpUndo | null
+  /**
+   * The editor section to open on arriving in the editor, set by a link from the sheet and
+   * cleared once the editor has gone there. It names the character it was set on.
+   */
+  editorTarget: { id: string; section: ChecklistTarget } | null
 
   newCharacter: () => void
   openCharacter: (id: string) => void
@@ -61,6 +68,10 @@ interface CCState {
    * while no character is open, and Level up opens only when the character can gain a level.
    */
   setView: (view: Exclude<View, 'list'>) => void
+  /** Open the editor of the open character at one of its sections. */
+  openEditorAt: (section: ChecklistTarget) => void
+  /** Forget the section the editor was to open at. */
+  clearEditorTarget: () => void
   /** Open a tab of the sheet. */
   setSheetTab: (tab: string) => void
   /**
@@ -98,6 +109,7 @@ export const useCharacterStore = create<CCState>()((set, get) => ({
   view: 'list',
   sheetTab: null,
   levelUpUndo: null,
+  editorTarget: null,
 
   newCharacter: () => {
     const character = createCharacter()
@@ -195,6 +207,19 @@ export const useCharacterStore = create<CCState>()((set, get) => ({
     set({ view, sheetTab: null })
   },
 
+  openEditorAt: (section) =>
+    set((s) =>
+      s.activeId && s.characters[s.activeId]
+        ? {
+            view: 'editor',
+            sheetTab: null,
+            editorTarget: { id: s.activeId, section },
+          }
+        : s,
+    ),
+
+  clearEditorTarget: () => set({ editorTarget: null }),
+
   setSheetTab: (tab) =>
     set((s) => (s.activeId ? { sheetTab: { id: s.activeId, tab } } : s)),
 
@@ -281,13 +306,20 @@ export function selectCanUndoLevelUp(
   const history = s.characters[undo.id]?.history ?? []
   const at = history.findIndex((entry) => entry.id === undo.entryId)
   if (at < 0) return false
-  return history
-    .slice(at + 1)
-    .every(
-      (entry) =>
-        (!entry.action || entry.action.type === 'rest') &&
-        entry.changes.every((change) => change.path[0] === 'play'),
-    )
+  return history.slice(at + 1).every(isPlayEntry)
+}
+
+/**
+ * Whether an entry of the history changed nothing of the build: a plain change to the play
+ * state, a rest, or a change to what is carried made on the sheet (see `inventoryEdit`).
+ */
+function isPlayEntry(entry: HistoryEntry): boolean {
+  const carried = entry.action?.type === 'inventory'
+  const earned = entry.action?.type === 'experience'
+  if (entry.action && entry.action.type !== 'rest' && !carried && !earned) return false
+  return entry.changes.every(
+    (change) => change.path[0] === 'play' || (carried && change.path[0] === 'equipment'),
+  )
 }
 
 /** Selector: the currently active character, or null. */
