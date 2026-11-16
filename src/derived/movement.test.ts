@@ -665,12 +665,9 @@ describe('senses from items', () => {
       ['darkvision', 120],
       ['truesight', 120],
     ])
+    // Not attuned, no source applies: no row of 0 ft.
     const unattuned = sensesWith(undefined, stack('Robe of Eyes', { source: 'XDMG' }))
-    expect(range(unattuned, 'truesight')?.value).toBe(0)
-    expect(range(unattuned, 'truesight')?.lines[0]).toMatchObject({
-      status: 'inactive',
-      why: 'Needs attunement, and you are not attuned.',
-    })
+    expect(unattuned.map((r) => r.key)).toEqual([])
   })
 
   it('show a sense the sheet cannot check the condition of, without counting it', () => {
@@ -682,6 +679,15 @@ describe('senses from items', () => {
     expect(blind?.lines[0]).toMatchObject({
       status: 'conditional',
       when: 'Only while you are in dim light or darkness.',
+    })
+    // Listed as conditional, with the range it gives and why it may not.
+    const row = sensesWith(
+      undefined,
+      stack('Scourge of Shadow', { source: 'CoA', attuned: true }),
+    ).find((r) => r.key === 'blindsight')
+    expect(row?.conditional).toEqual({
+      when: 'Only while you are in dim light or darkness.',
+      range: blind?.lines[0].amount,
     })
   })
 })

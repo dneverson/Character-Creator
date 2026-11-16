@@ -31,6 +31,7 @@ import {
   type GrantChoices,
   type OpenPick,
 } from './grantBlocks'
+import { heldFeaturePicks } from './featurePicks'
 import { heldBy, type HeldItem, type Sources } from './sources'
 import { mergeListings, type Listing, type ListingEntry, type SourceRef } from './types'
 
@@ -222,6 +223,12 @@ export function proficiencies(
       give({ kind: 'tool', key: tool.toLowerCase() }, held.source)
     for (const language of grant.languages ?? [])
       give({ kind: 'language', key: language.toLowerCase() }, held.source)
+  }
+  // The weapons picked for a feature that gives proficiency with them (kensei weapons).
+  for (const held of heldFeaturePicks(sources)) {
+    if (held.pick.from?.kind !== 'weapons') continue
+    for (const name of sources.character.classOptions[held.tag] ?? [])
+      weapons.push({ grant: { name }, source: held.source })
   }
   for (const rule of SAVE_RULES) {
     const held = heldBy(sources, rule.holder)

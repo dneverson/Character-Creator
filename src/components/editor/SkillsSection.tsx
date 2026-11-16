@@ -21,6 +21,7 @@ import {
 import { skillPicks, togglePick } from '../../character/picks'
 import { skillTable } from '../../derived/expertise'
 import { optionSkillSources } from '../../derived/classOptions'
+import { featureSkillSources } from '../../derived/featureGrants'
 import { collectSources } from '../../derived/sources'
 import { Abbr } from '../Abbr'
 import { NonStandardBadge } from '../NonStandardBadge'
@@ -71,6 +72,7 @@ export function SkillsSection() {
             ...buildSkillSources(character, classByKey, background, race),
             ...summary.skillSources,
             ...optionSkillSources(held, options.data ?? undefined),
+            ...featureSkillSources(held),
           ]
         : [],
     [character, held, classByKey, background, race, summary.skillSources, options.data],

@@ -13,6 +13,11 @@ export interface SenseRow {
   key: string
   label: string
   range: Quantity
+  /**
+   * When no source gives the sense outright and one gives it under a condition the sheet
+   * cannot check: that condition, and the range it would give.
+   */
+  conditional?: { when: string; range: number }
 }
 
 interface Given {
@@ -94,7 +99,7 @@ function givenSenses(sources: Sources): Given[] {
 
 export function senseRows(sources: Sources): SenseRow[] {
   const given = givenSenses(sources)
-  return [...new Set(given.map((g) => g.sense))].map((sense) => {
+  return [...new Set(given.map((g) => g.sense))].flatMap((sense): SenseRow[] => {
     const ofSense = given.filter((g) => g.sense === sense)
     const best = Math.max(
       0,
@@ -123,6 +128,19 @@ export function senseRows(sources: Sources): SenseRow[] {
         why: 'A larger range of the same sense is used.',
       }
     })
-    return { key: sense, label: titleCase(sense), range: quantity(lines) }
+    const range = quantity(lines)
+    if (range.value > 0) return [{ key: sense, label: titleCase(sense), range }]
+    // No source applies: a sense only under a condition shows as such, one of an item not
+    // attuned does not show at all (its line is in the breakdown of nothing).
+    const held = ofSense.find((g) => g.state?.status === 'conditional')
+    if (!held?.state?.when) return []
+    return [
+      {
+        key: sense,
+        label: titleCase(sense),
+        range,
+        conditional: { when: held.state.when, range: held.range },
+      },
+    ]
   })
 }

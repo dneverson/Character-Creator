@@ -1,7 +1,9 @@
 // A value of a class's level table by its column ("Martial Arts"), read from the data
 // so the die of a Monk's unarmed strike comes from the book and not from a typed list.
 
-import type { ClassEntry } from '../data/class'
+import type { ClassEntry, ClassTableGroup } from '../data/class'
+import { stripTags } from '../text/tags'
+import { cellText } from './classLevelTable'
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -26,4 +28,17 @@ export function classTableDie(
     return diceFaces(group.rows?.[level - 1]?.[col])
   }
   return undefined
+}
+
+/** The text of a level table's cell by its column's label ("Rages"), or "" without one. */
+export function columnCell(
+  tables: readonly ClassTableGroup[],
+  column: string,
+  level: number,
+): string {
+  for (const group of tables) {
+    const col = (group.colLabels ?? []).findIndex((l) => stripTags(l) === column)
+    if (col >= 0) return cellText(group.rows?.[level - 1]?.[col])
+  }
+  return ''
 }

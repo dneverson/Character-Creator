@@ -27,8 +27,10 @@ import type { SourceRef } from './types'
 import {
   featureChoiceSlots,
   featureChoiceState,
+  featureWithheld,
   heldOptions,
   optionSlots,
+  variantChoices,
   type FeatureChoiceSlot,
   type FeatureChoiceState,
   type OptionSlot,
@@ -93,9 +95,15 @@ export interface Sources {
   options: ReadonlySet<string>
   /** Every slot of optional features the character has. */
   optionSlots: OptionSlot[]
-  /** Every feature that lists features to choose from. */
+  /**
+   * Every feature that lists features to choose from, and every optional class feature
+   * that replaces another (one or the other is taken).
+   */
   featureSlots: FeatureChoiceSlot[]
-  /** The features of those lists, and which were taken: only those are held. */
+  /**
+   * The features of those choices, and of the optional class features, and which are
+   * held: an offered one is held only when taken.
+   */
   featureChoices: FeatureChoiceState
 }
 
@@ -105,6 +113,7 @@ export function collectSources(character: Character, deps: DeriveDeps): Sources 
     classByKey: deps.classByKey,
     race: deps.race,
     background: deps.background,
+    optionCatalog: deps.optionCatalog,
   })
   const catalog = indexItems(deps.items ?? [])
   const items = character.equipment.items.flatMap((stack): HeldItem[] => {
@@ -142,7 +151,8 @@ export function collectSources(character: Character, deps: DeriveDeps): Sources 
       : [],
   )
   const slots = optionSlots(character, classes, feats, deps.optionCatalog ?? [])
-  const featureSlots = featureChoiceSlots(classes)
+  const variants = variantChoices(classes, character.selectedBooks)
+  const featureSlots = [...featureChoiceSlots(classes), ...variants.slots]
   return {
     character,
     summary,
@@ -155,7 +165,7 @@ export function collectSources(character: Character, deps: DeriveDeps): Sources 
     options: heldOptions(character, slots),
     optionSlots: slots,
     featureSlots,
-    featureChoices: featureChoiceState(character, featureSlots),
+    featureChoices: featureChoiceState(character, featureSlots, variants),
   }
 }
 
@@ -238,11 +248,9 @@ export function heldBy(sources: Sources, holder: Holder): Held | undefined {
     const held = sources.items.find((i) => i.item.key === holder.item)
     return held && { source: held.source, active: held.active }
   }
-  // A feature of a list to choose from (Protector or Thaumaturge) is held once taken.
-  const id = holderId(holder)
-  if (sources.featureChoices.offered.has(id) && !sources.featureChoices.chosen.has(id)) {
-    return undefined
-  }
+  // A feature of a list to choose from (Protector or Thaumaturge), or an optional class
+  // feature (Favored Foe) and the one it replaces, is held once taken.
+  if (featureWithheld(sources.featureChoices, holderId(holder))) return undefined
   const className =
     'classFeature' in holder
       ? holder.classFeature.className

@@ -2,6 +2,7 @@
 // hard-blocks the user: off-standard choices are ALLOWED and surfaced as
 // "deviations" with a plain-language reason.
 
+import { raceAbilityOptions } from './customOrigin'
 import { ABILITIES, ABILITY_NAMES, formatMod, type AbilityKey } from '../dice/dice'
 import type { Character, ClassRef } from '../character/model'
 import {
@@ -227,7 +228,8 @@ export function checkOriginIncreases(
     deviations.push(
       ...checkOrigin('origin-increase:race', {
         name: race.name,
-        options: race.abilityOptions,
+        // Under Customizing Your Origin, every increase is the player's to place.
+        options: raceAbilityOptions(race, raceRef),
         optionIndex: raceRef.abilityOption,
         fixed: raceRef.abilityFixed,
         choices: raceRef.abilityChoices,

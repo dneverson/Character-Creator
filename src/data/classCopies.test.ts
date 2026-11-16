@@ -196,6 +196,7 @@ describe('resolveClassFiles', () => {
       name: 'Disciple of Life',
       level: 3,
       entries: ['2024 text', 'more'],
+      id: 'subclassFeature|Disciple of Life|XPHB|Cleric|Life',
     })
   })
 

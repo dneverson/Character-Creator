@@ -176,14 +176,21 @@ export type PassiveSkill = (typeof PASSIVE_SKILLS)[number]
  * Advantage on a check raises its passive score by 5 and disadvantage lowers it by 5; one
  * of each cancels, and several of one kind count once, as for a roll.
  */
-export const PASSIVE_EDGE: Record<Edition, { amount: number; text: string }> = {
+export const PASSIVE_EDGE: Record<
+  Edition,
+  { amount: number; text: string; skills: readonly PassiveSkill[] }
+> = {
+  // The 2014 rule is for every passive check.
   classic: {
     amount: 5,
     text: 'Passive checks (PHB 2014, chapter 7): if you have advantage on the check, add 5; for disadvantage, subtract 5.',
+    skills: PASSIVE_SKILLS,
   },
+  // The 2024 rule is in the Passive Perception entry only.
   one: {
     amount: 5,
     text: 'Passive Perception (PHB 2024, Rules Glossary): with advantage on such checks the score increases by 5; with disadvantage it decreases by 5.',
+    skills: ['perception'],
   },
 }
 

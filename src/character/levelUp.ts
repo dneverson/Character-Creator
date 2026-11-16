@@ -272,8 +272,8 @@ export function levelUpSteps(
     .map((c) => c.tag)
 
   const features = newFeatures(
-    featureRows(was, deps.optionCatalog),
-    featureRows(is, deps.optionCatalog),
+    featureRows(was, deps.optionCatalog, deps.items),
+    featureRows(is, deps.optionCatalog, deps.items),
   )
 
   return { subclass, featSlots, spells, options, features }

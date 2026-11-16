@@ -67,6 +67,15 @@ describe('the play state of a stored document', () => {
     expect(c.play).toEqual(defaultPlayState())
   })
 
+  it('keeps the weapon masteries of the last long rest, dropping a broken list', () => {
+    const c = ensureCharacterDefaults(
+      stored({
+        masteryAtRest: { 'class:Fighter|XPHB|mastery': ['dagger'], bad: ['x', 4] },
+      }),
+    )
+    expect(c.play.masteryAtRest).toEqual({ 'class:Fighter|XPHB|mastery': ['dagger'] })
+  })
+
   it('is complete for a document with no play state at all', () => {
     const old = stored(undefined)
     delete old.play

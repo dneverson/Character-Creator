@@ -37,3 +37,38 @@ export const FEATURE_CHOICE_FOLLOWS: Record<string, string> = {
   'subclassFeature|Storm Soul|XGE|Barbarian|Storm Herald': 'Storm Aura',
   'subclassFeature|Raging Storm|XGE|Barbarian|Storm Herald': 'Storm Aura',
 }
+
+// ---- Optional class features ---------------------------------------------------------
+// An optional class feature (Tasha's, marked `isClassFeatureVariant` by the data) that says
+// it "replaces the X feature" is a choice the player makes: the feature or its
+// replacement. One that replaces nothing is simply available with its book. The audit in
+// classOptions.audit.test.ts fails when a variant is neither of these nor listed here.
+
+/**
+ * Features held while one of the named features of their class is: the improvements of a
+ * feature an optional one replaces go with it, and those of the optional one with that.
+ */
+export const FEATURE_GOES_WITH: Record<string, string[]> = {
+  'classFeature|Deft Explorer Improvement|TCE|Ranger': ['Deft Explorer'],
+  'classFeature|Natural Explorer improvement|PHB|Ranger': ['Natural Explorer'],
+  'classFeature|Favored Enemy improvement|PHB|Ranger': ['Favored Enemy'],
+  'classFeature|Favored Enemy and Natural Explorer improvements|PHB|Ranger': [
+    'Favored Enemy',
+    'Natural Explorer',
+  ],
+}
+
+/**
+ * Variant features that belong to one build rather than to an optional rule: the build
+ * has the feature in place of the one it replaces, and no other build has it.
+ */
+export const VARIANT_OF_BUILD: Record<
+  string,
+  { className: string; subclass: string; why: string }
+> = {
+  'classFeature|Pet Specialization|WoW|Ranger': {
+    className: 'Hunter',
+    subclass: 'Beast Master',
+    why: 'replaces Roving for a Hunter (WoW) with the Beast Master subclass only',
+  },
+}

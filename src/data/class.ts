@@ -11,6 +11,7 @@ import { resolveCopy, type Copyable, type CopyRef } from './copy'
 import type { Entry } from '../text/Entries'
 import type { ClassRef } from '../character/model'
 import type { OptionalFeatureProgression } from './classOptions'
+import { holderId } from '../rules/holder'
 
 export interface HitDice {
   number: number
@@ -166,6 +167,8 @@ interface ClassFeatureRecord extends Copyable {
   classSource: string
   level: number
   entries?: Entry[]
+  /** An optional class feature (Tasha's): taken by choice, or in place of another. */
+  isClassFeatureVariant?: boolean
 }
 
 export interface ClassFeatureEntry extends ClassFeatureRecord {
@@ -200,6 +203,8 @@ interface SubclassFeatureRecord extends Copyable {
   subclassSource: string
   level: number
   entries?: Entry[]
+  /** An optional class feature (Tasha's): taken by choice, or in place of another. */
+  isClassFeatureVariant?: boolean
 }
 
 export interface SubclassFeatureEntry extends SubclassFeatureRecord {
@@ -385,6 +390,8 @@ export interface ResolvedFeature {
   entries: Entry[]
   /** A marker slot for a subclass feature gained at this level. */
   isSubclassSlot?: boolean
+  /** The feature's data identity, as `holderId` writes it, when the data has the record. */
+  id?: string
 }
 
 interface ParsedRef {
@@ -454,7 +461,18 @@ export function resolveClassFeatures(
 
     const match = pool.find((f) => isClassFeature(f, parsed))
     if (match) {
-      add(parsed.level, { name: match.name, level: match.level, entries: match.entries })
+      add(parsed.level, {
+        name: match.name,
+        level: match.level,
+        entries: match.entries,
+        id: holderId({
+          classFeature: {
+            className: match.className,
+            source: match.source,
+            name: match.name,
+          },
+        }),
+      })
     } else {
       add(parsed.level, { name: parsed.name, level: parsed.level, entries: [] })
     }
@@ -504,6 +522,16 @@ export function resolveSubclassFeatures(
       name: match?.name ?? parsed.name,
       level: parsed.level,
       entries: match?.entries ?? [],
+      ...(match && {
+        id: holderId({
+          subclassFeature: {
+            className: match.className,
+            shortName: match.subclassShortName,
+            source: match.source,
+            name: match.name,
+          },
+        }),
+      }),
     })
     byLevel.set(parsed.level, list)
   }

@@ -15,10 +15,21 @@ import { loadBookEditions } from '../data/edition'
 import { loadFeats } from '../data/feats'
 import {
   FEATURE_CHOICE_FOLLOWS,
+  FEATURE_GOES_WITH,
   FEATURE_OPTIONS_NOT_CHOSEN,
+  VARIANT_OF_BUILD,
 } from '../rules/featureChoices'
-import { dataDir, records, type Rec } from '../test/dataAudit'
-import { featureChoiceSlots, optionCards, optionSlots } from './classOptions'
+import { holderId } from '../rules/holder'
+import { dataDir, recordId, records, type Rec } from '../test/dataAudit'
+import {
+  featureChoiceSlots,
+  featurePool,
+  optionCards,
+  optionSlots,
+  replacedName,
+  sameNameLabels,
+  variantChoices,
+} from './classOptions'
 import { collectSources, type DeriveDeps, type HeldFeat } from './sources'
 
 vi.mock('./../data/dataClient', async () => {
@@ -147,7 +158,8 @@ describe.skipIf(!dataDir)('class options against the data', async () => {
     }
     expect(wrong).toEqual([])
     expect(checked).toBeGreaterThan(300)
-  })
+    // Every level of every class and subclass: seconds of work, more under coverage.
+  }, 60_000)
 
   it('offers every feat progression at its count at every level', () => {
     const wrong: string[] = []
@@ -213,6 +225,21 @@ describe.skipIf(!dataDir)('class options against the data', async () => {
       [...types].filter((t) => !offered.has(t) && !(t in TYPES_NOT_OFFERED)),
     ).toEqual([])
     expect(Object.keys(TYPES_NOT_OFFERED).filter((t) => offered.has(t))).toEqual([])
+  })
+
+  it('tells apart every two printings of an option name by their edition', () => {
+    const of = editionOf ?? (() => 'classic' as const)
+    const byName = new Map<string, ClassOption[]>()
+    for (const o of catalog) byName.set(o.name, [...(byName.get(o.name) ?? []), o])
+    const shared = [...byName.values()].filter((list) => list.length > 1)
+    // Each shared name is one 2014 and one 2024 printing, so the year names it.
+    const unclear = shared.filter(
+      (list) => new Set(list.map((o) => of(o.source))).size !== list.length,
+    )
+    expect(unclear.map((list) => list.map((o) => o.key).join(', '))).toEqual([])
+    expect(shared.length).toBeGreaterThan(40)
+    const label = sameNameLabels(catalog, of)
+    expect(label(shared[0][0])).toMatch(/ \((2014|2024)\)$/)
   })
 
   it('covers every list of optional features in a feature by a progression of its class', () => {
@@ -289,5 +316,78 @@ describe.skipIf(!dataDir)('class options against the data', async () => {
       Object.keys(FEATURE_OPTIONS_NOT_CHOSEN).filter((id) => offered.has(id)),
     ).toEqual([])
     expect(offered.size).toBeGreaterThan(5)
+  })
+
+  it('decides every optional class feature: a choice, simply available, or of one build', () => {
+    const variants = new Set(
+      records(dataDir ?? '')
+        .filter(
+          ({ collection, record }) =>
+            (collection === 'classFeature' || collection === 'subclassFeature') &&
+            record.isClassFeatureVariant === true,
+        )
+        .map(({ collection, record }) => recordId(collection, record)),
+    )
+    const reached = new Set<string>()
+    const choices = new Set<string>()
+    const additive = new Set<string>()
+    const tied = new Map<string, number>()
+    const allBooks = [...new Set([...books, ...classes.map((c) => c.entry.source)])]
+    for (const { loaded, subclass } of builds) {
+      const row = {
+        name: loaded.entry.name,
+        source: loaded.entry.source,
+        level: 20,
+        ...(subclass
+          ? {
+              subclass: {
+                name: subclass.name,
+                shortName: subclass.shortName,
+                source: subclass.source,
+              },
+            }
+          : {}),
+      }
+      const c = { row, loaded, level: 20 }
+      const found = variantChoices([c], [...allBooks, 'TCE', 'WoW'])
+      for (const slot of found.slots) {
+        choices.add(slot.id)
+        // One or the other: the feature replaced, held until the optional one is taken.
+        expect(
+          slot.options.map((o) => o.name),
+          slot.id,
+        ).toEqual([replacedName(slot.options[1].entries), slot.name])
+      }
+      for (const tie of found.ties) tied.set(tie.id, tie.with.length)
+      for (const f of featurePool(c)) {
+        if (!f.variant) continue
+        const id = holderId(f.holder)
+        reached.add(id)
+        if (replacedName(f.entries) === undefined && !(id in FEATURE_GOES_WITH))
+          additive.add(id)
+      }
+    }
+    const ofBuild = new Set(Object.keys(VARIANT_OF_BUILD))
+    // Every variant of the data is reached by a class, and is one of the three.
+    expect([...variants].filter((id) => !reached.has(id))).toEqual([])
+    const undecided = [...variants].filter(
+      (id) =>
+        !choices.has(id) &&
+        !additive.has(id) &&
+        !ofBuild.has(id) &&
+        !(id in FEATURE_GOES_WITH),
+    )
+    expect(undecided).toEqual([])
+    // Every feature said to go with another finds it in its class.
+    for (const id of Object.keys(FEATURE_GOES_WITH))
+      expect(tied.get(id), id).toBeGreaterThan(0)
+    expect([...ofBuild].filter((id) => !variants.has(id))).toEqual([])
+    // Each variant is exactly one of the four: 23 choices, 24 simply available, 1 of one
+    // build and 1 going with another, in the books of this writing.
+    const goesWith = [...variants].filter((id) => id in FEATURE_GOES_WITH)
+    expect(choices.size + additive.size + ofBuild.size + goesWith.length).toBe(
+      variants.size,
+    )
+    expect(choices.size).toBeGreaterThan(20)
   })
 })

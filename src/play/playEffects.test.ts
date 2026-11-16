@@ -182,12 +182,28 @@ describe('disadvantage on the checks of a passive score', () => {
   const passive = (sheet: DerivedSheet, key: string) =>
     sheet.combat.passives.find((r) => r.key === key)?.score
 
-  it('takes 5 off every passive score while poisoned, as each printing words it', () => {
+  it('takes 5 off the passive scores while poisoned, as each printing words it', () => {
     for (const edition of ['classic', 'one'] as const) {
       const before = sheetOf(edition)
       const after = applyPlayEffects(before, play(0, ['Poisoned']))
+      // 2014: every passive check; 2024: the Passive Perception entry only.
+      const changed =
+        edition === 'classic'
+          ? ['perception', 'investigation', 'insight']
+          : ['perception']
       for (const key of ['perception', 'investigation', 'insight']) {
-        expect(passive(after, key)?.value).toBe((passive(before, key)?.value ?? 0) - 5)
+        const off = changed.includes(key) ? 5 : 0
+        expect([key, passive(after, key)?.value]).toEqual([
+          key,
+          (passive(before, key)?.value ?? 0) - off,
+        ])
+      }
+      if (edition === 'one') {
+        expect(passive(after, 'insight')?.lines.at(-1)).toMatchObject({
+          label: 'Poisoned',
+          status: 'inactive',
+          why: 'The 2024 rules change only Passive Perception for advantage or disadvantage.',
+        })
       }
       expect(passive(after, 'perception')?.lines.at(-1)).toMatchObject({
         label: 'Poisoned',

@@ -7,6 +7,7 @@ import { loadClasses, type LoadedClass } from '../../data/class'
 import { findBackground, loadBackgrounds } from '../../data/background'
 import { findPlayableRace, loadRaces } from '../../data/race'
 import { loadFeats } from '../../data/feats'
+import { loadClassOptions } from '../../data/classOptions'
 import { useCharacter } from '../../character/useCharacterDoc'
 import { resolveFeats, type FeatSummary } from '../../character/feats'
 import { useAsyncData } from '../../hooks/useAsyncData'
@@ -24,6 +25,7 @@ export function useFeatSummary() {
   const backgrounds = useAsyncData(loadBackgrounds)
   const races = useAsyncData(loadRaces)
   const featData = useAsyncData(loadFeats)
+  const options = useAsyncData(loadClassOptions)
 
   const classByKey = useMemo(() => {
     const m = new Map<string, LoadedClass>()
@@ -43,9 +45,15 @@ export function useFeatSummary() {
   const summary = useMemo(
     () =>
       character
-        ? resolveFeats(character, { feats, classByKey, race, background })
+        ? resolveFeats(character, {
+            feats,
+            classByKey,
+            race,
+            background,
+            optionCatalog: options.data ?? undefined,
+          })
         : EMPTY_SUMMARY,
-    [character, feats, classByKey, race, background],
+    [character, feats, classByKey, race, background, options.data],
   )
 
   return {

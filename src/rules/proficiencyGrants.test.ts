@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { readArmorBlocks, readWeaponBlocks } from '../derived/proficiencies'
 import { dataDir, findIds, records, recordId, type Rec } from '../test/dataAudit'
+import { FEATURE_GRANTS } from './featureGrants'
+import { holderId } from './holder'
 import { PROFICIENCY_GRANTS, proficiencyGrantId } from './proficiencyGrants'
 
 /** A feature that gives proficiency, or training, with armor, shields or weapons in text. */
@@ -91,32 +93,12 @@ export const PROFICIENCY_NOT_GRANTED: Record<string, string> = {
     'doubles the bonus of a tool proficiency, not a proficiency',
   'subclassFeature|Channeler|RHW|Bard|Spirits':
     'a gaming set the character picks, a pick that is not stored yet',
-  'subclassFeature|Blessings of Knowledge|PHB|Cleric|Knowledge':
-    'two languages and two skills of their choice, a pick that is not stored yet',
   'subclassFeature|Channel Divinity: Knowledge of the Ages|PHB|Cleric|Knowledge':
     'a skill or tool for 10 minutes, not a standing proficiency',
-  'subclassFeature|Blessings of Knowledge|FRHoF|Cleric|Knowledge':
-    'an artisan tool and two skills of their choice, a pick that is not stored yet',
-  'subclassFeature|Student of War|PHB|Fighter|Battle Master':
-    'an artisan tool of their choice, a pick that is not stored yet',
-  'subclassFeature|Student of War|XPHB|Fighter|Battle Master':
-    'an artisan tool and a skill of their choice, a pick that is not stored yet',
-  'subclassFeature|Bonus Proficiency|XGE|Fighter|Cavalier':
-    'a skill or a language of their choice, a pick that is not stored yet',
-  'subclassFeature|Bonus Proficiency|XGE|Fighter|Samurai':
-    'a skill or a language of their choice, a pick that is not stored yet',
-  'subclassFeature|Knightly Envoy|FRHoF|Fighter|Banneret':
-    'a language of their choice, a pick that is not stored yet',
   'classFeature|Telepathy|UATheMysticClass|Mystic':
     'a telepathic ability, not a language',
   'subclassFeature|Breadth of Knowledge|UATheMysticClass|Mystic|Nomad':
     'proficiencies that change each long rest, a pick that is not stored yet',
-  'classFeature|Deft Explorer|TCE|Ranger':
-    'a skill expertise and two languages of their choice, a pick that is not stored yet',
-  'classFeature|Deft Explorer|XPHB|Ranger':
-    'a skill expertise and two languages of their choice, a pick that is not stored yet',
-  'classFeature|Favored Enemy|PHB|Ranger':
-    'a language of their choice, a pick that is not stored yet',
   'classFeature|Expertise|PHB|Rogue': 'expertise, which is read from the expertise table',
   'subclassFeature|Psychic Whispers|TCE|Rogue|Soulknife':
     'a telepathic ability, not a language',
@@ -189,6 +171,15 @@ describe('proficiency readers', () => {
 describe.skipIf(!dataDir)('proficiency grants against the data', () => {
   const dir = dataDir ?? ''
   const rowIds = new Set(PROFICIENCY_GRANTS.map(proficiencyGrantId))
+  // The languages and tools a feature gives as a pick are rows of the features table.
+  const pickIds = new Set(
+    FEATURE_GRANTS.filter(
+      (g) =>
+        g.languageProficiencies ??
+        g.toolProficiencies ??
+        g.skillToolLanguageProficiencies,
+    ).map((g) => holderId(g.holder)),
+  )
 
   it('grants or explains every feature that gives armor or weapon proficiency in text', () => {
     // A record that lists its proficiencies as data is read from there, not from its text.
@@ -218,7 +209,7 @@ describe.skipIf(!dataDir)('proficiency grants against the data', () => {
       (text, r) => !structured(r) && GRANTS_TOOL_TEXT.test(text),
     )
     const unknown = [...found].filter(
-      (id) => !rowIds.has(id) && !(id in PROFICIENCY_NOT_GRANTED),
+      (id) => !rowIds.has(id) && !pickIds.has(id) && !(id in PROFICIENCY_NOT_GRANTED),
     )
     expect(unknown).toEqual([])
   })

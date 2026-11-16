@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   chosenOptions,
   featureNames,
+  heldEntries,
   optionCards,
   optionSkillSources,
   optionSlots,
+  replacedName,
   typeWords,
+  variantChoices,
 } from './classOptions'
 import { featureRows } from './features'
 import { collectSources, heldBy, type DeriveDeps, type HeldFeat } from './sources'
@@ -395,6 +398,21 @@ describe('invocations', () => {
     )
   })
 
+  it('names the edition of two printings that share a name, and only those', () => {
+    const both = invocationCard(warlockOf(5, 'PHB', ['PHB', 'XPHB']))
+    const blasts = both?.chips.filter((x) => x.label.startsWith('Agonizing Blast'))
+    expect(blasts?.map((x) => [x.value, x.label])).toEqual(
+      expect.arrayContaining([
+        ['Agonizing Blast|PHB', 'Agonizing Blast (2014)'],
+        ['Agonizing Blast|XPHB', 'Agonizing Blast (2024)'],
+      ]),
+    )
+    const single = invocationCard(warlockOf(5))
+    expect(single?.chips.find((x) => x.value === 'Agonizing Blast|PHB')?.label).toBe(
+      'Agonizing Blast',
+    )
+  })
+
   it('leaves a prerequisite it cannot check ungreyed and says what it is', () => {
     const one = invocationCard(warlockOf(5, 'XPHB', ['XPHB']), 'XPHB')
     const blast = one?.chips.find((x) => x.value === 'Agonizing Blast|XPHB')
@@ -724,5 +742,227 @@ describe('features to choose from', () => {
     const [card] = optionCards(sources, d)
     expect(card.chips.map((x) => x.state)).toEqual(['picked', 'full'])
     expect(featureNames(sources.classes)).toEqual(new Set(['path of the totem warrior']))
+  })
+})
+
+// ---- Optional class features -----------------------------------------------------------
+
+const rangerFeature = (
+  name: string,
+  source: string,
+  level: number,
+  entries: unknown[],
+) => ({
+  name,
+  source,
+  className: 'Ranger',
+  classSource: 'PHB',
+  level,
+  entries: entries as string[],
+  ...(source === 'TCE' && { isClassFeatureVariant: true }),
+})
+
+const ranger = (): LoadedClass =>
+  loadedClass('Ranger', [], [], {
+    classFeature: [
+      rangerFeature('Favored Enemy', 'PHB', 1, ['Choose a type of favored enemy.']),
+      rangerFeature('Favored Foe', 'TCE', 1, [
+        '{@i 1st-level ranger {@variantrule optional class features|tce|optional feature}, which replaces the Favored Enemy feature}',
+        'Mark a foe.',
+      ]),
+      rangerFeature('Natural Explorer', 'PHB', 1, ['Choose a favored terrain.']),
+      rangerFeature('Deft Explorer', 'TCE', 1, [
+        '{@i optional feature, which replaces the Natural Explorer feature}',
+        'Canny.',
+      ]),
+      rangerFeature('Spellcasting Focus', 'TCE', 2, [
+        '{@i optional feature}',
+        'A focus.',
+      ]),
+      rangerFeature('Deft Explorer Improvement', 'TCE', 6, ['Roving.']),
+      rangerFeature('Favored Enemy improvement', 'PHB', 6, ['Another enemy.']),
+    ],
+  })
+
+const FOE = { classFeature: { className: 'Ranger', source: 'TCE', name: 'Favored Foe' } }
+const ENEMY = {
+  classFeature: { className: 'Ranger', source: 'PHB', name: 'Favored Enemy' },
+}
+const FOCUS = {
+  classFeature: { className: 'Ranger', source: 'TCE', name: 'Spellcasting Focus' },
+}
+const IMPROVEMENT = {
+  classFeature: { className: 'Ranger', source: 'TCE', name: 'Deft Explorer Improvement' },
+}
+const ENEMY_MORE = {
+  classFeature: { className: 'Ranger', source: 'PHB', name: 'Favored Enemy improvement' },
+}
+
+const rangerOf = (level: number, books: string[]) => {
+  const c = build('Ranger', level, {}, [])
+  c.selectedBooks = books
+  return c
+}
+
+const FOE_TAG = 'class:Ranger|PHB|feature:Favored Foe|1'
+const ENEMY_PICK = 'class:Ranger|PHB|pick:Favored Enemy'
+const TERRAIN_PICK = 'class:Ranger|PHB|pick:Natural Explorer'
+
+describe('optional class features', () => {
+  it('gives no optional feature without its book, and keeps the feature it would replace', () => {
+    const c = rangerOf(6, ['PHB'])
+    const d = withDeps([ranger()], [])
+    const sources = collectSources(c, d)
+    // Only the lists of the features had: favored enemies and terrains.
+    expect(optionCards(sources, d).map((x) => x.tag)).toEqual([ENEMY_PICK, TERRAIN_PICK])
+    expect(heldBy(sources, FOE)).toBeUndefined()
+    expect(heldBy(sources, FOCUS)).toBeUndefined()
+    expect(heldBy(sources, IMPROVEMENT)).toBeUndefined()
+    expect(heldBy(sources, ENEMY)).toBeDefined()
+    expect(heldBy(sources, ENEMY_MORE)).toBeDefined()
+    expect(featureRows(sources).map((f) => f.name)).toEqual([
+      'Favored Enemy',
+      'Natural Explorer',
+      'Favored Enemy improvement',
+    ])
+  })
+
+  it('offers each replacing feature as a choice, the replaced one had until it is taken', () => {
+    const c = rangerOf(6, ['PHB', 'TCE'])
+    const d = withDeps([ranger()], [])
+    const sources = collectSources(c, d)
+    const cards = optionCards(sources, d)
+    expect(cards.map((x) => x.tag)).toEqual([
+      FOE_TAG,
+      'class:Ranger|PHB|feature:Deft Explorer|1',
+      ENEMY_PICK,
+      TERRAIN_PICK,
+    ])
+    expect(cards[0]).toMatchObject({ count: 1, left: 1 })
+    expect(cards[0].note).toBe(
+      "Favored Foe (level 1) is an optional class feature that replaces Favored Enemy: take one or the other, with your DM's approval. Until you choose, you have Favored Enemy.",
+    )
+    expect(
+      cards[0].chips.map((x) => [x.label, x.state, x.detail?.facts[1].value]),
+    ).toEqual([
+      ['Favored Enemy', 'available', 'PHB'],
+      ['Favored Foe', 'available', 'TCE'],
+    ])
+    expect(heldBy(sources, ENEMY)).toBeDefined()
+    expect(heldBy(sources, FOE)).toBeUndefined()
+    // One that replaces nothing is simply had with its book.
+    expect(heldBy(sources, FOCUS)).toBeDefined()
+    expect(heldBy(sources, IMPROVEMENT)).toBeUndefined()
+    expect(featureRows(sources).map((f) => f.name)).toEqual([
+      'Favored Enemy',
+      'Natural Explorer',
+      'Spellcasting Focus',
+      'Favored Enemy improvement',
+    ])
+  })
+
+  it('has the optional feature once taken, without the one it replaces or what goes with it', () => {
+    const c = rangerOf(6, ['PHB', 'TCE'])
+    c.classOptions = {
+      [FOE_TAG]: ['Favored Foe|Ranger|PHB|1'],
+      'class:Ranger|PHB|feature:Deft Explorer|1': ['Deft Explorer|Ranger|PHB|1'],
+    }
+    const d = withDeps([ranger()], [])
+    const sources = collectSources(c, d)
+    expect(heldBy(sources, FOE)).toBeDefined()
+    expect(heldBy(sources, ENEMY)).toBeUndefined()
+    expect(heldBy(sources, ENEMY_MORE)).toBeUndefined()
+    expect(heldBy(sources, IMPROVEMENT)).toBeDefined()
+    expect(featureRows(sources).map((f) => f.name)).toEqual([
+      'Favored Foe',
+      'Deft Explorer',
+      'Spellcasting Focus',
+      'Deft Explorer Improvement',
+    ])
+    const [card, ...rest] = optionCards(sources, d)
+    expect(card.chips.map((x) => x.state)).toEqual(['full', 'picked'])
+    // No favored enemies or terrains once both features are given up.
+    expect(rest.map((x) => x.tag)).toEqual(['class:Ranger|PHB|feature:Deft Explorer|1'])
+    // Keeping the original is a choice made: the card is done.
+    c.classOptions = { [FOE_TAG]: ['Favored Enemy|Ranger|PHB|1'] }
+    const kept = collectSources(c, d)
+    expect(heldBy(kept, ENEMY)).toBeDefined()
+    expect(heldBy(kept, FOE)).toBeUndefined()
+    expect(optionCards(kept, d)[0]).toMatchObject({ left: 0, used: 1 })
+  })
+
+  it('reads the feature replaced from the first line, a tag read as its name', () => {
+    expect(replacedName(['{@i which replaces the Divine Strike feature}'])).toBe(
+      'Divine Strike',
+    )
+    expect(
+      replacedName([
+        'This feature replaces the {@classFeature Roving|Ranger|XPHB|6} feature for a Hunter.',
+      ]),
+    ).toBe('Roving')
+    expect(
+      replacedName([{ type: 'entries', entries: [] }, '{@i optional}']),
+    ).toBeUndefined()
+  })
+
+  it('shows in a text only the features it takes in by reference that are had', () => {
+    const kept = {
+      type: 'refSubclassFeature',
+      subclassFeature: "Ranger's Companion|Ranger||Beast Master||3",
+    }
+    const entries = [
+      'Your companion.',
+      {
+        type: 'entries',
+        entries: [
+          kept,
+          {
+            type: 'refSubclassFeature',
+            subclassFeature: 'Primal Companion|Ranger||Beast Master||3|TCE',
+          },
+          { type: 'refClassFeature', classFeature: 'Harness|Paladin||3|TCE' },
+        ],
+      },
+    ]
+    const withheld = new Set([
+      'subclassFeature|Primal Companion|TCE|Ranger|Beast Master',
+      'classFeature|Harness|TCE|Paladin',
+    ])
+    expect(heldEntries(entries, (id) => withheld.has(id))).toEqual([
+      'Your companion.',
+      { type: 'entries', entries: [kept] },
+    ])
+  })
+
+  it('gives a feature of one build to that build only, in place of the one it replaces', () => {
+    const roving = rangerFeature('Roving', 'XPHB', 6, ['Speed.'])
+    const pet = {
+      ...rangerFeature('Pet Specialization', 'WoW', 6, [
+        'This feature replaces the {@classFeature Roving|Ranger|XPHB|6} feature for a Hunter.',
+      ]),
+      isClassFeatureVariant: true,
+    }
+    const loaded = loadedClass('Hunter', [], [], { classFeature: [roving, pet] })
+    const row = { name: 'Hunter', source: 'PHB', level: 6 }
+    const fixedOf = (shortName?: string) =>
+      variantChoices(
+        [
+          {
+            row: shortName
+              ? { ...row, subclass: { name: shortName, shortName, source: 'WoW' } }
+              : row,
+            loaded,
+            level: 6,
+          },
+        ],
+        ['WoW'],
+      ).fixed
+    expect(fixedOf()).toEqual([
+      { id: 'classFeature|Pet Specialization|WoW|Ranger', held: false },
+    ])
+    expect(fixedOf('Beast Master')).toEqual([
+      { id: 'classFeature|Pet Specialization|WoW|Ranger', held: true },
+      { id: 'classFeature|Roving|XPHB|Ranger', held: false },
+    ])
   })
 })

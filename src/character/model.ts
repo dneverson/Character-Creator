@@ -287,6 +287,12 @@ export interface PlayState {
   uses: Record<string, number>
   /** The spell the character is concentrating on, or null. */
   concentration: { name: string; source: string } | null
+  /**
+   * The kinds of weapons whose mastery each feature or feat gave at the last long rest, by
+   * the tag its picks are stored under; a change since then is flagged. Absent until the
+   * first long rest, so no stored document needs migrating.
+   */
+  masteryAtRest?: Record<string, string[]>
 }
 
 export function defaultPlayState(): PlayState {
@@ -672,6 +678,12 @@ export interface RaceRef {
   abilityFixed: Partial<Record<AbilityKey, number>>
   /** Player-chosen bonuses from a race's "choose" option. */
   abilityChoices: Partial<Record<AbilityKey, number>>
+  /**
+   * Tasha's Customizing Your Origin, an optional rule: every increase of the race is
+   * placed by the player (rules/customOrigin.ts). Absent means off; no stored document
+   * needs migrating.
+   */
+  customOrigin?: true
 }
 
 export interface Character {
@@ -943,6 +955,7 @@ function normalizePlay(raw: Partial<PlayState> | undefined): PlayState {
       typeof concentration.source === 'string'
         ? { name: concentration.name, source: concentration.source }
         : null,
+    ...(raw?.masteryAtRest ? { masteryAtRest: optionMap(raw.masteryAtRest) } : {}),
   }
 }
 

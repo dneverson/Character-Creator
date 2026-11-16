@@ -36,6 +36,7 @@ import { skillTotals, type DerivedSkill } from './skillTotals'
 import { buildChecklist, type Checklist } from './checklist'
 import { combatNumbers, type CombatNumbers } from './combat'
 import { optionCards, optionSkillSources } from './classOptions'
+import { featureSkillSources } from './featureGrants'
 import { featureRows, type FeatureRow } from './features'
 import { collectSources, type DeriveDeps } from './sources'
 import { characterGrants, spellStats, type SpellStatRow } from './spellStats'
@@ -68,6 +69,11 @@ export interface DerivedSheet {
   spellStats: SpellStatRow[]
   /** Every feature and trait: of the classes, the species, the background and the feats. */
   features: FeatureRow[]
+  /**
+   * The class and subclass features the character does not have because of a choice: an
+   * optional class feature not taken, or the feature it replaced.
+   */
+  withheldFeatures: string[]
   /** The limited uses: of features, of spells cast per rest and of items with charges. */
   resources: DerivedResource[]
   /** The beast forms the character can take with Wild Shape. */
@@ -134,6 +140,7 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
     ...buildSkillSources(character, deps.classByKey, deps.background, deps.race),
     ...sources.summary.skillSources,
     ...optionSkillSources(sources, deps.optionCatalog),
+    ...featureSkillSources(sources),
   ]
   const table = skillTable(character, sources, skillSources, sources.summary.abilityBonus)
   const ac = armorClass(sources, totals, known)
@@ -146,7 +153,7 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
   const classOptions = optionCards(sources, deps)
   const breakdown = hpBreakdown(character, deps.classByKey, sources.summary)
   const rolled = character.hp.method === 'rolled' && breakdown.rolledHP !== undefined
-  const features = featureRows(sources, deps.optionCatalog)
+  const features = featureRows(sources, deps.optionCatalog, deps.items)
   // The first row of a name is the feature's own text; later rows are its improvements.
   const featureText = new Map(
     [...features]
@@ -193,6 +200,9 @@ export function deriveSheet(character: Character, deps: DeriveDeps): DerivedShee
     attacks: attackRows(sources, totals, prof.value, known, ac.lines),
     spellStats: spellStats(sources, deps, totals, prof.value, ac.lines),
     features,
+    withheldFeatures: [...sources.featureChoices.offered].filter(
+      (id) => !sources.featureChoices.chosen.has(id),
+    ),
     resources,
     wildShapes: character.wildShapes,
     proficiencies: known,

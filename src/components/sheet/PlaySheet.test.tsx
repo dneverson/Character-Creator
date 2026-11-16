@@ -470,6 +470,8 @@ describe('the rests', () => {
       exhaustion: 1,
       slotsSpent: [],
       hitDiceSpent: { d8: 2 },
+      // The weapon masteries of the rest, the mark a later change is counted from: none.
+      masteryAtRest: {},
     })
     expect(active().history.at(-1)?.action).toEqual({ type: 'rest', rest: 'long' })
   })

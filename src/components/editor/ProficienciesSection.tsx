@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
-import Form from 'react-bootstrap/Form'
 import Spinner from 'react-bootstrap/Spinner'
 import Table from 'react-bootstrap/Table'
 import {
@@ -23,6 +22,7 @@ import {
 import type { Listing } from '../../derived/types'
 import { NonStandardBadge } from '../NonStandardBadge'
 import { EditorSection } from './EditorSection'
+import { OptionalRuleSwitch } from './OptionalRuleSwitch'
 import { PickCard } from './PickCard'
 import { pickDetailOf } from './pickDetails'
 import { sourceText } from './sourceText'
@@ -119,22 +119,9 @@ function OptionalToggle({
   onToggle: (on: boolean) => void
 }) {
   return (
-    <div className="border rounded p-3 d-flex flex-wrap align-items-center gap-2">
-      <Form.Check
-        type="switch"
-        id={`optional-${option.id}`}
-        checked={option.on}
-        onChange={(e) => onToggle(e.target.checked)}
-        label={
-          <>
-            <strong>{option.card.label.replace(' · ', ' - ')}:</strong> {option.text}
-          </>
-        }
-      />
-      <Badge bg="warning" text="dark">
-        Optional - depends on your DM
-      </Badge>
-    </div>
+    <OptionalRuleSwitch id={`optional-${option.id}`} on={option.on} onToggle={onToggle}>
+      <strong>{option.card.label.replace(' · ', ' - ')}:</strong> {option.text}
+    </OptionalRuleSwitch>
   )
 }
 

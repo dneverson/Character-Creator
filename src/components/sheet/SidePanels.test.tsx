@@ -49,6 +49,22 @@ describe('sheet side panels', () => {
     expect(within(list).getByText('Passive Insight')).toBeInTheDocument()
   })
 
+  it('shows a sense given only under a condition with the condition and its range', () => {
+    const sheet = sheetOf()
+    const darkvision = {
+      key: 'darkvision',
+      label: 'Darkvision',
+      range: { value: 0, lines: [] },
+      conditional: { when: 'While in dim light or darkness', range: 60 },
+    }
+    render(<SensesPanel sheet={{ ...sheet, senses: [darkvision] }} />)
+    const row = within(screen.getByRole('list', { name: 'Senses' }))
+      .getByText('Darkvision')
+      .closest('li') as HTMLElement
+    expect(within(row).getByText('While in dim light or darkness')).toBeInTheDocument()
+    expect(row).toHaveTextContent('60 ft., conditional')
+  })
+
   it('lists each proficiency group as a comma line that opens where each comes from', async () => {
     const user = userEvent.setup()
     const sheet = sheetOf()

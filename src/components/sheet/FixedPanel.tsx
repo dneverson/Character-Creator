@@ -36,7 +36,11 @@ export function StatBox({
   breakdown?: BreakdownSpec
 }) {
   return (
-    <div className="sheet-stat" role="group" aria-label={label}>
+    <div
+      className={breakdown ? 'sheet-stat sheet-stat--breakdown' : 'sheet-stat'}
+      role="group"
+      aria-label={label}
+    >
       <div className="sheet-stat__label">{label}</div>
       <div className="sheet-stat__value">{value}</div>
       {sub !== undefined && <div className="sheet-stat__sub">{sub}</div>}

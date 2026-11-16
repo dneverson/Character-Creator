@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { dataDir, findIds, records, recordId, type Rec } from '../test/dataAudit'
 import { EXPERTISE_GRANTS } from './expertiseGrants'
+import { FEATURE_GRANTS } from './featureGrants'
 import { holderId } from './holder'
 
 /** A feature that counts the proficiency bonus twice, in text. */
@@ -34,20 +35,20 @@ export const EXPERTISE_NOT_GRANTED: Record<string, string> = {
     'doubles the bonus for the checks of one kind of stonework',
   'race|Dwarf|PHB': 'doubles the bonus for the checks of one kind of stonework',
   'subclassFeature|Blessings of Knowledge|FRHoF|Cleric|Knowledge':
-    'gives its skills with the expertise as one pick, and a subclass skill is not stored',
+    'the expertise follows the two skills picked on its skill card, not a pick of its own',
   'subclassFeature|Blessings of Knowledge|PHB|Cleric|Knowledge':
-    'gives its skills with the expertise as one pick, and a subclass skill is not stored',
+    'the expertise follows the two skills picked on its skill card, not a pick of its own',
   'subclassFeature|Dragon Ancestor|PHB|Sorcerer|Draconic':
     'doubles the Charisma bonus for the checks with dragons only',
-  'subclassFeature|Royal Envoy|SCAG|Fighter|Purple Dragon Knight (Banneret)':
-    'gives its skill with the expertise, and a subclass skill is not stored',
-  'subclassFeature|Survivalist|XGE|Rogue|Scout':
-    'gives its skills with the expertise, and a subclass skill is not stored',
 }
 
 describe.skipIf(!dataDir)('expertise grants against the data', () => {
   const dir = dataDir ?? ''
-  const rowIds = new Set(EXPERTISE_GRANTS.map((g) => holderId(g.holder)))
+  // A feature that gives a skill with its expertise is a row of the features table.
+  const rowIds = new Set([
+    ...EXPERTISE_GRANTS.map((g) => holderId(g.holder)),
+    ...FEATURE_GRANTS.filter((g) => g.expertise).map((g) => holderId(g.holder)),
+  ])
 
   it('grants or explains every feature that gives expertise in text', () => {
     // A record that lists its expertise as data is read from there, not from its text.

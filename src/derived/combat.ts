@@ -251,8 +251,16 @@ export function edgeLine(
   line: Pick<Line, 'label' | 'source' | 'text' | 'status' | 'when' | 'why'>,
 ): Line {
   const rule = PASSIVE_EDGE[edition]
+  // The 2024 rules raise or lower only Passive Perception: the line shows, not counted.
+  const off: Pick<Line, 'status' | 'why'> | undefined = rule.skills.includes(key)
+    ? undefined
+    : {
+        status: 'inactive',
+        why: 'The 2024 rules change only Passive Perception for advantage or disadvantage.',
+      }
   return {
     ...line,
+    ...off,
     id: `passive|${key}|edge|${line.source.tag}|${line.label}`,
     amount: edge === 'advantage' ? rule.amount : -rule.amount,
     op: 'add',

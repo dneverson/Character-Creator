@@ -10,7 +10,7 @@ export type Holder =
       subclassFeature: {
         className: string
         shortName: string
-        /** The subclass's book. */
+        /** The feature's book: the subclass's, but for an optional feature of another. */
         source: string
         /** The feature's own name; its book is the subclass's. */
         name: string

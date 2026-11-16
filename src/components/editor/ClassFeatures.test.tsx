@@ -348,6 +348,48 @@ describe('ClassFeatures', () => {
     expect(screen.queryByText('Defense')).toBeNull()
   })
 
+  it('shows the cantrip pick of a taken invocation with the class that took it', async () => {
+    const warlock: LoadedClass = {
+      entry: {
+        name: 'Warlock',
+        source: 'XPHB',
+        edition: 'one',
+        hd: { number: 1, faces: 8 },
+        classFeatures: [],
+        optionalfeatureProgression: [
+          { name: 'Eldritch Invocations', featureType: ['EI'], progression: [1, 3] },
+        ],
+      },
+      file: {},
+    }
+    mockClasses.mockResolvedValue([warlock])
+    mockFeatures.mockReturnValue([])
+    vi.mocked(loadClassOptions).mockResolvedValue([
+      {
+        key: 'Agonizing Blast|XPHB',
+        name: 'Agonizing Blast',
+        source: 'XPHB',
+        types: ['EI'],
+        entries: ['Add your Charisma modifier to its damage.'],
+      },
+    ])
+    seedActive((ch) => {
+      ch.selectedBooks = ['XPHB']
+      ch.classes = [{ name: 'Warlock', source: 'XPHB', level: 2 }]
+      ch.classOptions = { 'class:Warlock|XPHB|EI': ['Agonizing Blast|XPHB'] }
+      ch.spells = {
+        'Warlock|XPHB': {
+          cantrips: [{ name: 'Eldritch Blast', source: 'XPHB', level: 0 }],
+          spells: [],
+        },
+      }
+    })
+    renderSection()
+
+    expect(await screen.findByText('Class - Agonizing Blast cantrip')).toBeInTheDocument()
+    expect(screen.getByText('Eldritch Blast')).toBeInTheDocument()
+  })
+
   it('greys an option whose prerequisite is not met and still allows it with DM approval', async () => {
     const user = userEvent.setup()
     const warlock: LoadedClass = {
@@ -409,5 +451,64 @@ describe('ClassFeatures', () => {
     expect(useCharacterStore.getState().characters[c.id].classOptions).toEqual({
       'class:Warlock|PHB|EI': ['Agonizing Blast|PHB'],
     })
+  })
+
+  it('offers an optional class feature and lists only the one of the pair taken', async () => {
+    const user = userEvent.setup()
+    const feature = (name: string, source: string, entries: string[]) => ({
+      name,
+      source,
+      className: 'Fighter',
+      classSource: 'PHB',
+      level: 1,
+      entries,
+      ...(source === 'TCE' && { isClassFeatureVariant: true }),
+    })
+    const original = feature('Second Wind', 'PHB', ['Regain hit points.'])
+    const variant = feature('Steady Breath', 'TCE', [
+      '{@i optional feature, which replaces the Second Wind feature}',
+      'Breathe.',
+    ])
+    mockClasses.mockResolvedValue([
+      {
+        entry: {
+          ...fighter.entry,
+          classFeatures: ['Second Wind|Fighter||1', 'Steady Breath|Fighter||1|TCE'],
+        },
+        file: { classFeature: [original, variant] },
+      },
+    ])
+    mockFeatures.mockReturnValue([
+      { ...original, id: 'classFeature|Second Wind|PHB|Fighter' },
+      { ...variant, id: 'classFeature|Steady Breath|TCE|Fighter' },
+    ])
+    const c = seedActive((ch) => {
+      ch.selectedBooks = ['PHB', 'TCE']
+      ch.classes = [{ name: 'Fighter', source: 'PHB', level: 1 }]
+    })
+    renderSection()
+
+    const headers = () =>
+      screen
+        .getAllByRole('button')
+        .map((b) => b.textContent ?? '')
+        .filter((t) => t.startsWith('Lv '))
+    expect(
+      await screen.findByText('Class - Fighter Steady Breath', { exact: false }),
+    ).toBeInTheDocument()
+    expect(headers()).toEqual(['Lv 1Second Wind'])
+    const rowOf = (name: string) =>
+      screen
+        .getAllByText(name)
+        .map((el) => el.closest('tr'))
+        .find((tr): tr is HTMLTableRowElement => tr !== null) as HTMLElement
+    await user.click(
+      within(rowOf('Steady Breath')).getByRole('button', { name: 'Choose' }),
+    )
+    expect(useCharacterStore.getState().characters[c.id].classOptions).toEqual({
+      'class:Fighter|PHB|feature:Steady Breath|1': ['Steady Breath|Fighter|PHB|1'],
+    })
+    await settle()
+    expect(headers()).toEqual(['Lv 1Steady Breath'])
   })
 })

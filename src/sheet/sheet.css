@@ -168,6 +168,12 @@ body.sheet-page {
   font-size: 0.75rem;
   color: var(--sheet-muted-ink);
 }
+/* The info icon of a box that opens its breakdown sits in the bottom corner: the line under
+   the number keeps clear of it on both sides, so it stays centred and wraps before it. */
+.sheet-stat--breakdown .sheet-stat__sub {
+  padding-inline: 1rem;
+  overflow-wrap: anywhere;
+}
 
 /* Left column beside the switching box. */
 .sheet-main {

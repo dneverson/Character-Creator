@@ -5,6 +5,7 @@
 
 import { ABILITIES, ABILITY_NAMES, type AbilityKey } from '../dice/dice'
 import { featuresForClass, type LoadedClass } from '../data/class'
+import type { ClassOption } from '../data/classOptions'
 import {
   ABILITY_SCORE_MAX,
   increasesLeft,
@@ -97,6 +98,11 @@ export interface FeatContext {
   classByKey: Map<string, LoadedClass>
   race?: PlayableRace
   background?: PlayableBackground
+  /**
+   * The optional features of the books, for the feats an option taken gives (Lessons of
+   * the First Ones gives an Origin feat each time it is taken).
+   */
+  optionCatalog?: readonly ClassOption[]
 }
 
 export const FEAT_SKILL_TAG_PREFIX = 'feat:'
@@ -181,6 +187,59 @@ function classSlots(character: Character, classByKey: Map<string, LoadedClass>) 
   return found.map((f) => f.slot)
 }
 
+/** The feats an option gives, as its data's `featProgression` lists them. */
+export function optionFeatGrants(
+  option: ClassOption,
+): { name: string; categories: string[]; count: number }[] {
+  return (option.featProgression ?? []).flatMap((raw) => {
+    if (!raw || typeof raw !== 'object') return []
+    const g = raw as { name?: unknown; category?: unknown; progression?: unknown }
+    const categories = Array.isArray(g.category)
+      ? g.category.filter((c): c is string => typeof c === 'string')
+      : []
+    const per = (g.progression as Record<string, unknown> | undefined)?.['*']
+    const count = typeof per === 'number' ? per : 0
+    return count > 0 && categories.length > 0
+      ? [{ name: typeof g.name === 'string' ? g.name : 'Feat', categories, count }]
+      : []
+  })
+}
+
+/**
+ * The feat slots of the options a class's picks hold: one set each time the option is
+ * taken. Only the picks under a class the character has count.
+ */
+function optionSlots(character: Character, catalog: readonly ClassOption[]): FeatSlot[] {
+  const byKey = new Map(catalog.map((o) => [o.key, o]))
+  const slots: FeatSlot[] = []
+  character.classes.forEach((c, classIndex) => {
+    const prefix = `class:${c.name}|${c.source}|`
+    for (const [tag, keys] of Object.entries(character.classOptions)) {
+      if (!tag.startsWith(prefix)) continue
+      keys.forEach((key, time) => {
+        const option = byKey.get(key)
+        if (!option) return
+        for (const grant of optionFeatGrants(option)) {
+          for (let n = 0; n < grant.count; n++) {
+            slots.push({
+              id: `${tag}:${key}:${time}:${n}`,
+              label: `${c.name} - ${option.name} - ${grant.name}`,
+              origin: 'class',
+              allowsAsi: false,
+              categories: grant.categories,
+              named: [],
+              preferred: grant.categories,
+              level: c.level,
+              classIndex,
+            })
+          }
+        }
+      })
+    }
+  })
+  return slots
+}
+
 /** Every feat slot the character has, in the order they are gained. */
 export function featSlots(character: Character, ctx: FeatContext): FeatSlot[] {
   const slots: FeatSlot[] = []
@@ -216,6 +275,7 @@ export function featSlots(character: Character, ctx: FeatContext): FeatSlot[] {
     )
   }
   slots.push(...classSlots(character, ctx.classByKey))
+  slots.push(...optionSlots(character, ctx.optionCatalog ?? []))
   const bonus = character.feats.bonusSlots
   bonus.forEach((id, i) =>
     slots.push({

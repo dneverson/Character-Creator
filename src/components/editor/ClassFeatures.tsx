@@ -17,7 +17,7 @@ import { useCharacter } from '../../character/useCharacterDoc'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { Entries } from '../../text/Entries'
 import { ClassLevelTable } from './ClassLevelTable'
-import { isFightingStyleCard } from '../../derived/classOptions'
+import { heldEntries, isFightingStyleCard } from '../../derived/classOptions'
 import { PickCard } from './PickCard'
 import { useDerivedSheet } from './useDerivedSheet'
 import { usePickClassOption } from './usePickClassOption'
@@ -80,10 +80,15 @@ interface CardProps {
   cls: ClassRef
   options: PickCardModel[]
   onPick: (card: PickCardModel, chip: PickChip) => void
+  /** The features not had because of a choice (an optional class feature not taken). */
+  withheld: ReadonlySet<string>
 }
 
-function ClassFeaturesCard({ loaded, cls, options, onPick }: CardProps) {
+function ClassFeaturesCard({ loaded, cls, options, onPick, withheld }: CardProps) {
+  const notHad = (id: string) => withheld.has(id)
   const features = featuresForClass(loaded, cls)
+    .filter((f) => !(f.id && notHad(f.id)))
+    .map((f) => ({ ...f, entries: heldEntries(f.entries, notHad) }))
   const subclass = subclassOf(loaded, cls.subclass)
   return (
     <Card className="mb-3" {...{ [TRAIL_ATTRIBUTE]: `${cls.name} ${cls.level}` }}>
@@ -129,6 +134,7 @@ export function ClassFeatures() {
   const pick = usePickClassOption()
   const { data: loaded } = useAsyncData(loadClasses)
   const { sheet } = useDerivedSheet()
+  const withheld = useMemo(() => new Set(sheet?.withheldFeatures), [sheet])
 
   const byKey = useMemo(() => {
     const m = new Map<string, LoadedClass>()
@@ -141,10 +147,10 @@ export function ClassFeatures() {
   if (chosen.length === 0) return null
   // The fighting styles are picked in Combat, where their rules apply.
   const cards = (sheet?.classOptions ?? []).filter((card) => !isFightingStyleCard(card))
-  const ofClass = (cls: ClassRef) =>
-    cards.filter((card) =>
-      card.tag.startsWith(`class:${classKey(cls.name, cls.source)}|`),
-    )
+  const ofClass = (cls: ClassRef) => {
+    const tag = `class:${classKey(cls.name, cls.source)}`
+    return cards.filter((card) => card.tag.startsWith(`${tag}|`) || card.owner === tag)
+  }
   const ofFeats = cards.filter((card) => card.kind === 'feat')
 
   return (
@@ -162,6 +168,7 @@ export function ClassFeatures() {
             cls={cls}
             options={ofClass(cls)}
             onPick={pick}
+            withheld={withheld}
           />
         )
       })}

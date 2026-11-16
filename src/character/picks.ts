@@ -119,6 +119,11 @@ export interface PickCard {
   /** Short name: "Background", "Race", or the class or feat. */
   name: string
   kind: SkillSourceKind
+  /**
+   * The class or feat the card is shown with ("class:Warlock|XPHB"), when its tag does
+   * not start with it: the pick of an option that class or feat took.
+   */
+  owner?: string
   /** What is picked, plural: "skills", "languages". */
   noun: string
   /** Every kind of pick the card's budget pays for (a Skilled pick is a skill or a tool). */

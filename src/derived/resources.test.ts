@@ -274,3 +274,41 @@ describe('counters of a copied class', () => {
     expect(sheet.resources.map((r) => [r.label, r.max])).toEqual([['Wild Shape', 2]])
   })
 })
+
+describe('the counters of optional class features', () => {
+  const feature = (name: string, source: string, level: number, entries: string[]) => ({
+    name,
+    source,
+    className: 'Ranger',
+    classSource: 'PHB',
+    level,
+    entries,
+    ...(source === 'TCE' && { isClassFeatureVariant: true }),
+  })
+  const ranger = loadedClass('Ranger', [], [], {
+    classFeature: [
+      feature('Favored Enemy', 'PHB', 1, ['Choose an enemy.']),
+      feature('Favored Foe', 'TCE', 1, [
+        '{@i optional feature, which replaces the Favored Enemy feature}',
+        'Mark a foe.',
+      ]),
+      feature('Primeval Awareness', 'PHB', 3, ['Sense creatures.']),
+      feature('Primal Awareness', 'TCE', 3, [
+        '{@i optional feature, which replaces the Primeval Awareness feature}',
+        'Speak with animals.',
+      ]),
+    ],
+  })
+
+  it('counts Favored Foe and Primal Awareness only once the player takes them', () => {
+    const c = build('Ranger', 3, {}, [])
+    c.selectedBooks = ['PHB', 'TCE']
+    const labels = () => deriveSheet(c, deps([ranger])).resources.map((r) => r.label)
+    expect(labels()).toEqual([])
+    c.classOptions = {
+      'class:Ranger|PHB|feature:Favored Foe|1': ['Favored Foe|Ranger|PHB|1'],
+      'class:Ranger|PHB|feature:Primal Awareness|3': ['Primal Awareness|Ranger|PHB|3'],
+    }
+    expect(labels()).toEqual(['Favored Foe', 'Primal Awareness'])
+  })
+})

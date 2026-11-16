@@ -98,6 +98,7 @@ function summarize(character: Character, deps: SheetDeps) {
     classByKey: deps.classByKey,
     race: deps.race,
     background: deps.background,
+    optionCatalog: deps.optionCatalog,
   })
   const derived = deriveSheet(character, deps)
   const totals = derived.totals

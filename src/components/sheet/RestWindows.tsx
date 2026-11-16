@@ -9,6 +9,7 @@ import Modal from 'react-bootstrap/Modal'
 import type { HitDieSpend } from '../../character/model'
 import type { DerivedSheet } from '../../derived'
 import { BASE_SOURCE, quantity, type Line } from '../../derived/types'
+import { masterySnapshot } from '../../derived/weaponMastery'
 import { abilityMod, formatMod, randomInt } from '../../dice/dice'
 import type { HitDicePool } from '../../play/derivePlay'
 import {
@@ -234,14 +235,20 @@ function RestWindow({
     const restored = rules.some((e) => e.kind === 'rechargeUses')
       ? restoredUses(kind, uses)
       : []
+    // A long rest is when the weapon masteries can change: what they are now is the mark
+    // later changes are counted from.
+    const masteryAtRest =
+      kind === 'long' ? masterySnapshot(sheet.classOptions) : undefined
     applyPlay(
-      (play) =>
-        applyRest(play, rules, {
+      (play) => ({
+        ...applyRest(play, rules, {
           maxHp: current.derived.maxHp,
           hitDice: current.derived.hitDice,
           spends,
           uses,
         }),
+        ...(masteryAtRest ? { masteryAtRest } : {}),
+      }),
       {
         type: 'rest',
         rest: kind,

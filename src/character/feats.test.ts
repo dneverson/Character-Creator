@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ClassFeatureEntry, LoadedClass } from '../data/class'
 import type { PlayableBackground } from '../data/background'
+import type { ClassOption } from '../data/classOptions'
 import { ASI_OPTIONS, type FeatGrant } from '../data/feats'
 import { parseAbilityOptions } from '../data/abilityOptions'
 import type { PlayableRace } from '../data/race'
@@ -10,6 +11,7 @@ import {
   classEntryScores,
   featRuleFlags,
   featSlots,
+  optionFeatGrants,
   resolveFeats,
   type FeatContext,
 } from './feats'
@@ -268,6 +270,50 @@ describe('featSlots', () => {
 })
 
 // ---- Resolution -------------------------------------------------------------
+
+describe('the feats an option taken gives', () => {
+  const lessons: ClassOption = {
+    key: 'Lessons of the First Ones|XPHB',
+    name: 'Lessons of the First Ones',
+    source: 'XPHB',
+    types: ['EI'],
+    entries: [],
+    featProgression: [{ name: 'Origin Feat', category: ['O'], progression: { '*': 1 } }],
+  }
+
+  it('gives an Origin feat slot each time the invocation is taken, under a class held', () => {
+    const c = character([{ name: 'Fighter', source: 'XPHB', level: 5 }])
+    c.classOptions = {
+      'class:Fighter|XPHB|EI': [lessons.key, lessons.key],
+      // A pick under a class the character does not have gives nothing.
+      'class:Warlock|XPHB|EI': [lessons.key],
+    }
+    const slots = featSlots(c, ctx({ optionCatalog: [lessons] })).filter((s) =>
+      s.label.includes('Lessons'),
+    )
+    expect(slots.map((s) => [s.label, s.categories, s.allowsAsi])).toEqual([
+      ['Fighter - Lessons of the First Ones - Origin Feat', ['O'], false],
+      ['Fighter - Lessons of the First Ones - Origin Feat', ['O'], false],
+    ])
+    expect(new Set(slots.map((s) => s.id)).size).toBe(2)
+  })
+
+  it('reads only a well formed feat progression', () => {
+    expect(
+      optionFeatGrants({
+        ...lessons,
+        featProgression: [null, { category: 'O' }, { category: ['O'], progression: {} }],
+      }),
+    ).toEqual([])
+    expect(
+      optionFeatGrants({
+        ...lessons,
+        featProgression: [{ category: ['O'], progression: { '*': 2 } }],
+      }),
+    ).toEqual([{ name: 'Feat', categories: ['O'], count: 2 }])
+    expect(optionFeatGrants({ ...lessons, featProgression: undefined })).toEqual([])
+  })
+})
 
 describe('resolveFeats', () => {
   const fighter4 = { name: 'Fighter', source: 'XPHB', level: 4 }

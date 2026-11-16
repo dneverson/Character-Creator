@@ -303,7 +303,7 @@ export const PROFICIENCY_GRANTS: readonly ProficiencyGrant[] = [
   },
   {
     holder: subclass('Rogue', 'Mastermind', 'XGE', 'Master of Intrigue'),
-    text: 'Mastermind: you gain proficiency with the disguise kit and the forgery kit (and a gaming set and two languages of your choice, which are not stored yet).',
+    text: 'Mastermind: you gain proficiency with the disguise kit and the forgery kit (a gaming set and two languages of your choice are picks of the features table).',
     tools: ['disguise kit', 'forgery kit'],
   },
   // A Divine Order or Primal Order option: held only when it is the one taken.
@@ -336,7 +336,7 @@ export const PROFICIENCY_GRANTS: readonly ProficiencyGrant[] = [
   },
   {
     holder: classFeature('Rogue', 'XPHB', "Thieves' Cant"),
-    text: "Thieves' Cant: you know Thieves' Cant (and one other language of your choice, which is not stored yet).",
+    text: "Thieves' Cant: you know Thieves' Cant (one other language of your choice is a pick of the features table).",
     languages: ["Thieves' cant"],
   },
 ]

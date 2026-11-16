@@ -13,7 +13,10 @@ import type { RaceRef } from '../../character/model'
 import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { PickOne } from '../table/PickOne'
+import { canCustomizeOrigin, raceAbilityOptions } from '../../rules/customOrigin'
+import { AbbrText } from '../Abbr'
 import { AbilityOptionPicker } from './AbilityOptionPicker'
+import { OptionalRuleSwitch } from './OptionalRuleSwitch'
 import { OriginIncreaseFlags } from './OriginIncreaseFlags'
 import { EditorSection } from './EditorSection'
 import { NotInBooksAlert } from './NotInBooksAlert'
@@ -27,8 +30,12 @@ import {
   raceTags,
 } from './raceFacts'
 
-/** A character's record of a race, taking its increases the given way. */
-function raceRef(race: PlayableRace, abilityOption = 0): RaceRef {
+/**
+ * A character's record of a race, taking its increases the given way: under Customizing
+ * Your Origin, with none given outright.
+ */
+function raceRef(race: PlayableRace, abilityOption = 0, customOrigin = false): RaceRef {
+  const custom = customOrigin && canCustomizeOrigin(race)
   return {
     name: race.name,
     baseName: race.baseName,
@@ -36,8 +43,9 @@ function raceRef(race: PlayableRace, abilityOption = 0): RaceRef {
     source: race.source,
     subraceName: race.subraceName,
     abilityOption,
-    abilityFixed: race.abilityOptions[abilityOption]?.fixed ?? {},
+    abilityFixed: custom ? {} : (race.abilityOptions[abilityOption]?.fixed ?? {}),
     abilityChoices: {},
+    ...(custom ? { customOrigin: true } : {}),
   }
 }
 
@@ -118,13 +126,31 @@ export function RaceSelection() {
                 <h4 className="h6 mb-0">Ability score increases</h4>
                 <OriginIncreaseFlags character={character} race={picked} />
               </div>
+              {canCustomizeOrigin(picked) && (
+                <div className="mb-2">
+                  <OptionalRuleSwitch
+                    id="race-custom-origin"
+                    on={race.customOrigin === true}
+                    onToggle={(on) =>
+                      updateActive({ race: raceRef(picked, race.abilityOption ?? 0, on) })
+                    }
+                  >
+                    <strong>Customizing Your Origin:</strong>{' '}
+                    <AbbrText text="place each of the race's increases on an ability of your choice, a different one each (TCE, an optional rule)." />
+                  </OptionalRuleSwitch>
+                </div>
+              )}
               {picked.abilityOptions.length > 0 ? (
                 <AbilityOptionPicker
                   id="race-ability"
-                  options={picked.abilityOptions}
+                  options={raceAbilityOptions(picked, race)}
                   optionIndex={race.abilityOption ?? 0}
                   choices={race.abilityChoices}
-                  onOption={(index) => updateActive({ race: raceRef(picked, index) })}
+                  onOption={(index) =>
+                    updateActive({
+                      race: raceRef(picked, index, race.customOrigin === true),
+                    })
+                  }
                   onChoices={placeIncreases}
                 />
               ) : (

@@ -15,9 +15,8 @@ import {
   type UseCount,
 } from '../rules/resources'
 import type { Entry } from '../text/Entries'
-import { stripTags } from '../text/tags'
 import type { AbilityTotals } from './armorClass'
-import { cellText } from './classLevelTable'
+import { columnCell } from './classTable'
 import { heldBy, type Held, type Sources } from './sources'
 
 export interface DerivedResource {
@@ -94,15 +93,6 @@ export function countUses(
       return { max: Number.parseInt(cell, 10) || 0, basis }
     }
   }
-}
-
-/** The text of a level table's cell by its column's label. */
-function columnCell(tables: readonly ClassTableGroup[], column: string, level: number) {
-  for (const group of tables) {
-    const col = (group.colLabels ?? []).findIndex((l) => stripTags(l) === column)
-    if (col >= 0) return cellText(group.rows?.[level - 1]?.[col])
-  }
-  return ''
 }
 
 export const RESTORES: Record<Recharge, string> = {

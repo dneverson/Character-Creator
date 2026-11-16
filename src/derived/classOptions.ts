@@ -30,12 +30,16 @@ import { parseSkillGrants } from '../data/skills'
 import { styleAppliedFor } from '../rules/fightingStyles'
 import {
   FEATURE_CHOICE_FOLLOWS,
+  FEATURE_GOES_WITH,
   FEATURE_OPTIONS_NOT_CHOSEN,
+  VARIANT_OF_BUILD,
 } from '../rules/featureChoices'
 import { holderId, type Holder } from '../rules/holder'
 import { SENSE_RULES } from '../rules/senseRules'
 import type { Entry } from '../text/Entries'
 import { optionPrereqs } from './optionPrereqs'
+import { featurePickCards, featurePickWord } from './featurePicks'
+import { MASTERY_MARK, masteryCards } from './weaponMastery'
 import { fallbackEdition } from './edition'
 import type { ClassSource, DeriveDeps, HeldFeat, Sources } from './sources'
 
@@ -78,6 +82,15 @@ const totalLevel = (classes: readonly ClassSource[]) =>
     classes.reduce((n, c) => n + c.level, 0),
   )
 
+/** A class of the character as the owner of its options. */
+const classOwner = (c: ClassSource, index: number, loaded: LoadedClass): OptionOwner => ({
+  tag: `class:${c.row.name}|${c.row.source}`,
+  name: c.row.name,
+  kind: index > 0 ? 'multiclass' : 'class',
+  level: c.level,
+  edition: loaded.entry.edition,
+})
+
 /** The owners a character has and the progressions each gives. */
 function ownersOf(
   classes: readonly ClassSource[],
@@ -87,13 +100,7 @@ function ownersOf(
   classes.forEach((c, index) => {
     if (!c.loaded || c.level < 1) return
     out.push({
-      owner: {
-        tag: `class:${c.row.name}|${c.row.source}`,
-        name: c.row.name,
-        kind: index > 0 ? 'multiclass' : 'class',
-        level: c.level,
-        edition: c.loaded.entry.edition,
-      },
+      owner: classOwner(c, index, c.loaded),
       progressions: [
         ...(c.loaded.entry.optionalfeatureProgression ?? []),
         ...(subclassOfSource(c)?.optionalfeatureProgression ?? []),
@@ -211,6 +218,10 @@ export interface FeatureChoiceSlot {
   options: FeatureOption[]
   /** The feature whose pick this one follows (Storm Soul follows Storm Aura). */
   follows?: string
+  /** The option held while none is picked: the feature an optional one would replace. */
+  fallback?: string
+  /** The choice of an optional class feature or the feature it replaces. */
+  variant?: true
 }
 
 type Json = Record<string, unknown>
@@ -218,11 +229,15 @@ const isJson = (v: unknown): v is Json =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
 
 interface PoolFeature {
+  /** The data's reference of the feature, with its class's book filled in. */
+  ref: string
   name: string
   source: string
   level: number
   entries: Entry[]
   holder: Holder
+  /** An optional class feature (Tasha's), by the data's mark. */
+  variant?: true
 }
 
 /** Resolves a class feature reference: "Protector|Cleric|XPHB|1|XPHB". */
@@ -238,13 +253,15 @@ function classFeatureByRef(loaded: LoadedClass, ref: string): PoolFeature | unde
   )
   return f
     ? {
+        ref: [name, className, source, level].join('|'),
         name: f.name,
         source: f.source,
         level: f.level,
         entries: f.entries,
         holder: {
-          classFeature: { className: f.className, source: f.classSource, name: f.name },
+          classFeature: { className: f.className, source: f.source, name: f.name },
         },
+        ...(f.isClassFeatureVariant && { variant: true as const }),
       }
     : undefined
 }
@@ -263,6 +280,14 @@ function subclassFeatureByRef(loaded: LoadedClass, ref: string): PoolFeature | u
   )
   return f
     ? {
+        ref: [
+          name,
+          className,
+          classSource || 'PHB',
+          shortName,
+          subclassSource || 'PHB',
+          level,
+        ].join('|'),
         name: f.name,
         source: f.source,
         level: f.level,
@@ -271,10 +296,11 @@ function subclassFeatureByRef(loaded: LoadedClass, ref: string): PoolFeature | u
           subclassFeature: {
             className: f.className,
             shortName: f.subclassShortName,
-            source: f.subclassSource,
+            source: f.source,
             name: f.name,
           },
         },
+        ...(f.isClassFeatureVariant && { variant: true as const }),
       }
     : undefined
 }
@@ -382,13 +408,7 @@ export function featureChoiceSlots(classes: readonly ClassSource[]): FeatureChoi
   classes.forEach((c, index) => {
     const loaded = c.loaded
     if (!loaded || c.level < 1) return
-    const owner: OptionOwner = {
-      tag: `class:${c.row.name}|${c.row.source}`,
-      name: c.row.name,
-      kind: index > 0 ? 'multiclass' : 'class',
-      level: c.level,
-      edition: loaded.entry.edition,
-    }
+    const owner = classOwner(c, index, loaded)
     for (const top of poolFeaturesOf(c)) {
       for (const block of optionsBlocksOf(loaded, top)) {
         const id = holderId(block.feature.holder)
@@ -396,7 +416,7 @@ export function featureChoiceSlots(classes: readonly ClassSource[]): FeatureChoi
         if (block.entries.length === 0 || !block.entries.every(isFeatureRef)) continue
         const options = block.entries.flatMap((e): FeatureOption[] => {
           const f = byRef(loaded, e)
-          return f ? [{ ref: refOf(e), ...f }] : []
+          return f ? [{ ...f, ref: refOf(e) }] : []
         })
         if (options.length === 0 || block.feature.level > c.level) continue
         out.push({
@@ -415,15 +435,199 @@ export function featureChoiceSlots(classes: readonly ClassSource[]): FeatureChoi
   return out
 }
 
+// ---- Optional class features ----------------------------------------------------------
+
+/** The name of the feature an optional class feature replaces, as its first line says. */
+export function replacedName(entries: readonly Entry[]): string | undefined {
+  const first = entries.find((e): e is string => typeof e === 'string') ?? ''
+  // A tag reads as its first part here: "{@classFeature Roving|Ranger|XPHB|6}" is Roving.
+  const plain = first.replace(/\{@\w+ ([^|}]*)[^}]*\}/g, '$1')
+  return /replaces the (.+?) feature/i.exec(plain)?.[1]
+}
+
+/**
+ * The features and every feature their text takes in by reference, each once: the
+ * optional Channel Divinity of a 2014 Paladin is in the text of its Sacred Oath.
+ */
+function withReferenced(loaded: LoadedClass, features: readonly PoolFeature[]) {
+  const out = new Map<string, PoolFeature>()
+  const visit = (f: PoolFeature) => {
+    if (out.has(f.ref)) return
+    out.set(f.ref, f)
+    const walk = (entry: unknown) => {
+      if (Array.isArray(entry)) return entry.forEach(walk)
+      if (!isJson(entry)) return
+      const nested = byRef(loaded, entry)
+      if (nested) return visit(nested)
+      walk(entry.entries)
+    }
+    walk(f.entries)
+  }
+  features.forEach(visit)
+  return [...out.values()]
+}
+
+/**
+ * A class's features up to its level with those their text takes in, the text of the
+ * feature that brings the subclass too (a 2014 Sacred Oath names the optional Channel
+ * Divinity of Tasha's).
+ */
+export function featurePool(c: ClassSource): PoolFeature[] {
+  const loaded = c.loaded
+  if (!loaded) return []
+  const subclassGains = (loaded.entry.classFeatures ?? []).flatMap((item) => {
+    if (typeof item !== 'object' || !item.gainSubclassFeature) return []
+    const [name, className, classSource, level] = item.classFeature.split('|')
+    const f = classFeatureByRef(
+      loaded,
+      [name, className, classSource || loaded.entry.source, level].join('|'),
+    )
+    return f ? [f] : []
+  })
+  return withReferenced(loaded, [...poolFeaturesOf(c), ...subclassGains]).filter(
+    (f) => f.level <= c.level,
+  )
+}
+
+/** The data identity of the feature a reference entry names, as `holderId` writes it. */
+function refEntryId(entry: Json): string | undefined {
+  if (entry.type === 'refClassFeature' && typeof entry.classFeature === 'string') {
+    const [name, className, classSource, , source] = entry.classFeature.split('|')
+    return holderId({
+      classFeature: { className, source: source || classSource || 'PHB', name },
+    })
+  }
+  if (entry.type === 'refSubclassFeature' && typeof entry.subclassFeature === 'string') {
+    const [name, className, , shortName, subclassSource, , source] =
+      entry.subclassFeature.split('|')
+    return holderId({
+      subclassFeature: {
+        className,
+        shortName,
+        source: source || subclassSource || 'PHB',
+        name,
+      },
+    })
+  }
+  return undefined
+}
+
+/**
+ * The entries without the features they take in by reference that are not had: the
+ * Beast Master's text names Ranger's Companion and its optional Primal Companion, and
+ * shows only the one taken.
+ */
+export function heldEntries(
+  entries: readonly Entry[],
+  withheld: (id: string) => boolean,
+): Entry[] {
+  return entries.flatMap((entry): Entry[] => {
+    if (typeof entry !== 'object') return [entry]
+    const id = isJson(entry) ? refEntryId(entry) : undefined
+    if (id) return withheld(id) ? [] : [entry]
+    const inner: unknown = Reflect.get(entry, 'entries')
+    if (!Array.isArray(inner)) return [entry]
+    return [{ ...entry, entries: heldEntries(inner, withheld) }]
+  })
+}
+
+/** Features held, or not, whatever the player picks. */
+export interface FixedFeature {
+  id: string
+  held: boolean
+}
+
+/** A feature held while one of the features named is (Deft Explorer Improvement). */
+export interface TiedFeature {
+  id: string
+  with: string[]
+}
+
+/** The optional class features of the character's classes, and what goes with them. */
+export interface VariantChoices {
+  /** A card for each optional feature that replaces another: one or the other is held. */
+  slots: FeatureChoiceSlot[]
+  fixed: FixedFeature[]
+  ties: TiedFeature[]
+}
+
+/**
+ * The optional class features (Tasha's) of the character's classes. One that replaces a
+ * feature is a choice, the replaced feature held until the player takes the optional one;
+ * one that replaces nothing is held. Neither is offered or held without its book.
+ */
+export function variantChoices(
+  classes: readonly ClassSource[],
+  books: readonly string[],
+): VariantChoices {
+  const out: VariantChoices = { slots: [], fixed: [], ties: [] }
+  const idOf = (f: PoolFeature) => holderId(f.holder)
+  const option = (f: PoolFeature): FeatureOption => ({
+    ref: f.ref,
+    name: f.name,
+    holder: f.holder,
+    level: f.level,
+    source: f.source,
+    entries: f.entries,
+  })
+  classes.forEach((c, index) => {
+    const loaded = c.loaded
+    if (!loaded || c.level < 1) return
+    const pool = featurePool(c)
+    for (const f of pool) {
+      const id = idOf(f)
+      const goes = FEATURE_GOES_WITH[id]
+      if (goes) {
+        out.ties.push({ id, with: pool.filter((p) => goes.includes(p.name)).map(idOf) })
+        continue
+      }
+      if (!f.variant) continue
+      const name = replacedName(f.entries)
+      const replaced = pool.filter((p) => !p.variant && p.name === name)
+      const build = VARIANT_OF_BUILD[id]
+      if (build) {
+        const fits =
+          loaded.entry.name === build.className &&
+          c.row.subclass?.shortName === build.subclass
+        out.fixed.push({ id, held: fits })
+        if (fits) for (const p of replaced) out.fixed.push({ id: idOf(p), held: false })
+        continue
+      }
+      if (!books.includes(f.source)) {
+        out.fixed.push({ id, held: false })
+        continue
+      }
+      if (replaced.length === 0) continue
+      out.slots.push({
+        tag: `class:${c.row.name}|${c.row.source}|feature:${f.name}|${f.level}`,
+        owner: classOwner(c, index, loaded),
+        id,
+        name: f.name,
+        level: f.level,
+        count: 1,
+        options: [...replaced, f].map(option),
+        fallback: replaced[0].ref,
+        variant: true,
+      })
+    }
+  })
+  return out
+}
+
 /** Which features of the lists are offered, and which of them the player took. */
 export interface FeatureChoiceState {
   offered: ReadonlySet<string>
   chosen: ReadonlySet<string>
 }
 
+/** Whether a feature of a choice is not held: offered, and not the one taken. */
+export const featureWithheld = (state: FeatureChoiceState, id: string) =>
+  state.offered.has(id) && !state.chosen.has(id)
+
 export function featureChoiceState(
   character: Character,
   slots: readonly FeatureChoiceSlot[],
+  variants: Pick<VariantChoices, 'fixed' | 'ties'> = { fixed: [], ties: [] },
 ): FeatureChoiceState {
   const offered = new Set<string>()
   const chosen = new Set<string>()
@@ -439,14 +643,26 @@ export function featureChoiceState(
     const followed = slot.follows
       ? takenNames.get(`${slot.owner.tag}|${slot.follows}`)
       : undefined
+    const kept = picks.length === 0 ? slot.fallback : undefined
     for (const option of slot.options) {
       const id = holderId(option.holder)
       offered.add(id)
-      const taken = followed ? followed.includes(option.name) : picks.includes(option.ref)
+      const taken = followed
+        ? followed.includes(option.name)
+        : picks.includes(option.ref) || option.ref === kept
       if (taken) chosen.add(id)
     }
   }
-  return { offered, chosen }
+  for (const { id, held } of variants.fixed) {
+    offered.add(id)
+    if (held) chosen.add(id)
+  }
+  const state = { offered, chosen }
+  for (const tie of variants.ties) {
+    if (tie.with.some((w) => !featureWithheld(state, w))) chosen.add(tie.id)
+  }
+  for (const tie of variants.ties) offered.add(tie.id)
+  return state
 }
 
 // ---- The cards ------------------------------------------------------------------------
@@ -556,6 +772,24 @@ export interface OptionCardContext {
   editionOf: (source: string) => Edition
 }
 
+/**
+ * The row name of each offered option. Two printings that share a name ("Thirsting
+ * Blade" in PHB and XPHB) are told apart by their edition year; every other option
+ * keeps its plain name. The data audit proves no two printings of a name share an
+ * edition.
+ */
+export function sameNameLabels(
+  offered: readonly ClassOption[],
+  editionOf: (source: string) => Edition,
+): (option: ClassOption) => string {
+  const counts = new Map<string, number>()
+  for (const o of offered) counts.set(o.name, (counts.get(o.name) ?? 0) + 1)
+  return (option) =>
+    (counts.get(option.name) ?? 0) < 2
+      ? option.name
+      : `${option.name} (${EDITION_YEAR[editionOf(option.source)]})`
+}
+
 /** "Class", "Multiclass" or "Feat": what a label of an owner's option starts with. */
 const labelPrefix = (owner: OptionOwner) =>
   owner.kind === 'feat' ? 'Feat' : owner.kind === 'multiclass' ? 'Multiclass' : 'Class'
@@ -588,6 +822,7 @@ function optionCard(
         !slot.required.includes(o.key)),
   )
   const prereqCtx = { character, held: ctx.held, features: ctx.features }
+  const nameOf = sameNameLabels(offered, ctx.editionOf)
   const chips = offered.flatMap((o): PickChip[] => {
     const edition = ctx.editionOf(o.source)
     const prereq = optionPrereqs(o.prerequisite, prereqCtx)
@@ -596,9 +831,10 @@ function optionCard(
       prereq.status === 'unmet'
         ? `Needs ${prereq.missing}${DM}`
         : editionReason(o, slot.owner, edition, inBooks)
+    const name = nameOf(o)
     const base = {
       kind: 'option' as const,
-      label: o.name,
+      label: name,
       detail,
       ...(unmet ? { unmet } : {}),
     }
@@ -607,13 +843,13 @@ function optionCard(
       const taken = Array.from({ length: times }, (_, i): PickChip => ({
         ...base,
         value: i === 0 ? o.key : `${o.key}${REPEAT_MARK}${i + 1}`,
-        label: i === 0 ? o.name : `${o.name} (again)`,
+        label: i === 0 ? name : `${name} (again)`,
         state: 'picked',
       }))
       const again: PickChip = {
         ...base,
         value: times === 0 ? o.key : `${o.key}${REPEAT_MARK}${times + 1}`,
-        label: times === 0 ? o.name : `${o.name} (again)`,
+        label: times === 0 ? name : `${name} (again)`,
         state: full ? 'full' : 'available',
       }
       return [...taken, again]
@@ -650,6 +886,12 @@ function optionCard(
   }
 }
 
+/** What the card of an optional class feature says: what it replaces, and the default. */
+function variantNote(slot: FeatureChoiceSlot): string {
+  const kept = slot.options.find((o) => o.ref === slot.fallback)?.name ?? ''
+  return `${slot.name} (level ${slot.level}) is an optional class feature that replaces ${kept}: take one or the other, with your DM's approval. Until you choose, you have ${kept}.`
+}
+
 function featureCard(slot: FeatureChoiceSlot, ctx: OptionCardContext): PickCard {
   const picks = ctx.character.classOptions[slot.tag] ?? []
   const full = picks.length >= slot.count
@@ -679,7 +921,9 @@ function featureCard(slot: FeatureChoiceSlot, ctx: OptionCardContext): PickCard 
     over: picks.length > slot.count,
     picks,
     chips,
-    note: `${slot.name} (level ${slot.level}): choose ${slot.count === 1 ? 'one' : slot.count}. Only the option taken is on your sheet.`,
+    note: slot.variant
+      ? variantNote(slot)
+      : `${slot.name} (level ${slot.level}): choose ${slot.count === 1 ? 'one' : slot.count}. Only the option taken is on your sheet.`,
   }
 }
 
@@ -720,7 +964,9 @@ export function cardChoiceWord(
   const slot = slots.find((s) => s.tag === card.tag)
   if (slot) return `${typeWords(slot.types, slot.title).one} choice`
   const feature = featureSlots.find((s) => s.tag === card.tag)
-  return `${feature?.name ?? 'class option'} choice`
+  if (feature) return `${feature.name} choice`
+  if (card.tag.endsWith(MASTERY_MARK)) return 'weapon mastery choice'
+  return featurePickWord(card.tag) ?? 'class option choice'
 }
 
 /** The class and subclass feature names the character has, lower case. */
@@ -732,7 +978,7 @@ export function featureNames(classes: readonly ClassSource[]): Set<string> {
 
 /** The option cards of a character, from its sources. */
 export function optionCards(sources: Sources, deps: DeriveDeps): PickCard[] {
-  return classOptionCards({
+  const cards = classOptionCards({
     character: sources.character,
     slots: sources.optionSlots,
     featureSlots: sources.featureSlots,
@@ -741,6 +987,11 @@ export function optionCards(sources: Sources, deps: DeriveDeps): PickCard[] {
     catalog: deps.optionCatalog ?? [],
     editionOf: deps.editionOf ?? fallbackEdition,
   })
+  return [
+    ...cards,
+    ...featurePickCards(sources, { items: deps.items, catalog: deps.optionCatalog }),
+    ...masteryCards(sources, deps.items),
+  ]
 }
 
 /** The options held, as the spell grants read them (Pact of the Tome's cantrips). */

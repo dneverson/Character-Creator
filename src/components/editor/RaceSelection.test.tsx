@@ -238,6 +238,33 @@ describe('RaceSelection', () => {
     expect(within(summary()).getByText('Constitution +2')).toBeInTheDocument()
   })
 
+  it("moves a race's increases anywhere under Tasha's Customizing Your Origin", async () => {
+    const user = userEvent.setup()
+    const c = seedActive()
+    renderSection()
+
+    await choose(user, 'Dwarf (Hill)')
+    const toggle = await screen.findByRole('checkbox', {
+      name: /Customizing Your Origin/,
+    })
+    expect(screen.getByText('Optional - depends on your DM')).toBeInTheDocument()
+    await user.click(toggle)
+    await waitFor(() => expect(active(c.id).race?.customOrigin).toBe(true))
+    // The +2 given to Constitution is now the player's to place.
+    expect(active(c.id).race).toMatchObject({ abilityFixed: {}, abilityChoices: {} })
+    await user.click(increase('+2', 'Intelligence'))
+    await waitFor(() => expect(active(c.id).race?.abilityChoices).toEqual({ int: 2 }))
+    expect(screen.queryByText(/allowed with DM approval/)).not.toBeInTheDocument()
+
+    // Off again: the race's own increases come back.
+    await user.click(toggle)
+    await waitFor(() => expect(active(c.id).race?.customOrigin).toBeUndefined())
+    expect(active(c.id).race).toMatchObject({
+      abilityFixed: { con: 2 },
+      abilityChoices: {},
+    })
+  })
+
   it('places a single chosen increase and takes it back off', async () => {
     const user = userEvent.setup()
     const c = seedActive()

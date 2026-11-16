@@ -79,7 +79,9 @@ export function LevelUpDraft({ before, beforeSheet, level }: Props) {
   const earlierCards =
     level.from > 0
       ? after.classOptions.filter(
-          (c) => c.tag.startsWith(`class:${key}|`) && !steps.options.includes(c.tag),
+          (c) =>
+            (c.tag.startsWith(`class:${key}|`) || c.owner === `class:${key}`) &&
+            !steps.options.includes(c.tag),
         )
       : []
   const gained: ResolvedFeature[] = steps.features.map((f) => ({

@@ -17,7 +17,12 @@ import {
 import { loadClassOptions, type ClassOption } from '../data/classOptions'
 import { loadBookEditions } from '../data/edition'
 import { loadFeats } from '../data/feats'
-import type { DeriveDeps } from '../derived/sources'
+import { featureWithheld, replacedName } from '../derived/classOptions'
+import { heldFeaturePicks } from '../derived/featurePicks'
+import { masteryOwners } from '../derived/weaponMastery'
+import { collectSources, type DeriveDeps } from '../derived/sources'
+import { FEATURE_GOES_WITH, VARIANT_OF_BUILD } from '../rules/featureChoices'
+import { holderId } from '../rules/holder'
 import { dataDir } from '../test/dataAudit'
 import { applyLevel, levelUpSteps } from './levelUp'
 import { createCharacter, type Character } from './model'
@@ -146,9 +151,31 @@ describe.skipIf(!dataDir)('level up against the data', async () => {
           wrong.push(`${who}: ${steps.featSlots.length} feat steps, not ${featsWanted}`)
 
         const shown = new Set(steps.features.map((f) => f.name))
+        // An optional class feature, or the one it replaces, is read out once taken: until
+        // then it is an option of the choice the level offers. What goes with a feature not
+        // taken, or belongs to another build, is not had.
+        const sources = collectSources(draft, deps)
+        const choice = new Set(
+          sources.featureSlots
+            .filter((s) => s.variant && steps.options.includes(s.tag))
+            .flatMap((s) => s.options.map((o) => o.name)),
+        )
+        const ofBuild = (f: ResolvedFeature) =>
+          features.some(
+            (v) =>
+              !!v.id && v.id in VARIANT_OF_BUILD && replacedName(v.entries) === f.name,
+          )
+        const notHad = (f: ResolvedFeature) =>
+          !!f.id &&
+          featureWithheld(sources.featureChoices, f.id) &&
+          (choice.has(f.name) ||
+            f.id in FEATURE_GOES_WITH ||
+            f.id in VARIANT_OF_BUILD ||
+            ofBuild(f))
         // A feature with no text of its own (a subclass's heading) has nothing to read.
         for (const f of features.filter((x) => x.entries.length > 0)) {
-          if (!shown.has(f.name)) wrong.push(`${who}: feature ${f.name} not read out`)
+          if (!shown.has(f.name) && !notHad(f))
+            wrong.push(`${who}: feature ${f.name} not read out`)
         }
 
         const grown = new Set<string>()
@@ -169,6 +196,29 @@ describe.skipIf(!dataDir)('level up against the data', async () => {
         for (const f of features) {
           const tag = `class:${name}|${source}|feature:${f.name}|${to}`
           if (steps.options.includes(tag)) grown.add(tag)
+        }
+        // So does an optional class feature of the level that replaces another, where it
+        // is in another feature's text (Primal Companion, in the Beast Master's).
+        for (const s of sources.featureSlots)
+          if (s.variant && s.level === to) grown.add(s.tag)
+        // A feature of the level that gives one more of a list's picks (a favored enemy at
+        // 6th level) grows that list's card.
+        // So does a list whose count is by class level (kensei weapons at 6th level).
+        const picksBefore = new Map(
+          heldFeaturePicks(collectSources(character, deps)).map((h) => [h.tag, h.count]),
+        )
+        for (const held of heldFeaturePicks(sources)) {
+          const ids = held.pick.holders.map(holderId)
+          if (features.some((f) => f.id && ids.includes(f.id))) grown.add(held.tag)
+          if (held.pick.byLevel && held.count > (picksBefore.get(held.tag) ?? 0))
+            grown.add(held.tag)
+        }
+        // A weapon mastery whose count rises (a Fighter's Weapon Mastery column) grows its card.
+        const masteryBefore = new Map(
+          masteryOwners(collectSources(character, deps)).map((o) => [o.tag, o.count]),
+        )
+        for (const owner of masteryOwners(sources)) {
+          if (owner.count > (masteryBefore.get(owner.tag) ?? 0)) grown.add(owner.tag)
         }
         const offered = new Set(steps.options.filter((t) => t.startsWith('class:')))
         for (const tag of grown) {
@@ -191,5 +241,6 @@ describe.skipIf(!dataDir)('level up against the data', async () => {
     expect(wrong).toEqual([])
     expect(playable.length).toBeGreaterThanOrEqual(24)
     expect(levels).toBe(playable.length * 20)
-  })
+    // Every level of every class: seconds of work, more under coverage, so not the default 5.
+  }, 60_000)
 })

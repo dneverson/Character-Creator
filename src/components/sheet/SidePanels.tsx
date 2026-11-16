@@ -94,14 +94,23 @@ export function SensesPanel({ sheet }: { sheet: DerivedSheet }) {
       <ul className="sheet-rows" aria-label="Senses">
         {sheet.senses.map((sense) => (
           <li key={sense.key} className="sheet-row">
-            <span className="sheet-row__name">{sense.label}</span>
+            <span className="sheet-row__name">
+              {sense.label}
+              {sense.conditional && (
+                <span className="d-block small text-body-secondary">
+                  {sense.conditional.when}
+                </span>
+              )}
+            </span>
             <DerivedNumber
               id={`sense:${sense.key}`}
               label={sense.label}
               quantity={sense.range}
               format={feet}
               amountHeader="Range"
-            />
+            >
+              {sense.conditional && `${feet(sense.conditional.range)}, conditional`}
+            </DerivedNumber>
           </li>
         ))}
         {sheet.combat.passives.map((row) => (

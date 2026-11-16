@@ -5,7 +5,10 @@
 
 import { featuresForClass } from '../data/class'
 import type { ClassOption } from '../data/classOptions'
+import type { Item } from '../data/itemTypes'
 import { holderId } from '../rules/holder'
+import { featureWithheld, heldEntries } from './classOptions'
+import { takenFeaturePicks } from './featurePicks'
 import type { Entry } from '../text/Entries'
 import type { Sources } from './sources'
 
@@ -70,23 +73,27 @@ const namedEntries = (entries: readonly Entry[] | undefined): (Named & Entry)[] 
 export function featureRows(
   sources: Sources,
   catalog: readonly ClassOption[] = [],
+  items: readonly Item[] = [],
 ): FeatureRow[] {
   const { classes, race, background, feats } = sources
   const out: FeatureRow[] = []
+  // An optional class feature not taken, or the feature it replaced, is not had.
+  const withheld = (id: string) => featureWithheld(sources.featureChoices, id)
   for (const { row, loaded, level } of classes) {
     if (!loaded || level < 1) continue
     featuresForClass(loaded, { ...row, level })
-      .filter((f) => f.entries.length > 0)
+      .filter((f) => f.entries.length > 0 && !(f.id && withheld(f.id)))
       .forEach((f, i) => {
         const tag = `class:${row.name}|${row.source}`
-        const nested = referencedNames(f.entries).map((name) => `${tag}#${name}`)
+        const entries = heldEntries(f.entries, withheld)
+        const nested = referencedNames(entries).map((name) => `${tag}#${name}`)
         out.push({
           id: `${tag}:${f.level}:${i}`,
           name: f.name,
           from: row.name,
           kind: 'Class',
           level: f.level,
-          entries: f.entries,
+          entries,
           anchor: `${tag}#${f.name}`,
           ...(nested.length > 0 ? { nested } : {}),
         })
@@ -95,6 +102,8 @@ export function featureRows(
   // The feature taken from a list to choose from (a Totem Spirit, a Divine Order). Its
   // anchor is the one its counters take: the class's tag and the feature's own name.
   for (const slot of sources.featureSlots) {
+    // The features of an optional class feature's choice are rows of the class already.
+    if (slot.variant) continue
     for (const option of slot.options) {
       if (!sources.featureChoices.chosen.has(holderId(option.holder))) continue
       out.push({
@@ -107,6 +116,17 @@ export function featureRows(
         anchor: `${slot.owner.tag}#${option.name}`,
       })
     }
+  }
+  // What was taken of a feature's own list (favored enemies, favored terrains).
+  for (const { held, taken } of takenFeaturePicks(sources, { catalog, items })) {
+    if (taken.length === 0) continue
+    out.push({
+      id: held.tag,
+      name: `${held.pick.title}: ${taken.map((o) => o.name).join(', ')}`,
+      from: held.source.label,
+      kind: 'Class',
+      entries: taken.map((o) => `${o.name}: ${o.text}`),
+    })
   }
   // The options taken (an invocation, a maneuver) and those known outright.
   const byKey = new Map(catalog.map((o) => [o.key, o]))

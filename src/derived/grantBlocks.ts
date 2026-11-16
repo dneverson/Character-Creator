@@ -18,6 +18,7 @@ import {
 import type { ClassEntry } from '../data/class'
 import type { GrantValue } from '../data/grants'
 import { SAVE_RULES } from '../rules/saveRules'
+import { featureGrantFields, heldFeatureGrants } from './featureGrants'
 import { heldBy, type Sources } from './sources'
 import type { SourceRef } from './types'
 
@@ -163,6 +164,28 @@ export function grantBlocks(sources: Sources): GrantBlock[] {
     )
   }
   featureSaveBlocks(sources, out)
+  for (const held of heldFeatureGrants(sources)) {
+    const { id, fields } = featureGrantFields(held)
+    const card: CardSource = {
+      tag: held.tag,
+      label: held.label,
+      name: held.row.card,
+      kind: held.kind,
+    }
+    for (const field of GRANT_FIELDS) {
+      const blocks = fields[field]
+      if (!blocks) continue
+      const kind = FIELD_KIND[field]
+      out.push({
+        id: `${id}|${field}`,
+        source: held.source,
+        card,
+        field,
+        kind,
+        read: readGrant(blocks, kind),
+      })
+    }
+  }
   return out
 }
 

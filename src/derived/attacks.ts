@@ -12,6 +12,7 @@ import { classTableDie } from './classTable'
 import { itemBonus } from './itemBonus'
 import { weaponProficiency, type Proficiencies } from './proficiencies'
 import { heldBy, type HeldItem, type Sources } from './sources'
+import { masteredKinds } from './weaponMastery'
 import { BASE_SOURCE, quantity, type Line, type Quantity, type SourceRef } from './types'
 
 export interface AttackRow {
@@ -79,7 +80,8 @@ interface Context {
   /** Weapons in the equipped stacks, counting each of a stack. */
   weaponCount: number
   shield: boolean
-  masteryApplies: boolean
+  /** The kinds of weapons picked for a weapon mastery, with what they were picked for. */
+  mastered: Map<string, SourceRef>
 }
 
 function stylesHeld(sources: Sources) {
@@ -216,12 +218,28 @@ function weaponRow(held: HeldItem, ctx: Context): AttackRow | undefined {
     ? `${weapon.range.normal}${weapon.range.long ? `/${weapon.range.long}` : ''} ft`
     : undefined
   const flags = ctx.armorFlags.map((l) => ({ ...l, id: `${id}|${l.id}` }))
+  // A mastery property is usable only for a kind of weapon picked for a weapon mastery.
+  const masterySource = ctx.mastered.get(held.baseName.toLowerCase())
+  const mastery = masterySource ? weapon.mastery[0] : undefined
+  const masteryLines: Line[] =
+    mastery && masterySource
+      ? [
+          {
+            id: `${id}|mastery|${mastery.name}`,
+            label: `Mastery: ${mastery.name}`,
+            source: masterySource,
+            op: 'note',
+            status: 'applied',
+            how: mastery.rule,
+          },
+        ]
+      : []
 
   return {
     id,
     name: held.item.name,
     count: Math.max(1, held.stack.quantity),
-    toHit: quantity([...toHit, ...flags]),
+    toHit: quantity([...toHit, ...masteryLines, ...flags]),
     damage: {
       dice: weapon.damage?.text ?? '-',
       types: weapon.damageTypes.map((t) => t.toLowerCase()).join(' or '),
@@ -232,8 +250,7 @@ function weaponRow(held: HeldItem, ctx: Context): AttackRow | undefined {
       : undefined,
     range: rangeText,
     properties: weapon.properties,
-    mastery:
-      ctx.masteryApplies && weapon.mastery.length > 0 ? weapon.mastery[0] : undefined,
+    mastery,
     notes,
   }
 }
@@ -318,9 +335,7 @@ export function attackRows(
     styles: stylesHeld(sources),
     weaponCount: weapons.reduce((n, w) => n + Math.max(1, w.stack.quantity), 0),
     shield: sources.items.some((i) => i.item.armor?.class === 'shield'),
-    masteryApplies:
-      sources.classes.length === 0 ||
-      sources.classes.some((c) => c.loaded?.entry.edition === 'one'),
+    mastered: masteredKinds(sources),
   }
   return [...weapons.flatMap((w) => weaponRow(w, ctx) ?? []), unarmedRow(ctx)]
 }
