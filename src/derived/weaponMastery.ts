@@ -115,6 +115,16 @@ function changedSinceRest(sources: Sources, tag: string, picks: readonly string[
   return before ? before.filter((k) => !picks.includes(k)).length : 0
 }
 
+/** The kinds of a card's picks changed since the last long rest, and whether more than allowed. */
+export function masteryChange(
+  sources: Sources,
+  card: Pick<PickCard, 'tag' | 'picks'>,
+): { changed: number; over: boolean } {
+  const changed = changedSinceRest(sources, card.tag, card.picks)
+  const owner = masteryOwners(sources).find((o) => o.tag === card.tag)
+  return { changed, over: owner?.grant.changes === 'one' && changed > 1 }
+}
+
 function restNote(owner: MasteryOwner, changed: number): string {
   const may = owner.grant.changes === 'one' ? 'change one of them' : 'change them'
   const rule = `Whenever you finish a Long Rest, you can ${may}.`

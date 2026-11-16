@@ -56,6 +56,31 @@ describe('the rows of Quick lookup', () => {
     for (const kind of kinds) expect(LOOKUP_KINDS).toContain(kind)
   })
 
+  it('holds the creatures, objects, vehicles, cards and item words too', () => {
+    const kinds = new Set(rows.map((r) => r.kind))
+    for (const kind of [
+      'creature',
+      'object',
+      'vehicle',
+      'deck',
+      'card',
+      'itemProperty',
+      'itemMastery',
+      'itemType',
+      'itemGroup',
+    ])
+      expect(kinds, kind).toContain(kind)
+    const wolf = rows.find((r) => r.kind === 'creature' && r.name === 'Wolf')
+    expect(wolf?.subject.type).toBe('creature')
+    expect(rowText(wolf as LookupRow)).toMatch(/pack tactics/i)
+    const twoHanded = rows.find(
+      (r) => r.kind === 'itemProperty' && r.name === 'Two-Handed',
+    )
+    expect(twoHanded?.aliases).toContain('2H')
+    const card = rows.find((r) => r.kind === 'card')
+    expect(card?.context).toBeDefined()
+  })
+
   it('reads each kind through its own dataset', () => {
     const fireball = rows.find((r) => r.kind === 'spell' && r.name === 'Fireball')
     expect(fireball?.subject.type).toBe('spell')
@@ -86,5 +111,16 @@ describe('the rows of Quick lookup', () => {
       true,
     )
     expect(hits.every((h) => h.row.source !== '')).toBe(true)
+  })
+
+  it('finds the spells of a class list by the class, as a filter on the Spell kind', async () => {
+    const index = await buildIndex(rows)
+    const { hits, total } = index.search({ text: 'druid', kind: 'spell' })
+    expect(total).toBeGreaterThan(10)
+    const spell = hits[0].row.subject
+    expect(spell.type).toBe('spell')
+    expect(hits.every((h) => h.row.kind === 'spell')).toBe(true)
+    const listed = hits.filter((h) => !h.row.name.toLowerCase().includes('druid'))
+    expect(listed.length).toBeGreaterThan(5)
   })
 })

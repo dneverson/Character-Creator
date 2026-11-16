@@ -160,6 +160,25 @@ describe('weapon mastery picks', () => {
     )
   })
 
+  it('lists a change since the last long rest among the rules exceptions', () => {
+    const c = build('Fighter', 1, {}, [])
+    c.classOptions = { [TAG('Fighter')]: ['longsword', 'shortsword', 'dagger'] }
+    const d = deps([FIGHTER], ITEMS_WITH_MASTERY)
+    expect(deriveSheet(c, d).exceptions).toEqual([])
+    c.play = {
+      ...c.play,
+      masteryAtRest: { [TAG('Fighter')]: ['longsword', 'longbow', 'greatsword'] },
+    }
+    expect(deriveSheet(c, d).exceptions).toMatchObject([
+      {
+        id: `mastery-change:${TAG('Fighter')}`,
+        rule: 'Weapon mastery change',
+        section: 'class',
+        detail: expect.stringContaining('2 changed since your last Long Rest, more than'),
+      },
+    ])
+  })
+
   it('takes a snapshot of the picks at a long rest, and gives a feat its own card', () => {
     const c = build('Rogue', 1, {}, [])
     c.classOptions = { [TAG('Rogue')]: ['dagger'] }

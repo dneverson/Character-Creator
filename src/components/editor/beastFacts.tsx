@@ -13,6 +13,7 @@ import {
   speedDistance,
   speedLabel,
 } from '../../data/labels'
+import { capitalized } from '../../derived/defenses'
 import { Entries, type Entry } from '../../text/Entries'
 import { titleCase } from '../../text/titleCase'
 import { Abbr } from '../Abbr'
@@ -59,10 +60,7 @@ const kind: Fact<Beast> = {
   key: 'kind',
   label: 'Type',
   text: (b) =>
-    ['beast', b.swarm ? 'swarm' : '', ...b.tags]
-      .filter(Boolean)
-      .map(titleCase)
-      .join(', '),
+    [b.type, b.swarm ? 'swarm' : '', ...b.tags].filter(Boolean).map(titleCase).join(', '),
 }
 
 const ac: Fact<Beast> = {
@@ -75,6 +73,12 @@ const hp: Fact<Beast> = {
   key: 'hp',
   label: <Abbr code="HP" />,
   text: (b) => (b.hp > 0 ? `${b.hp}${b.hpFormula ? ` (${b.hpFormula})` : ''}` : ''),
+}
+
+const alignment: Fact<Beast> = {
+  key: 'alignment',
+  label: 'Alignment',
+  text: (b) => titleCase(b.alignment),
 }
 
 const speed: Fact<Beast> = {
@@ -138,6 +142,40 @@ const skills: Fact<Beast> = {
       .join(', '),
 }
 
+const saves: Fact<Beast> = {
+  key: 'saves',
+  label: 'Saving Throws',
+  text: (b) =>
+    Object.entries(b.saves)
+      .map(([key, bonus]) => `${key.toUpperCase()} ${bonus}`)
+      .join(', '),
+}
+
+const defense = (
+  key: string,
+  label: string,
+  pick: (b: Beast) => string,
+): Fact<Beast> => ({
+  key,
+  label,
+  text: (b) => capitalized(pick(b)),
+})
+
+const vulnerable = defense('vulnerable', 'Damage Vulnerabilities', (b) => b.vulnerable)
+const resist = defense('resist', 'Damage Resistances', (b) => b.resist)
+const immune = defense('immune', 'Damage Immunities', (b) => b.immune)
+const conditionImmune = defense(
+  'conditionImmune',
+  'Condition Immunities',
+  (b) => b.conditionImmune,
+)
+
+const languages: Fact<Beast> = {
+  key: 'languages',
+  label: 'Languages',
+  text: (b) => b.languages.join(', '),
+}
+
 const attacks: Fact<Beast> = {
   key: 'attacks',
   label: 'Attacks',
@@ -161,33 +199,66 @@ const traitText: Fact<Beast> = {
   render: (b) => <Entries entries={asEntries(b.traits)} />,
 }
 
-const actionText: Fact<Beast> = {
-  key: 'actionText',
-  label: 'Actions',
-  text: (b) => entriesText(b.actions),
-  render: (b) => <Entries entries={asEntries(b.actions)} />,
-}
+/** A fact that prints one list of the stat block's text, named entry by entry. */
+const textList = (
+  key: string,
+  label: string,
+  pick: (b: Beast) => BeastEntry[],
+): Fact<Beast> => ({
+  key,
+  label,
+  text: (b) => entriesText(pick(b)),
+  render: (b) => <Entries entries={asEntries(pick(b))} />,
+})
+
+const spellcastingText = textList('spellcasting', 'Spellcasting', (b) => b.spellcasting)
+const actionText = textList('actionText', 'Actions', (b) => b.actions)
+const bonusText = textList('bonusText', 'Bonus Actions', (b) => b.bonusActions)
+const reactionText = textList('reactionText', 'Reactions', (b) => b.reactions)
+const legendaryText = textList('legendaryText', 'Legendary Actions', (b) => b.legendary)
+const mythicText = textList('mythicText', 'Mythic Actions', (b) => b.mythic)
+const lairText = textList('lairText', 'Lair', (b) => b.lair)
 
 export const describeBeasts: Describe<Beast> = () => [
   {
     key: 'basics',
-    title: 'Beast',
+    title: 'Stat block',
     facts: [
       cr,
       size,
       kind,
+      alignment,
       ac,
       hp,
       speed,
       abilities,
-      passive,
-      senses,
+      saves,
       skills,
+      vulnerable,
+      resist,
+      immune,
+      conditionImmune,
+      senses,
+      passive,
+      languages,
       sourceFact,
       editionFact,
     ],
   },
-  { key: 'text', title: 'Text', facts: [traitText, actionText] },
+  {
+    key: 'text',
+    title: 'Text',
+    facts: [
+      traitText,
+      spellcastingText,
+      actionText,
+      bonusText,
+      reactionText,
+      legendaryText,
+      mythicText,
+      lairText,
+    ],
+  },
 ]
 
 // ---- Table ------------------------------------------------------------------

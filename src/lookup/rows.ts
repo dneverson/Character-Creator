@@ -8,25 +8,43 @@ import { memoizeContent } from '../content/epoch'
 import { loadBackgrounds } from '../data/background'
 import { loadClasses, subclassesFor } from '../data/class'
 import { loadClassOptions } from '../data/classOptions'
+import { loadCreatures } from '../data/beasts'
 import { fetchData } from '../data/dataClient'
 import { loadBookEditions, type Edition } from '../data/edition'
 import { loadFeats } from '../data/feats'
 import { loadItems } from '../data/items'
 import { loadRaces } from '../data/race'
 import { loadRewards } from '../data/rewards'
+import { classNames } from '../components/editor/spellFacts'
 import { loadSpells } from '../data/spells'
 import type { Entry } from '../text/Entries'
 import { stripTags } from '../text/tags'
+import {
+  factText,
+  readCard,
+  readDeck,
+  readItemGroup,
+  readItemMastery,
+  readItemProperty,
+  readItemType,
+  readObject,
+  readRecipe,
+  readVehicle,
+  type Raw,
+  type Read,
+} from './readers'
 import type { LookupKind, LookupRow, Subject } from './types'
 
 /** A collection of the data that has no dataset of its own. */
 interface TextCollection {
   file: string
-  /** The lists in the file, and the kind the rows of each are. */
-  lists: { key: string; kind: LookupKind }[]
+  /** The lists in the file, the kind the rows of each are, and how a list is read. */
+  lists: { key: string; kind: LookupKind; read?: (raw: Raw, file: DataFile) => Read }[]
   /** Fields of a row worth a line of their own: label and field name. */
   facts?: [label: string, field: string][]
 }
+
+type DataFile = Record<string, unknown>
 
 const TEXT_COLLECTIONS: TextCollection[] = [
   {
@@ -86,17 +104,38 @@ const TEXT_COLLECTIONS: TextCollection[] = [
   },
   {
     file: 'vehicles.json',
-    lists: [{ key: 'vehicleUpgrade', kind: 'vehicleUpgrade' }],
+    lists: [
+      { key: 'vehicleUpgrade', kind: 'vehicleUpgrade' },
+      { key: 'vehicle', kind: 'vehicle', read: readVehicle },
+    ],
     facts: [['Upgrade type', 'upgradeType']],
   },
   { file: 'tables.json', lists: [{ key: 'table', kind: 'table' }] },
+  { file: 'objects.json', lists: [{ key: 'object', kind: 'object', read: readObject }] },
+  { file: 'recipes.json', lists: [{ key: 'recipe', kind: 'recipe', read: readRecipe }] },
+  {
+    file: 'decks.json',
+    lists: [
+      { key: 'deck', kind: 'deck', read: readDeck },
+      { key: 'card', kind: 'card', read: readCard },
+    ],
+  },
+  {
+    file: 'items.json',
+    lists: [{ key: 'itemGroup', kind: 'itemGroup', read: readItemGroup }],
+  },
+  {
+    file: 'items-base.json',
+    lists: [
+      { key: 'itemProperty', kind: 'itemProperty', read: readItemProperty },
+      { key: 'itemMastery', kind: 'itemMastery', read: readItemMastery },
+      { key: 'itemType', kind: 'itemType', read: readItemType },
+    ],
+  },
 ]
 
-interface RawText {
+interface RawText extends Raw {
   name: string
-  source: string
-  page?: number
-  entries?: Entry[]
   caption?: string
   colLabels?: string[]
   rows?: Entry[][]
@@ -104,14 +143,6 @@ interface RawText {
 }
 
 type EditionOf = (source: string) => Edition
-
-/** A field of the data as one line of text: a word, or a list of them. */
-function factText(value: unknown): string {
-  if (typeof value === 'string' || typeof value === 'number')
-    return stripTags(String(value))
-  if (Array.isArray(value)) return value.map(factText).filter(Boolean).join(', ')
-  return ''
-}
 
 /** A row's text: its entries, or, for a table of the data, the table itself. */
 function entriesOf(raw: RawText): Entry[] {
@@ -132,12 +163,14 @@ function row(
   edition: Edition | undefined,
   subject: Subject,
   context?: string,
+  aliases?: string[],
 ): LookupRow {
   return {
     id: `${kind}:${key}`,
     kind,
     name,
     ...(context !== undefined && { context }),
+    ...(aliases?.length && { aliases }),
     source,
     edition,
     subject,
@@ -152,6 +185,7 @@ function textRow(
   facts: { label: string; value: string }[],
   entries: Entry[],
   context?: string,
+  aliases?: string[],
 ): LookupRow {
   const key = `${raw.name}|${raw.source}${context ? `|${context}` : ''}`.toLowerCase()
   return row(
@@ -172,6 +206,7 @@ function textRow(
       },
     },
     context,
+    aliases,
   )
 }
 
@@ -185,12 +220,26 @@ async function textRows(editionOf: EditionOf): Promise<LookupRow[]> {
     ),
   )
   TEXT_COLLECTIONS.forEach((collection, i) => {
-    for (const { key, kind } of collection.lists) {
+    for (const { key, kind, read } of collection.lists) {
       for (const raw of files[i][key] ?? []) {
-        const facts = (collection.facts ?? [])
-          .map(([label, field]) => ({ label, value: factText(raw[field]) }))
-          .filter((fact) => fact.value !== '')
-        out.push(textRow(kind, raw, editionOf(raw.source), facts, entriesOf(raw)))
+        // A list with a reader of its own says what its entries are called and hold.
+        const own = read?.(raw, files[i])
+        const facts =
+          own?.facts ??
+          (collection.facts ?? [])
+            .map(([label, field]) => ({ label, value: factText(raw[field]) }))
+            .filter((fact) => fact.value !== '')
+        out.push(
+          textRow(
+            kind,
+            { ...raw, name: own?.name ?? raw.name },
+            editionOf(raw.source),
+            facts,
+            own?.entries ?? entriesOf(raw),
+            own?.context,
+            own?.aliases,
+          ),
+        )
       }
     }
   })
@@ -236,8 +285,22 @@ async function classRows(editionOf: EditionOf): Promise<LookupRow[]> {
   return out
 }
 
+/** The rows of every creature of the bestiary: the largest collection of the lookup. */
+async function creatureRows(): Promise<LookupRow[]> {
+  const index = await fetchData<Record<string, string>>('bestiary/index.json').catch(
+    (): Record<string, string> => ({}),
+  )
+  const creatures = await loadCreatures(Object.keys(index))
+  return creatures.map((c) =>
+    row('creature', `${c.name}|${c.source}`.toLowerCase(), c.name, c.source, c.edition, {
+      type: 'creature',
+      value: c,
+    }),
+  )
+}
+
 /** Gives a row that shares its id with an earlier one an id of its own. */
-function uniqueIds(rows: LookupRow[]): LookupRow[] {
+export function uniqueIds(rows: LookupRow[]): LookupRow[] {
   const seen = new Map<string, number>()
   return rows.map((r) => {
     const n = (seen.get(r.id) ?? 0) + 1
@@ -249,18 +312,29 @@ function uniqueIds(rows: LookupRow[]): LookupRow[] {
 /** Every entry of the loaded content, kind by kind. Loaded once per content. */
 export const loadLookupRows = memoizeContent(async (): Promise<LookupRow[]> => {
   const editionOf = await loadBookEditions().catch((): EditionOf => () => 'classic')
-  const [spells, items, races, backgrounds, feats, rewards, options, classes, texts] =
-    await Promise.all([
-      loadSpells(),
-      loadItems(),
-      loadRaces(),
-      loadBackgrounds(),
-      loadFeats(),
-      loadRewards(),
-      loadClassOptions(),
-      classRows(editionOf),
-      textRows(editionOf),
-    ])
+  const [
+    spells,
+    items,
+    races,
+    backgrounds,
+    feats,
+    rewards,
+    options,
+    classes,
+    texts,
+    creatures,
+  ] = await Promise.all([
+    loadSpells(),
+    loadItems(),
+    loadRaces(),
+    loadBackgrounds(),
+    loadFeats(),
+    loadRewards(),
+    loadClassOptions(),
+    classRows(editionOf),
+    textRows(editionOf),
+    creatureRows(),
+  ])
   const rows: LookupRow[] = [
     ...spells.map((s) =>
       row('spell', s.key, s.name, s.source, s.edition, { type: 'spell', value: s }),
@@ -294,6 +368,7 @@ export const loadLookupRows = memoizeContent(async (): Promise<LookupRow[]> => {
       ),
     ),
     ...texts,
+    ...creatures,
   ]
   return uniqueIds(rows)
 })
@@ -319,11 +394,30 @@ function wordsOf(entries: unknown): string {
 function bodyOf(subject: Subject): unknown {
   switch (subject.type) {
     case 'spell':
-      return [subject.value.entries, subject.value.entriesHigherLevel]
+      return [
+        subject.value.entries,
+        subject.value.entriesHigherLevel,
+        classNames(subject.value),
+      ]
     case 'text':
       return [subject.value.entries, subject.value.facts.map((f) => f.value)]
     case 'class':
       return []
+    case 'creature': {
+      const c = subject.value
+      return [
+        c.type,
+        c.tags,
+        c.traits,
+        c.spellcasting,
+        c.actions,
+        c.bonusActions,
+        c.reactions,
+        c.legendary,
+        c.mythic,
+        c.lair,
+      ]
+    }
     default:
       return subject.value.entries
   }
@@ -337,4 +431,20 @@ export function rowText(r: LookupRow): string {
     textOf.set(r, text)
   }
   return text
+}
+
+/** The captions of the tables written inside a row's text. */
+export function tableCaptions(r: LookupRow): string[] {
+  const found: string[] = []
+  const walk = (node: unknown) => {
+    if (Array.isArray(node)) node.forEach(walk)
+    else if (node !== null && typeof node === 'object') {
+      const entry = node as Record<string, unknown>
+      if (entry.type === 'table' && typeof entry.caption === 'string')
+        found.push(entry.caption)
+      TEXT_KEYS.forEach((key) => walk(entry[key]))
+    }
+  }
+  walk(bodyOf(r.subject))
+  return found
 }

@@ -10,6 +10,11 @@ describe('stripTags', () => {
     expect(stripTags('{@skill Stealth}')).toBe('Stealth')
   })
 
+  it('shows the display text of a card, which is the fourth part', () => {
+    expect(stripTags('{@card Fool|Deck of Many Things|DMG}')).toBe('Fool')
+    expect(stripTags('{@card Fool|Deck of Many Things|DMG|the Fool}')).toBe('the Fool')
+  })
+
   it('handles dice and damage', () => {
     expect(stripTags('deals {@damage 2d6} fire')).toBe('deals 2d6 fire')
     expect(stripTags('roll {@dice 1d20+5}')).toBe('roll 1d20+5')
@@ -17,6 +22,7 @@ describe('stripTags', () => {
 
   it('handles combat shorthands', () => {
     expect(stripTags('{@atk mw} {@hit 5} to hit')).toBe('Melee Weapon Attack +5 to hit')
+    expect(stripTags('{@hit +10} and {@hit -1} and {@hit 0}')).toBe('+10 and -1 and +0')
     expect(stripTags('{@h}7 damage')).toBe('Hit: 7 damage')
     expect(stripTags('save {@dc 15}')).toBe('save DC 15')
   })

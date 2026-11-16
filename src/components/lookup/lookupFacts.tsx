@@ -14,6 +14,8 @@ import {
   type TextSubject,
 } from '../../lookup/types'
 import type { Snippet } from '../../lookup/search'
+import { describeBeasts } from '../editor/beastFacts'
+import { classNames } from '../editor/spellFacts'
 import { describeBackgrounds } from '../editor/backgroundFacts'
 import { describeFeats } from '../editor/featFacts'
 import { editionFact, sourceFact } from '../editor/grantFacts'
@@ -22,7 +24,13 @@ import { describeRaces } from '../editor/raceFacts'
 import { describeRewards } from '../editor/rewardFacts'
 import { describeSpells } from '../editor/spellFacts'
 import { colTitle, describeClasses } from '../editor/classViewShared'
-import { factColumn, type Describe, type Fact, type FactGroup } from '../table/facts'
+import {
+  factColumn,
+  NO_VALUE,
+  type Describe,
+  type Fact,
+  type FactGroup,
+} from '../table/facts'
 import type { Column } from '../table/types'
 
 /** The groups of a dataset's description, asking each row for its own entry. */
@@ -125,6 +133,12 @@ export const describeLookup: Describe<LookupRow> = (rows) => [
     (s) => (s.type === 'class' ? s.value : undefined),
     describeClasses,
   ),
+  ...adapt(
+    rows,
+    'creature',
+    (s) => (s.type === 'creature' ? s.value : undefined),
+    describeBeasts,
+  ),
   ...adapt(rows, 'text', (s) => (s.type === 'text' ? s.value : undefined), describeText),
 ]
 
@@ -137,6 +151,9 @@ export const lookupTags = (row: LookupRow): string[] => [
   KIND_LABELS[row.kind],
   editionYear(row.edition),
 ]
+
+const spellClasses = (row: LookupRow): string[] =>
+  row.subject.type === 'spell' ? classNames(row.subject.value) : []
 
 /** The columns of the results, given the snippet each text match is shown with. */
 export function lookupColumns(
@@ -176,6 +193,18 @@ export function lookupColumns(
     factColumn(kind),
     factColumn(source),
     factColumn(edition),
+    // The classes whose spell list holds a spell, to filter the Spell kind by class.
+    {
+      key: 'classLists',
+      header: 'Class lists',
+      render: (row) => spellClasses(row).join(', ') || NO_VALUE,
+      sortValue: (row) => spellClasses(row).join(', '),
+      filterValue: (row) => {
+        const names = spellClasses(row)
+        return names.length > 0 ? names : [NO_VALUE]
+      },
+      defaultHidden: true,
+    },
     {
       key: 'match',
       header: 'Where it matches',

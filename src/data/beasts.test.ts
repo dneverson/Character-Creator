@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { loadBeasts, crToNumber } from './beasts'
+import { loadBeasts, loadCreatures, crToNumber } from './beasts'
 import { fetchData } from './dataClient'
 
 vi.mock('./dataClient', () => ({ fetchData: vi.fn() }))
@@ -208,5 +208,129 @@ describe('loadBeasts', () => {
     })
     expect(bear.traits[0].name).toBe('Keen Smell')
     expect(bear.actions[0].name).toBe('Bite')
+  })
+})
+
+describe('loadCreatures', () => {
+  const dragon = {
+    name: 'Adult Test Dragon',
+    source: 'MM',
+    type: { type: { choose: ['dragon', 'fiend'] }, tags: ['chromatic'] },
+    alignment: ['C', 'E'],
+    size: ['H'],
+    cr: '13',
+    ac: [{ ac: 19, from: ['natural armor'] }],
+    hp: { average: 225, formula: '18d12 + 108' },
+    speed: { walk: 40, fly: 80 },
+    save: { dex: '+6', wis: '+7' },
+    skill: { perception: '+12', other: [{ x: 1 }] },
+    vulnerable: ['cold'],
+    resist: [{ resist: ['bludgeoning', 'piercing'], note: 'from nonmagical attacks' }],
+    immune: ['fire', { special: 'poison while awake' }],
+    conditionImmune: ['charmed'],
+    languages: ['Common', 'Draconic'],
+    spellcasting: [
+      {
+        name: 'Innate Spellcasting',
+        headerEntries: ['The dragon casts these spells.'],
+        will: ['detect magic', { entry: 'ignored' }],
+        daily: { '3e': ['fireball'], '1': ['wish'] },
+        rest: { '1e': ['gate'] },
+        spells: { '0': { spells: ['light'] }, '1': { slots: 4, spells: ['bless'] } },
+        footerEntries: ['Done.'],
+      },
+    ],
+    trait: [{ name: 'Amphibious', entries: ['Breathes anything.'] }],
+    action: [{ name: 'Bite', entries: ['Bites.'] }],
+    bonus: [{ name: 'Dash', entries: ['Runs.'] }],
+    reaction: [{ name: 'Parry', entries: ['Parries.'] }],
+    legendaryHeader: ['The dragon takes 3 legendary actions.'],
+    legendary: [{ name: 'Tail', entries: ['Swipes.'] }],
+    mythicHeader: [],
+    mythic: [{ name: 'Rise', entries: ['Rises.'] }],
+    legendaryGroup: { name: 'Test Dragon', source: 'MM' },
+  }
+  const files = (monsters: unknown[], groups?: unknown) => {
+    mockFetch.mockImplementation((path: string) => {
+      if (path === 'bestiary/index.json') return Promise.resolve({ MM: 'mm.json' })
+      if (path === 'legendarygroups.json')
+        return groups ? Promise.resolve(groups) : Promise.reject(new Error('404'))
+      return Promise.resolve({ monster: monsters })
+    })
+  }
+
+  it('reads the whole stat block of any creature, whatever its type', async () => {
+    files([dragon, { name: 'Plain', source: 'MM', type: 'humanoid', alignment: ['U'] }], {
+      legendaryGroup: [
+        {
+          name: 'Test Dragon',
+          source: 'MM',
+          lairActions: ['The lair acts.'],
+          regionalEffects: ['The land shifts.'],
+        },
+      ],
+    })
+    const [first, second] = await loadCreatures(['MM'])
+    expect(first).toMatchObject({
+      type: 'dragon or fiend',
+      tags: ['chromatic'],
+      alignment: 'chaotic evil',
+      saves: { dex: '+6', wis: '+7' },
+      skills: { perception: '+12' },
+      vulnerable: 'cold',
+      resist: 'bludgeoning, piercing from nonmagical attacks',
+      immune: 'fire; poison while awake',
+      conditionImmune: 'charmed',
+      languages: ['Common', 'Draconic'],
+    })
+    expect(first.spellcasting[0].entries).toEqual([
+      'The dragon casts these spells.',
+      {
+        type: 'list',
+        items: [
+          'At will: detect magic',
+          '1/day: wish',
+          '3/day each: fireball',
+          '1/rest each: gate',
+          'Cantrips (at will): light',
+          'Level 1 (4 slots): bless',
+        ],
+      },
+      'Done.',
+    ])
+    expect(first.legendary.map((e) => e.name)).toEqual(['Legendary Actions', 'Tail'])
+    expect(first.mythic.map((e) => e.name)).toEqual(['Rise'])
+    expect(first.bonusActions[0].name).toBe('Dash')
+    expect(first.reactions[0].name).toBe('Parry')
+    expect(first.lair.map((e) => e.name)).toEqual(['Lair Actions', 'Regional Effects'])
+    expect(second).toMatchObject({ type: 'humanoid', alignment: 'unaligned' })
+    expect(second.lair).toEqual([])
+  })
+
+  it('writes the alignments of the data as a stat block does', async () => {
+    const alignments = [
+      [['A']],
+      [['L', 'G']],
+      [['N', 'N']],
+      [['N', 'G']],
+      [['L', 'C', 'G', 'E']],
+      [[{ alignment: ['C', 'E'], chance: 75 }, 'U']],
+      [[{ special: 'any non-good' }]],
+      [['X']],
+    ]
+    files(
+      alignments.map(([alignment], i) => ({ name: `M${i}`, source: 'MM', alignment })),
+    )
+    const found = (await loadCreatures(['MM'])).map((c) => c.alignment)
+    expect(found).toEqual([
+      'any alignment',
+      'lawful good',
+      'neutral',
+      'neutral good',
+      'lawful or chaotic or good or evil',
+      'chaotic evil or unaligned',
+      'any non-good',
+      'X',
+    ])
   })
 })

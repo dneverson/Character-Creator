@@ -19,6 +19,17 @@ interface TableEntry {
   colLabels?: string[]
   rows: Entry[][]
 }
+interface AttackEntry {
+  attackType?: string
+  attackEntries?: string[]
+  hitEntries?: string[]
+}
+const ATTACKS: Record<string, string> = {
+  MW: 'Melee Weapon Attack',
+  RW: 'Ranged Weapon Attack',
+  MS: 'Melee Spell Attack',
+  RS: 'Ranged Spell Attack',
+}
 type ObjEntry =
   ListEntry | NamedEntry | TableEntry | { type?: string; [k: string]: unknown }
 export type Entry = string | number | ObjEntry
@@ -98,6 +109,26 @@ function renderEntry(entry: Entry, key: number): ReactNode {
             </tbody>
           </Table>
         </div>
+      )
+    }
+    case 'actions': {
+      // An action of an object or a vehicle: its name, then what it does.
+      const named = obj as NamedEntry
+      return (
+        <div key={key} className="mb-2">
+          {named.name && <span className="fw-semibold">{named.name}. </span>}
+          {named.entries && <Entries entries={named.entries} />}
+        </div>
+      )
+    }
+    case 'attack': {
+      const attack = obj as AttackEntry
+      const label = ATTACKS[(attack.attackType ?? '').split(',')[0]] ?? 'Attack'
+      return (
+        <p key={key} className="mb-2">
+          <em>{label}:</em> <TaggedText text={(attack.attackEntries ?? []).join(' ')} />{' '}
+          <em>Hit:</em> <TaggedText text={(attack.hitEntries ?? []).join(' ')} />
+        </p>
       )
     }
     case 'item':

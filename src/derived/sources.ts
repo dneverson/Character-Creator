@@ -21,6 +21,7 @@ import type { Feat } from '../data/feats'
 import type { Item } from '../data/items'
 import type { ClassOption } from '../data/classOptions'
 import type { Language } from '../data/languages'
+import type { Beast } from '../data/beasts'
 import type { Edition } from '../data/edition'
 import { rewardKey, type Reward } from '../data/rewards'
 import type { Holder } from '../rules/holder'
@@ -54,6 +55,8 @@ export interface DeriveDeps {
   optionCatalog?: readonly ClassOption[]
   /** The supernatural gifts of the books, for the ones the character has. */
   rewards?: readonly Reward[]
+  /** The beasts of the books, read only for a Druid with Wild Shape forms (for its limits). */
+  beasts?: readonly Beast[]
   /** The rules edition of each book, from the books list; the 2024 books by name without it. */
   editionOf?: (source: string) => Edition
 }

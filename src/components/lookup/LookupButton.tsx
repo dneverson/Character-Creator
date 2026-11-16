@@ -7,8 +7,11 @@ import { useTheme } from '../../theme/theme-context'
 /** Whether the key press is meant for a field (typing a "/" there is typing). */
 function inField(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
+  // The attribute is checked too, as not every environment implements isContentEditable.
   return (
-    target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+    target.isContentEditable ||
+    target.closest('[contenteditable]:not([contenteditable="false"])') !== null ||
+    ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
   )
 }
 

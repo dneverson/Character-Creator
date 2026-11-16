@@ -71,4 +71,25 @@ describe('Entries', () => {
     const { container } = renderEntries([{ type: 'mystery' }])
     expect(container.textContent).toBe('')
   })
+
+  it('renders the actions and attacks of an object, with their tags', () => {
+    const { container } = renderEntries([
+      {
+        type: 'actions',
+        name: 'Claw',
+        entries: [
+          {
+            type: 'attack',
+            attackType: 'MW',
+            attackEntries: ['{@hit +10} to hit, reach 5 ft.'],
+            hitEntries: ['22 slashing damage.'],
+          },
+        ],
+      },
+      { type: 'attack', attackEntries: ['x'], hitEntries: ['y'] },
+    ])
+    expect(container.textContent).toContain('Claw. Melee Weapon Attack: +10 to hit')
+    expect(container.textContent).toContain('Hit: 22 slashing damage.')
+    expect(container.textContent).toContain('Attack: x Hit: y')
+  })
 })

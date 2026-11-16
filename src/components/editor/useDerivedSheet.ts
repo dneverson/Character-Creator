@@ -3,6 +3,7 @@
 
 import { useMemo, useState } from 'react'
 import { useCharacter } from '../../character/useCharacterDoc'
+import { loadBeasts } from '../../data/beasts'
 import { loadClassOptions } from '../../data/classOptions'
 import { loadBookEditions } from '../../data/edition'
 import { loadItems } from '../../data/items'
@@ -34,6 +35,15 @@ export function useDerivedSheet() {
   const options = useAsyncData(loadClassOptions)
   const editions = useAsyncData(loadBookEditions)
   const rewards = useAsyncData(loadRewards)
+  // The bestiary is large: read it only for a character who has Wild Shape forms.
+  const books = (character?.selectedBooks ?? []).join(',')
+  const hasForms = (character?.wildShapes.length ?? 0) > 0
+  const beasts = useAsyncData(
+    useMemo(
+      () => () => (hasForms ? loadBeasts(books.split(',')) : Promise.resolve([])),
+      [hasForms, books],
+    ),
+  )
 
   const deps = useMemo<DeriveDeps>(
     () => ({
@@ -46,6 +56,7 @@ export function useDerivedSheet() {
       optionCatalog: options.data ?? undefined,
       editionOf: editions.data ?? undefined,
       rewards: rewards.data ?? undefined,
+      beasts: beasts.data ?? undefined,
     }),
     [
       classByKey,
@@ -57,6 +68,7 @@ export function useDerivedSheet() {
       options.data,
       editions.data,
       rewards.data,
+      beasts.data,
     ],
   )
 

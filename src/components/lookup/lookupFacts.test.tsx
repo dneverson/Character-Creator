@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { LookupRow } from '../../lookup/types'
 import { makeFeat } from '../../test/featFixtures'
 import { makeItem } from '../../test/itemFixtures'
+import { makeBeast } from '../../test/beastFixtures'
 import { makeSpell } from '../../test/spellFixtures'
 import { factValue } from '../table/facts'
 import { describeLookup, lookupColumns, lookupTags, lookupTitle } from './lookupFacts'
@@ -50,6 +51,21 @@ const condition = row(
   'Prone',
 )
 
+const creature = row(
+  'creature',
+  {
+    type: 'creature',
+    value: makeBeast({
+      name: 'Dragon',
+      type: 'dragon',
+      alignment: 'chaotic evil',
+      immune: 'fire',
+      legendary: [{ name: 'Tail', entries: ['Swipes.'] }],
+    }),
+  },
+  'Dragon',
+)
+
 const find = (rows: LookupRow[], key: string) =>
   describeLookup(rows)
     .flatMap((group) => group.facts)
@@ -78,6 +94,19 @@ describe('describing the rows of Quick lookup', () => {
     expect(find([condition], 'page')?.text(spell)).toBe('')
   })
 
+  it('draws a creature as a stat block, through the description Wild Shape uses', () => {
+    const groups = describeLookup([creature, spell])
+    expect(groups.map((g) => g.key)).toEqual(
+      expect.arrayContaining(['creature-basics', 'creature-text']),
+    )
+    expect(find([creature], 'kind')?.text(creature)).toBe('Dragon')
+    expect(find([creature], 'alignment')?.text(creature)).toBe('Chaotic Evil')
+    expect(find([creature], 'immune')?.text(creature)).toBe('Fire')
+    expect(find([creature], 'immune')?.text(spell)).toBe('')
+    render(<>{factValue(find([creature], 'legendaryText')!, creature)}</>)
+    expect(screen.getByText('Swipes.')).toBeInTheDocument()
+  })
+
   it('draws a fact the way its dataset does, and text with its own entries', () => {
     render(<>{factValue(find([condition], 'description')!, condition)}</>)
     expect(screen.getByText('Crawling.')).toBeInTheDocument()
@@ -101,6 +130,7 @@ describe('describing the rows of Quick lookup', () => {
       'kind',
       'source',
       'edition',
+      'classLists',
       'match',
     ])
     const text = (key: string, r: LookupRow) => {
@@ -113,5 +143,24 @@ describe('describing the rows of Quick lookup', () => {
     expect(text('match', item)).toBe('-')
     expect(text('name', { ...spell, context: 'Druid 2' })).toBe('FireballDruid 2')
     expect(text('source', spell)).toBe('PHB')
+    expect(text('classLists', item)).toBe('-')
+    const wizardSpell = {
+      ...spell,
+      subject: {
+        type: 'spell',
+        value: makeSpell({
+          name: 'X',
+          lists: {
+            ...makeSpell({ name: 'X' }).lists,
+            classes: ['Wizard|PHB', 'Druid|PHB'],
+          },
+        }),
+      },
+    } as LookupRow
+    expect(text('classLists', wizardSpell)).toBe('Wizard, Druid')
+    const column = columns.find((c) => c.key === 'classLists')
+    expect(column?.filterValue?.(wizardSpell)).toEqual(['Wizard', 'Druid'])
+    expect(column?.filterValue?.(item)).toEqual(['-'])
+    expect(column?.defaultHidden).toBe(true)
   })
 })

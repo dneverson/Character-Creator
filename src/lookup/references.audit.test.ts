@@ -4,8 +4,15 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { PLAIN_TAGS, REFERENCE_TAGS, loadResolver, referenceOf } from './references'
-import { LOOKUP_KINDS } from './types'
+import { loadLookupRows, tableCaptions } from './rows'
+import {
+  PLAIN_TAGS,
+  REFERENCE_TAGS,
+  loadResolver,
+  referenceOf,
+  summaryOf,
+} from './references'
+import { LOOKUP_KINDS, type LookupRow } from './types'
 
 vi.mock('../data/dataClient', async () => {
   const { readFileSync: read } = await import('node:fs')
@@ -70,6 +77,11 @@ describe('the tags of the data', () => {
       context: 'Druid',
       source: 'XPHB',
     })
+    expect(referenceOf('card', 'Fool|Deck of Many Things|DMG')).toMatchObject({
+      name: 'Fool',
+      context: 'Deck of Many Things',
+      source: 'DMG',
+    })
     expect(referenceOf('deity', 'Bhaal|Faerunian|FRHoF')?.source).toBe('FRHoF')
     expect(referenceOf('dice', '1d6')).toBeUndefined()
     expect(referenceOf('spell', '')).toBeUndefined()
@@ -96,10 +108,70 @@ describe('the references of the data', () => {
   }, 60_000)
 
   it('finds the entry of most references of every kind it holds', () => {
-    for (const tag of ['spell', 'condition', 'skill', 'action', 'sense', 'variantrule']) {
+    for (const tag of [
+      'spell',
+      'condition',
+      'skill',
+      'action',
+      'sense',
+      'variantrule',
+      'itemProperty',
+      'itemMastery',
+      'card',
+    ]) {
       const count = resolved.get(tag)
       expect(count, tag).toBeDefined()
       expect((count?.found ?? 0) / (count?.total ?? 1), tag).toBeGreaterThan(0.8)
     }
+  })
+
+  it('finds an item property by its abbreviation, and a creature with its summary', async () => {
+    const resolver = await loadResolver()
+    const found = resolver.find({
+      kind: 'itemProperty',
+      name: '2H',
+      source: 'XPHB',
+    })
+    expect(found?.name).toBe('Two-Handed')
+    expect(found?.source).toBe('XPHB')
+    const wolf = resolver.find({ kind: 'creature', name: 'wolf', defaultSource: 'MM' })
+    expect(wolf?.source).toBe('MM')
+    expect(summaryOf(wolf as LookupRow, 200)).toMatch(/^medium beast, challenge 1\/4/)
+  })
+
+  it('finds the item a variant makes of a base item, and an item group', async () => {
+    const resolver = await loadResolver()
+    const made = resolver.find({
+      kind: 'item',
+      name: '+1 Longsword',
+      alsoKinds: ['itemGroup'],
+    })
+    expect(made?.name).toBe('+1 Longsword')
+    expect(made?.subject.type).toBe('item')
+    expect(made && resolver.byId(made.id)).toBe(made)
+    const other = resolver.find({ kind: 'item', name: '+2 plate armor' })
+    expect(other?.name).toBe('+2 Plate Armor')
+    expect(resolver.find({ kind: 'item', name: '+9 Longsword' })).toBeUndefined()
+    const group = resolver.find({
+      kind: 'item',
+      name: "Artisan's Tools",
+      alsoKinds: ['itemGroup'],
+    })
+    expect(group?.kind).toBe('itemGroup')
+  })
+
+  it('finds a table inside the entry that holds it, and an entry by its id', async () => {
+    const resolver = await loadResolver()
+    const rows = await loadLookupRows()
+    const holder = rows.find((r) => r.kind !== 'table' && tableCaptions(r).length > 0)
+    const caption = holder ? tableCaptions(holder)[0] : ''
+    expect(resolver.find({ kind: 'table', name: caption })).toBeDefined()
+    expect(resolver.find({ kind: 'table', name: `${caption}; Nothing Like It` })).toBe(
+      resolver.find({ kind: 'table', name: caption }),
+    )
+    expect(resolver.find({ kind: 'table', name: 'No such table' })).toBeUndefined()
+    expect(resolver.byId(rows[0].id)).toBe(rows[0])
+    expect(resolver.byId('spell:nothing')).toBeUndefined()
+    expect(resolver.byId('item:nothing')).toBeUndefined()
   })
 })

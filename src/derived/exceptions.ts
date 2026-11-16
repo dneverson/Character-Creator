@@ -7,6 +7,12 @@ import { characterAbilityTotals } from '../character/derive'
 import type { Character } from '../character/model'
 import type { PickCard, PickKind } from '../character/picks'
 import { appConfig } from '../config/app'
+import { indexItems, resolveInventoryItem, unlistedItem } from '../character/inventory'
+import { characterCasters } from '../character/spellcasting'
+import { EMPTY_SELECTION, tiersOf } from '../character/spellTiers'
+import { beastFit, wildShapeLimits } from '../rules/wildshape'
+import { carriedWeight, carryingCapacity } from '../rules/equipment'
+import { raceSize } from '../data/race'
 import { checkLevelCap, checkMulticlass, checkOriginIncreases } from '../rules/compliance'
 import { canCustomizeOrigin } from '../rules/customOrigin'
 import { attunedCount, lacksClass, strengthNeeded } from '../rules/equipment'
@@ -17,6 +23,7 @@ import { unassignedAbilities } from '../character/stats'
 import type { ChecklistTarget } from './checklist'
 import { isFightingStyleCard } from './classOptions'
 import type { OptionalSwitch } from './grantBlocks'
+import { MASTERY_MARK, masteryChange } from './weaponMastery'
 import { OTHER_KINDS, strayPicks, type OtherKind } from './pickCards'
 import type { DeriveDeps, Sources } from './sources'
 
@@ -166,6 +173,17 @@ export function collectExceptions({
           )
         }
       }
+      if (card.tag.endsWith(MASTERY_MARK)) {
+        const { changed, over } = masteryChange(sources, card)
+        if (changed > 0) {
+          add(
+            `mastery-change:${card.tag}`,
+            'Weapon mastery change',
+            `${card.label}: ${changed} changed since your last Long Rest${over ? ', more than the one allowed' : ''}; the rules make the change when you finish a Long Rest.`,
+            section(card),
+          )
+        }
+      }
       if (card.over) {
         add(
           `over:${card.tag}`,
@@ -192,12 +210,58 @@ export function collectExceptions({
     }
   }
 
-  out.push(...itemExceptions(character, sources))
+  out.push(...spellCountExceptions(sources, deps))
+  out.push(...wildShapeExceptions(sources, deps))
+  out.push(...itemExceptions(character, sources, deps))
   return out
 }
 
+/** Cantrips, spells known and spells prepared beyond what a class gets at its level. */
+function spellCountExceptions(sources: Sources, deps: DeriveDeps): RuleException[] {
+  const { character, summary } = sources
+  const casters = characterCasters(character, deps.classByKey, summary.abilityBonus)
+  return casters.flatMap((caster) =>
+    tiersOf(caster, character.spells[caster.classKey] ?? EMPTY_SELECTION)
+      .filter((t) => t.max !== undefined && t.count > t.max)
+      .map((t) => ({
+        id: `spell-count:${t.id}`,
+        rule: 'More spells than allowed',
+        detail: `${caster.name}: ${t.count} ${t.noun} chosen, ${t.max} allowed.`,
+        section: 'spells' as const,
+      })),
+  )
+}
+
+/** Wild Shape forms outside the limits of the druid's level. */
+function wildShapeExceptions(sources: Sources, deps: DeriveDeps): RuleException[] {
+  const druids = sources.classes.filter((c) => c.row.name === 'Druid')
+  if (druids.length === 0 || !deps.beasts) return []
+  const level = druids.reduce((n, c) => n + c.level, 0)
+  const moon = druids.some((c) => c.row.subclass?.shortName === 'Moon')
+  const limits = wildShapeLimits(level, moon, deps.editionOf?.(druids[0].row.source))
+  const known = new Map(deps.beasts.map((b) => [`${b.name}|${b.source}`, b]))
+  return sources.character.wildShapes.flatMap((ref) => {
+    const beast = known.get(`${ref.name}|${ref.source}`)
+    const fit = beast && beastFit(beast, limits)
+    return beast && fit && !fit.standard
+      ? [
+          {
+            id: `wild-shape:${ref.name}|${ref.source}`,
+            rule: 'Wild Shape form',
+            detail: `${beast.name}: ${fit.reason}.`,
+            section: 'wildshape' as const,
+          },
+        ]
+      : []
+  })
+}
+
 /** The items carried against the limits the rules set on them. */
-function itemExceptions(character: Character, sources: Sources): RuleException[] {
+function itemExceptions(
+  character: Character,
+  sources: Sources,
+  deps: DeriveDeps,
+): RuleException[] {
   const out: RuleException[] = []
   const limit = appConfig.rules.attunementLimit
   const attuned = attunedCount(character.equipment.items)
@@ -223,6 +287,14 @@ function itemExceptions(character: Character, sources: Sources): RuleException[]
         section: 'equipment',
       })
     }
+  }
+  // Every stack carried, equipped or not: attuning has its class restriction either way.
+  const catalog = indexItems(deps.items ?? [])
+  const owned = character.equipment.items.map((stack) => ({
+    stack,
+    item: resolveInventoryItem(stack, catalog) ?? unlistedItem(stack),
+  }))
+  for (const { stack, item } of owned) {
     const classes = item.attunement?.classes ?? []
     if (stack.attuned && lacksClass(classes, classNames)) {
       out.push({
@@ -232,6 +304,19 @@ function itemExceptions(character: Character, sources: Sources): RuleException[]
         section: 'equipment',
       })
     }
+  }
+  const carried = carriedWeight(
+    owned.map(({ stack, item }) => ({ quantity: stack.quantity, weight: item.weight })),
+    character.equipment.currency,
+  ).pounds
+  const capacity = strength > 0 ? carryingCapacity(strength, raceSize(sources.race)) : 0
+  if (capacity > 0 && carried > capacity) {
+    out.push({
+      id: 'carrying-capacity',
+      rule: 'Carrying capacity',
+      detail: `Carrying ${Math.round(carried * 10) / 10} lb; the character can carry ${capacity} lb.`,
+      section: 'equipment',
+    })
   }
   return out
 }

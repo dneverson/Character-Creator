@@ -26,7 +26,7 @@ function renderTag(tag: string, content: string): string {
     case 'h':
       return 'Hit: '
     case 'hit':
-      return `${Number(first) >= 0 ? '+' : ''}${first}`
+      return /^[+-]/.test(first) || Number(first) < 0 ? first : `+${first}`
     case 'dc':
       return `DC ${first}`
     case 'chance':
@@ -45,6 +45,9 @@ function renderTag(tag: string, content: string): string {
     // {@subclassFeature name|class|classSource|subclass|subclassSource|level|source|display}.
     case 'subclassFeature':
       return parts[7] || first
+    // {@card name|deck|source|display}: the display text is the fourth part.
+    case 'card':
+      return parts[3] || first
     case 'book':
     case 'adventure':
     case 'quickref':

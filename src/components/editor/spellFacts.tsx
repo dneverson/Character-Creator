@@ -25,7 +25,7 @@ const YES = 'Yes'
 const ATTACK_ROLL = 'Attack roll'
 
 /** "Wizard", "Cleric": the classes whose own list holds the spell, once each. */
-const classNames = perEntry((spell: Spell): string[] => [
+export const classNames = perEntry((spell: Spell): string[] => [
   ...new Set(spell.lists.classes.map((key) => key.split('|')[0])),
 ])
 

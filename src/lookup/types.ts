@@ -3,6 +3,7 @@
 // the detail pane can draw it with that dataset's own description.
 
 import type { ClassRow } from '../components/editor/classRows'
+import type { Beast } from '../data/beasts'
 import type { Edition } from '../data/edition'
 import type { Feat } from '../data/feats'
 import type { Item } from '../data/items'
@@ -43,6 +44,16 @@ export const LOOKUP_KINDS = [
   'facility',
   'vehicleUpgrade',
   'table',
+  'creature',
+  'object',
+  'vehicle',
+  'recipe',
+  'deck',
+  'card',
+  'itemProperty',
+  'itemMastery',
+  'itemType',
+  'itemGroup',
 ] as const
 
 export type LookupKind = (typeof LOOKUP_KINDS)[number]
@@ -78,6 +89,16 @@ export const KIND_LABELS: Record<LookupKind, string> = {
   facility: 'Bastion facility',
   vehicleUpgrade: 'Vehicle upgrade',
   table: 'Table',
+  creature: 'Creature',
+  object: 'Object',
+  vehicle: 'Vehicle',
+  recipe: 'Recipe',
+  deck: 'Deck of cards',
+  card: 'Card',
+  itemProperty: 'Item property',
+  itemMastery: 'Weapon mastery',
+  itemType: 'Item type',
+  itemGroup: 'Item group',
 }
 
 /** An entry with no dataset of its own: a name, a few labelled facts and its text. */
@@ -98,6 +119,7 @@ export type Subject =
   | { type: 'background'; value: PlayableBackground }
   | { type: 'feat'; value: Feat }
   | { type: 'reward'; value: Reward }
+  | { type: 'creature'; value: Beast }
   | { type: 'class'; value: ClassRow }
   | { type: 'text'; value: TextSubject }
 
@@ -108,6 +130,8 @@ export interface LookupRow {
   name: string
   /** Where a name alone is not enough ("Druid 2" for a class feature). */
   context?: string
+  /** Other names a reference may call the entry by (an abbreviation). */
+  aliases?: string[]
   source: string
   edition?: Edition
   subject: Subject
