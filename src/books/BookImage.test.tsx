@@ -116,6 +116,32 @@ describe('BookImage maps and the viewer', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(1)
   })
 
+  it('lists the areas in the order the book numbers them', () => {
+    installObserver()
+    const ids = new Map(
+      ['11', '2', '10', '1'].map((n, i) => [
+        `k${i}`,
+        { chapter: 0, anchor: `a${n}`, name: `${n}. Room` },
+      ]),
+    )
+    render(
+      <EntryContext.Provider
+        value={{ book: true, words: [], doc: { kind: 'adventure', id: 'TST' }, ids }}
+      >
+        <BookImage
+          image={{ ...image, mapRegions: [...ids.keys()].map((key) => ({ area: key })) }}
+          root={null}
+        />
+      </EntryContext.Provider>,
+    )
+    expect(screen.getAllByRole('link').map((a) => a.textContent)).toEqual([
+      '1. Room',
+      '2. Room',
+      '10. Room',
+      '11. Room',
+    ])
+  })
+
   it('opens the viewer, and closes it again', () => {
     const reports = installObserver()
     render(<BookImage image={image} root={null} />)

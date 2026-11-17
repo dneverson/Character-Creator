@@ -20,10 +20,27 @@ vi.mock('../data/dataClient', async () => {
         },
       ],
     },
+    'tables.json': {
+      table: [
+        {
+          type: 'table',
+          name: 'Plane Loot',
+          source: 'XY',
+          caption: 'Plane Loot',
+          colLabels: ['d2', 'Item'],
+          rows: [['1', 'A shard']],
+        },
+      ],
+    },
     'bestiary/fluff-index.json': { MM: 'fluff-bestiary-mm.json' },
     'bestiary/fluff-bestiary-mm.json': {
       monsterFluff: [
         { name: 'Goblin', source: 'MM', entries: ['Small and mean.'], images: [] },
+        {
+          name: 'Ogre',
+          source: 'MM',
+          entries: [{ type: 'section', name: 'Ogre', entries: ['Big.'] }],
+        },
       ],
     },
   }
@@ -81,7 +98,7 @@ describe('BookStatblock', () => {
     )
     act(() => reports[0](true))
     expect(await screen.findByRole('heading', { name: 'Fireball' })).toBeInTheDocument()
-    expect(container.querySelector('.entry-book')).toBeInTheDocument()
+    expect(container.querySelector('.printed-spell')).toBeInTheDocument()
     expect(container.querySelector('.book-statblock')).toHaveClass('is-narrow')
     expect(container.querySelector('.book-statblock')).not.toHaveClass('is-loading')
   })
@@ -145,6 +162,66 @@ describe('BookStatblock', () => {
     act(() => reports[0](true))
     expect(await screen.findByText('Small and mean.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Goblin' })).toBeInTheDocument()
+  })
+
+  it('prints a description plain, without the name its heading already has', async () => {
+    const reports = installObserver()
+    const { container } = render(
+      <EntryContext.Provider value={{ book: true, words: [] }}>
+        <BookStatblock
+          entry={{
+            type: 'statblock',
+            prop: 'monsterFluff',
+            name: 'Ogre',
+            source: 'MM',
+            data: { renderCompact: { isSkipRootName: true } },
+          }}
+          root={null}
+          headed
+        />
+      </EntryContext.Provider>,
+    )
+    act(() => reports[0](true))
+    expect(await screen.findByText('Big.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Ogre' })).toBeNull()
+    expect(container.querySelector('.entry-book')).toBeNull()
+  })
+
+  it('finds a description when the text spells the book in lower case', async () => {
+    const reports = installObserver()
+    render(
+      <BookStatblock
+        entry={{ type: 'statblock', prop: 'monsterFluff', name: 'Goblin', source: 'mm' }}
+        root={null}
+      />,
+    )
+    act(() => reports[0](true))
+    expect(await screen.findByText('Small and mean.')).toBeInTheDocument()
+  })
+
+  it('draws a table a book keeps on its own', async () => {
+    const reports = installObserver()
+    render(
+      <BookStatblock
+        entry={{ type: 'statblock', tag: 'table', name: 'Plane Loot', source: 'XY' }}
+        root={null}
+      />,
+    )
+    act(() => reports[0](true))
+    expect(await screen.findByText('A shard')).toBeInTheDocument()
+  })
+
+  it('names what is missing and the book it is from', async () => {
+    const reports = installObserver()
+    render(
+      <BookStatblock
+        entry={{ type: 'statblock', tag: 'variantrule', name: 'Nope', source: 'XScreen' }}
+        root={null}
+      />,
+    )
+    act(() => reports[0](true))
+    expect(await screen.findByText('(XScreen)')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nope' })).toBeInTheDocument()
   })
 
   it('draws a table of the books as it is, with no panel', async () => {

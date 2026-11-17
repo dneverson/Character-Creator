@@ -7,6 +7,7 @@
 import { resolveCopy, type Copyable } from '../data/copy'
 import { fetchData } from '../data/dataClient'
 import { referenceOf, REFERENCE_TAGS, type Reference } from '../lookup/references'
+import type { LookupRow } from '../lookup/types'
 import type { Entry } from '../text/Entries'
 import type { StatblockEntry } from '../text/entryContext'
 
@@ -31,13 +32,19 @@ const FLUFF: Readonly<Record<string, FluffFile>> = {
   raceFluff: { file: 'fluff-races.json', list: 'raceFluff' },
   recipeFluff: { file: 'fluff-recipes.json', list: 'recipeFluff' },
   classFluff: { index: 'class/fluff-index.json', folder: 'class/', list: 'classFluff' },
+  crochetPatternFluff: { file: 'fluff-homecrafts.json', list: 'crochetPatternFluff' },
 }
+
+/** Whether the books print this kind of looked-up entry in a layout of its own. */
+export const hasPrinted = (row: LookupRow): boolean =>
+  ['creature', 'spell', 'item'].includes(row.subject.type)
 
 /** What a stat block asks for. */
 export type Target =
   | { kind: 'lookup'; reference: Reference }
   | { kind: 'fluff'; prop: string; name: string; source: string | undefined }
   | { kind: 'table'; name: string; source: string | undefined }
+  | { kind: 'crochet'; name: string; source: string | undefined }
   | { kind: 'none' }
 
 /** A description of the data: the entries and pictures a book prints for something. */
@@ -72,6 +79,7 @@ export function targetOf(entry: StatblockEntry): Target {
   const tag = entry.tag ?? (entry.prop === 'subclass' ? 'subclass' : undefined)
   // The tables of the books are all in one file, which is read for them.
   if (tag === 'table') return { kind: 'table', name, source: entry.source }
+  if (tag === 'crochet') return { kind: 'crochet', name, source: entry.source }
   if (tag && REFERENCE_TAGS[tag]) {
     const reference = referenceFor(entry, tag)
     return reference ? { kind: 'lookup', reference } : { kind: 'none' }
@@ -93,7 +101,10 @@ async function pathFor(spec: FluffFile, key: string): Promise<string | undefined
   const index = await fetchData<Record<string, string>>(spec.index ?? '').catch(
     (): Record<string, string> => ({}),
   )
-  const name = index[key] ?? index[key.toLowerCase().replace(/\s+/g, '')]
+  // The text spells a book in another case now and then ("mtf"); the index has "MTF".
+  const lower = key.toLowerCase().replace(/\s+/g, '')
+  const name =
+    index[key] ?? Object.entries(index).find(([k]) => k.toLowerCase() === lower)?.[1]
   return name ? `${spec.folder ?? ''}${name}` : undefined
 }
 
@@ -133,21 +144,31 @@ export async function loadFluff(
   return resolveCopy(found, (n, s) => originals.get(`${n}|${s}`))
 }
 
-/** The tables (and groups of tables) of every book, read for the stat blocks that name one. */
-const TABLES = 'generated/gendata-tables.json'
+/**
+ * The tables (and groups of tables) of every book, read for the stat blocks that name one:
+ * the ones the books print in their text, then the ones a book keeps on their own (the
+ * art objects of Plane Shift: Ixalan).
+ */
+const TABLES = ['generated/gendata-tables.json', 'tables.json']
 
 /** A table of the books by its name, as the entry the text would hold. */
 export async function loadTable(
   name: string,
   source: string | undefined,
 ): Promise<Entry | undefined> {
-  const file = await fetchData<Record<string, Entry[]>>(TABLES).catch(
-    (): Record<string, Entry[]> => ({}),
+  const files = await Promise.all(
+    TABLES.map((path) =>
+      fetchData<Record<string, Entry[]>>(path).catch((): Record<string, Entry[]> => ({})),
+    ),
   )
   const same = (a: unknown, b: string | undefined) =>
     typeof a === 'string' && a.toLowerCase() === b?.toLowerCase()
-  return [...(file.table ?? []), ...(file.tableGroup ?? [])].find((table) => {
-    const named = table as { name?: unknown; source?: unknown }
-    return same(named.name, name) && (source === undefined || same(named.source, source))
-  })
+  return files
+    .flatMap((file) => [...(file.table ?? []), ...(file.tableGroup ?? [])])
+    .find((table) => {
+      const named = table as { name?: unknown; source?: unknown }
+      return (
+        same(named.name, name) && (source === undefined || same(named.source, source))
+      )
+    })
 }

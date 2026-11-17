@@ -65,6 +65,8 @@ export interface StatblockEntry {
   classSource?: string
   shortName?: string
   pantheon?: string
+  /** How the printed page sets it; `isSkipRootName`: the page prints no name above it. */
+  data?: { renderCompact?: { isSkipRootName?: boolean } }
 }
 
 export interface EntryContextValue {
@@ -86,8 +88,11 @@ export interface EntryContextValue {
   runInFrom?: number
   /** How a picture is drawn. */
   renderImage?: (image: ImageEntry, group?: ImageEntry[]) => ReactNode
-  /** How a stat block is drawn: the entry the text names, read when it is near. */
-  renderStatblock?: (entry: StatblockEntry) => ReactNode
+  /**
+   * How a stat block is drawn: the entry the text names, read when it is near. `headed`:
+   * the heading right above carries the same name, so the block does not repeat it.
+   */
+  renderStatblock?: (entry: StatblockEntry, headed: boolean) => ReactNode
 }
 
 export const EntryContext = createContext<EntryContextValue | null>(null)

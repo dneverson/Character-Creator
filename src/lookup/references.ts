@@ -165,9 +165,16 @@ export interface Resolver {
 
 const keyOf = (kind: LookupKind, name: string) => `${kind}|${name.toLowerCase()}`
 
-/** A name as a reference spells it or the data does: "Flame Tongue (Longsword)". */
+/**
+ * A name as a reference spells it or the data does: "Flame Tongue (Longsword)", and a
+ * subrace of the books, "Elf (Zendikar; Joraga Nation)" for "Elf (Zendikar) (Joraga Nation)".
+ */
 const plainName = (name: string) =>
-  name.toLowerCase().replace(/[(),]/g, ' ').replace(/\s+/g, ' ').trim()
+  name
+    .toLowerCase()
+    .replace(/[(),;]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 
 /**
  * The items the generic variants make of the base items ("+1 Longsword"), as rows of
@@ -263,12 +270,26 @@ function buildResolver(rows: LookupRow[]): Resolver {
       byId: new Map(items.map((r) => [r.id, r])),
     }
   })
+  // A name spelled another way (a subrace) is found by what it says, in its own kind.
+  const spelled = once(() => {
+    const found = new Map<string, LookupRow[]>()
+    for (const row of rows)
+      for (const name of [row.name, ...(row.aliases ?? [])]) {
+        const key = keyOf(row.kind, plainName(name))
+        found.set(key, [...(found.get(key) ?? []), row])
+      }
+    return found
+  })
   // A table named in the text is found inside the entry that holds it.
   const tables = once(() => groupedBy(rows, tableCaptions))
   return {
     find: (ref) => {
       for (const kind of [ref.kind, ...(ref.alsoKinds ?? [])]) {
         const found = best(byName.get(keyOf(kind, ref.name)), ref)
+        if (found) return found
+      }
+      for (const kind of [ref.kind, ...(ref.alsoKinds ?? [])]) {
+        const found = best(spelled().get(keyOf(kind, plainName(ref.name))), ref)
         if (found) return found
       }
       if (ref.kind === 'item') return best(made().byName.get(plainName(ref.name)), ref)

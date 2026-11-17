@@ -277,6 +277,7 @@ export function StatblockNote({
     <aside className="book-statblock mb-2">
       <span className="book-run">{tag ? 'Entry' : 'Stat block'}:</span>{' '}
       {reference ? <TagRef reference={reference} text={name} /> : name}
+      {entry.source && <span className="text-body-secondary"> ({entry.source})</span>}
       <span className="text-body-secondary"> - {note}</span>
     </aside>
   )
@@ -334,7 +335,16 @@ function renderItem(obj: Record<string, unknown>, depth: number, book: boolean) 
     nameDot?: boolean
   }
   if (book) {
-    const entry = it.entry ? <Tagged text={it.entry} /> : null
+    // The text a named item opens with runs in after its name, as the printed lists set it
+    // ("Row 1: (Aruba Sea) ch46..."); what follows it stands as paragraphs.
+    const [lead, ...rest] = it.entries ?? []
+    const runsIn = !it.entry && it.name !== undefined && typeof lead === 'string'
+    const entry = it.entry ? (
+      <Tagged text={it.entry} />
+    ) : runsIn ? (
+      <Tagged text={lead} />
+    ) : null
+    const more = runsIn ? rest : it.entries
     return (
       <div className="book-item">
         {it.name && (
@@ -346,7 +356,7 @@ function renderItem(obj: Record<string, unknown>, depth: number, book: boolean) 
           </>
         )}
         {entry}
-        {it.entries && <EntryList entries={it.entries} depth={depth} />}
+        {more && more.length > 0 && <EntryList entries={more} depth={depth} />}
       </div>
     )
   }
@@ -448,6 +458,7 @@ function renderEntry(
   key: number,
   depth: number,
   context: EntryContextValue | null,
+  headed = false,
 ): ReactNode {
   const book = context?.book === true
   if (typeof entry === 'string' || typeof entry === 'number') {
@@ -506,7 +517,11 @@ function renderEntry(
       const box = !['section', 'entries'].includes(String(named.type))
       const style = (named.style ?? '').split(' ').filter(Boolean)
       const body = named.entries && (
-        <EntryList entries={named.entries} depth={named.name ? depth + 1 : depth} />
+        <EntryList
+          entries={named.entries}
+          depth={named.name ? depth + 1 : depth}
+          heading={named.name}
+        />
       )
       const title = named.name && (
         <BookHeading entry={named} depth={depth} box={box} context={context} />
@@ -665,7 +680,7 @@ function renderEntry(
       return (
         <Fragment key={key}>
           {context?.renderStatblock ? (
-            context.renderStatblock(obj as StatblockEntry)
+            context.renderStatblock(obj as StatblockEntry, headed)
           ) : (
             <StatblockNote entry={obj as StatblockEntry} />
           )}
@@ -761,13 +776,30 @@ function renderEntry(
   }
 }
 
-function EntryList({ entries, depth }: { entries: Entry[]; depth: number }) {
+function EntryList({
+  entries,
+  depth,
+  heading,
+}: {
+  entries: Entry[]
+  depth: number
+  /** The name of the heading these entries sit under, when they have one. */
+  heading?: string
+}) {
   const context = useContext(EntryContext)
+  const named = heading ? stripTags(heading).toLowerCase() : undefined
   return (
     <>
-      {entries.map((e, i) => (
-        <Fragment key={i}>{renderEntry(e, i, depth, context)}</Fragment>
-      ))}
+      {entries.map((e, i) => {
+        const first = typeof e === 'object' ? (e as { name?: string }) : undefined
+        // A stat block right under a heading of its own name does not print it again.
+        const headed =
+          i === 0 &&
+          named !== undefined &&
+          first?.name !== undefined &&
+          stripTags(first.name).toLowerCase() === named
+        return <Fragment key={i}>{renderEntry(e, i, depth, context, headed)}</Fragment>
+      })}
     </>
   )
 }

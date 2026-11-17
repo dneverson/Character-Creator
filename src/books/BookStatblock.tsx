@@ -14,10 +14,19 @@ import type { LookupRow } from '../lookup/types'
 import { Entries, StatblockNote, type Entry } from '../text/Entries'
 import { TaggedText } from '../text/TaggedText'
 import { EntryContext, type StatblockEntry } from '../text/entryContext'
-import { loadFluff, loadTable, targetOf } from './statblock'
+import { PrintedEntry } from './PrintedEntry'
+import { stripTags } from '../text/tags'
+import { loadCrochet } from './crochet'
+import { hasPrinted, loadFluff, loadTable, targetOf } from './statblock'
 
 /** How far before a stat block comes into view it starts to load. */
 const PRELOAD_MARGIN = '600px 0px'
+
+interface NamedEntries {
+  type?: string
+  name?: string
+  entries?: Entry[]
+}
 
 type Content =
   | { status: 'loading' }
@@ -46,7 +55,7 @@ function useContent(entry: StatblockEntry, active: boolean): Content {
                 ? {
                     status: 'entries',
                     entries: [...(fluff.entries ?? []), ...(fluff.images ?? [])],
-                    panel: true,
+                    panel: !entry.data?.renderCompact?.isSkipRootName,
                   }
                 : missing,
             )
@@ -54,7 +63,11 @@ function useContent(entry: StatblockEntry, active: boolean): Content {
             ? loadTable(target.name, target.source).then((table) =>
                 table ? { status: 'entries', entries: [table], panel: false } : missing,
               )
-            : Promise.resolve(missing)
+            : target.kind === 'crochet'
+              ? loadCrochet(target.name, target.source).then((entries) =>
+                  entries ? { status: 'entries', entries, panel: true } : missing,
+                )
+              : Promise.resolve(missing)
     read.then(
       (done) => current && setContent(done),
       () => current && setContent(missing),
@@ -66,6 +79,20 @@ function useContent(entry: StatblockEntry, active: boolean): Content {
   return content
 }
 
+/**
+ * A description that opens with a section of the heading's own name, right under that
+ * heading, is that page's text: the name is not printed a second time.
+ */
+function withoutRepeatedHeading(entries: Entry[], name: string): Entry[] {
+  const [first, ...rest] = entries
+  const section = typeof first === 'object' ? (first as NamedEntries) : undefined
+  const same =
+    section?.type === 'section' &&
+    section.name !== undefined &&
+    stripTags(section.name).toLowerCase() === stripTags(name).toLowerCase()
+  return same ? [...(section.entries ?? []), ...rest] : entries
+}
+
 /** The space a stat block keeps while it is not there yet, by what it is. */
 const reservedHeight = (entry: StatblockEntry) =>
   entry.tag === 'creature' || entry.prop === 'monsterFluff' ? '20rem' : '8rem'
@@ -73,8 +100,11 @@ const reservedHeight = (entry: StatblockEntry) =>
 export function BookStatblock({
   entry,
   root,
+  headed = false,
 }: {
   entry: StatblockEntry
+  /** The heading right above has this block's name, so the block does not print it. */
+  headed?: boolean
   /** The area that scrolls the text, which decides when a block is near. */
   root: Element | null
 }) {
@@ -97,7 +127,13 @@ export function BookStatblock({
 
   let body: ReactNode
   if (content.status === 'row') {
-    body = (
+    body = hasPrinted(content.row) ? (
+      <PrintedEntry
+        row={content.row}
+        name={entry.displayName ?? content.row.name}
+        headed={headed}
+      />
+    ) : (
       <EntryDetail
         book
         entry={content.row}
@@ -116,7 +152,9 @@ export function BookStatblock({
         <Entries entries={content.entries} />
       </div>
     ) : (
-      <Entries entries={content.entries} />
+      <Entries
+        entries={headed ? withoutRepeatedHeading(content.entries, name) : content.entries}
+      />
     )
   } else if (content.status === 'missing') {
     body = <StatblockNote entry={entry} note="not in the loaded content." />

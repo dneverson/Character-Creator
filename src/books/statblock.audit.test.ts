@@ -9,6 +9,7 @@ import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { loadResolver } from '../lookup/references'
 import type { StatblockEntry } from '../text/entryContext'
+import { loadCrochet } from './crochet'
 import { loadFluff, loadTable, targetOf } from './statblock'
 
 vi.mock('../data/dataClient', async () => {
@@ -25,22 +26,12 @@ vi.mock('../data/dataClient', async () => {
 })
 
 /**
- * The stat blocks the full content has no entry for: the Plane Shift races and art
- * objects, a rule of the DM screen, a feat that the data names by its variants, and
- * three descriptions of monsters the data names differently. Each stays a line that says
- * so and links to the lookup; a new one is a new gap, and the audit fails on it.
+ * The stat blocks the full content has no entry for: one rule of the DM screen, which the
+ * data keeps only as text inside the screen's own pages (the 2024 rules have it as "Death
+ * Saving Throw"). It stays a line that says so and links to the lookup; a new one is a new
+ * gap, and the audit fails on it.
  */
-const KNOWN_MISSING = [
-  'feat: Strike of the Giants|BGG',
-  'variantrule: Death Saving Throws|XScreen',
-  'monsterFluff: Air Elemental Myrmidon|mtf',
-  'monsterFluff: Master Thief|vgm',
-  'monsterFluff: Water Elemental Myrmidon|mtf',
-]
-const KNOWN_MISSING_PATTERN = /^(race: .*[|]PS[IKZ]|table: .*Art Objects[|]PSX)$/
-
-/** The kinds the data of the content source has no files for, so nothing can be drawn. */
-const NO_DATA = ['crochet', 'crochetPatternFluff']
+const KNOWN_MISSING = ['variantrule: Death Saving Throws|XScreen']
 
 function collect(node: unknown, found: StatblockEntry[] = []): StatblockEntry[] {
   if (Array.isArray(node)) for (const child of node) collect(child, found)
@@ -67,7 +58,7 @@ describe('the stat blocks of the books', () => {
           ),
       )
       const resolver = await loadResolver()
-      const counts = { lookup: 0, fluff: 0, table: 0, noData: 0 }
+      const counts = { lookup: 0, fluff: 0, table: 0, crochet: 0 }
       const lost: string[] = []
       for (const block of blocks) {
         const target = targetOf(block)
@@ -80,20 +71,18 @@ describe('the stat blocks of the books', () => {
         } else if (target.kind === 'table') {
           if (await loadTable(target.name, target.source)) counts.table++
           else lost.push(`table: ${block.name}|${block.source}`)
-        } else if (NO_DATA.includes(block.tag ?? block.prop ?? '')) counts.noData++
-        else lost.push(`${block.tag ?? block.prop}: ${block.name}|${block.source}`)
+        } else if (target.kind === 'crochet') {
+          if (await loadCrochet(target.name, target.source)) counts.crochet++
+          else lost.push(`crochet: ${block.name}|${block.source}`)
+        } else lost.push(`${block.tag ?? block.prop}: ${block.name}|${block.source}`)
       }
       console.info(`stat blocks ${blocks.length}:`, counts, `lost ${lost.length}`)
       console.info(lost.slice(0, 60).join('\n'))
       expect(
-        counts.lookup + counts.fluff + counts.table + counts.noData + lost.length,
+        counts.lookup + counts.fluff + counts.table + counts.crochet + lost.length,
       ).toBe(blocks.length)
-      expect(
-        lost.filter(
-          (line) => !KNOWN_MISSING.includes(line) && !KNOWN_MISSING_PATTERN.test(line),
-        ),
-      ).toEqual([])
-      expect(lost).toHaveLength(23)
+      expect(lost.filter((line) => !KNOWN_MISSING.includes(line))).toEqual([])
+      expect(lost).toHaveLength(KNOWN_MISSING.length)
     },
     120_000,
   )

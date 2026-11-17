@@ -114,6 +114,22 @@ describe('the book look of the entries', () => {
     expect(screen.getAllByRole('table')).toHaveLength(2)
   })
 
+  it('runs the first text of a named item in after its name, and sets the rest apart', () => {
+    const { container } = book([
+      {
+        type: 'list',
+        style: 'list-hang-notitle',
+        items: [{ type: 'item', name: 'Row 1:', entries: ['Ch 46, sc.', 'Turn.'] }],
+      },
+    ])
+    const item = container.querySelector('.book-item')
+    expect(item?.querySelector('strong')?.nextSibling?.textContent).toBe(' ')
+    expect(item?.firstElementChild).toHaveTextContent('Row 1:')
+    expect(item?.textContent).toContain('Row 1: Ch 46, sc.')
+    expect(item?.querySelectorAll('p')).toHaveLength(1)
+    expect(item?.querySelector('p')).toHaveTextContent('Turn.')
+  })
+
   it('draws lists by style, in columns, and titled', () => {
     book([
       {

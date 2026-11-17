@@ -13,6 +13,7 @@ import { EntryContext, type ImageEntry } from '../text/entryContext'
 import { TaggedText } from '../text/TaggedText'
 import { stripTags } from '../text/tags'
 import { placeOfTarget } from './address'
+import { sortAreas } from './areas'
 import { BookLink } from './BookLink'
 import { ImageViewer } from './ImageViewer'
 import { labelOf, pathOf, useImageSource } from './imageSource'
@@ -25,10 +26,12 @@ function MapPlaces({ image }: { image: ImageEntry }) {
   const context = useContext(EntryContext)
   const { doc, ids } = context ?? {}
   if (!doc || !ids) return null
-  const areas = (image.mapRegions ?? []).flatMap((region) => {
-    const target = ids.get(region.area)
-    return target ? [{ key: region.area, target }] : []
-  })
+  const areas = sortAreas(
+    (image.mapRegions ?? []).flatMap((region) => {
+      const target = ids.get(region.area)
+      return target ? [{ key: region.area, target }] : []
+    }),
+  )
   const parent = image.mapParent ? ids.get(image.mapParent.id) : undefined
   if (areas.length === 0 && !parent) return null
   return (

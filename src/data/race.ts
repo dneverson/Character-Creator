@@ -471,18 +471,23 @@ function copyFinder(records: readonly RaceEntry[]) {
     )
 }
 
-/** Load all selectable races (base races and base+subrace combinations). */
-export async function loadRaces(): Promise<PlayableRace[]> {
+/** The races and subraces of the data, with every `_copy` worked in. */
+async function readRaces() {
   const data = await fetchData<RacesFile>('races.json')
   const races = data.race.map((r) => resolveCopy(r, copyFinder(data.race)))
   const findSubrace = copyFinder(data.subrace ?? [])
   const subraces = (data.subrace ?? []).map((s) => resolveCopy(s, findSubrace))
+  const subsOf = (race: RaceEntry) =>
+    subraces.filter((s) => s.raceName === race.name && s.raceSource === race.source)
+  return { races, subsOf }
+}
 
+/** Load all selectable races (base races and base+subrace combinations). */
+export async function loadRaces(): Promise<PlayableRace[]> {
+  const { races, subsOf } = await readRaces()
   const playable: PlayableRace[] = []
   for (const race of races) {
-    const subs = subraces.filter(
-      (s) => s.raceName === race.name && s.raceSource === race.source,
-    )
+    const subs = subsOf(race)
     if (subs.length === 0) {
       playable.push(toPlayable(race))
     } else {
@@ -491,6 +496,15 @@ export async function loadRaces(): Promise<PlayableRace[]> {
   }
   playable.sort((a, b) => a.name.localeCompare(b.name))
   return playable
+}
+
+/**
+ * The races that are only ever played as one of their subraces, each as the race itself:
+ * what the books describe before they describe the subraces, and what the text names.
+ */
+export async function loadParentRaces(): Promise<PlayableRace[]> {
+  const { races, subsOf } = await readRaces()
+  return races.filter((race) => subsOf(race).length > 0).map((race) => toPlayable(race))
 }
 
 /** What a race rule names: a base race by its book, or one subrace by the subrace's book. */

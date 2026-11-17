@@ -3,7 +3,8 @@
 // Quick lookup reads every creature, both through the one description in
 // src/components/editor/beastFacts.tsx.
 
-import type { AbilityKey } from '../dice/dice'
+import { abilityMod, type AbilityKey } from '../dice/dice'
+import { proficiencyForCr } from '../rules/challenge'
 import type { Entry } from '../text/Entries'
 import { fetchData } from './dataClient'
 import { loadBookEditions, type Edition } from './edition'
@@ -26,6 +27,8 @@ export interface Beast {
   hasCr: boolean
   /** A swarm of tiny creatures, which is never a Wild Shape form. */
   swarm: boolean
+  /** The size of the creatures a swarm is made of ("T"). */
+  swarmSize?: string
   /** The creature type as the data names it: "beast", "dragon". */
   type: string
   /** Type tags such as "dinosaur" or "cattle". */
@@ -38,6 +41,8 @@ export interface Beast {
   /** Average hit points (0 when the data gives a special value). */
   hp: number
   hpFormula?: string
+  /** What the hit points are when the data gives words, not an average ("equal to ..."). */
+  hpSpecial?: string
   speed: Record<string, SpeedValue>
   /** Movement types present (walk/fly/swim/climb/burrow). */
   hasFly: boolean
@@ -62,6 +67,12 @@ export interface Beast {
   reactions: BeastEntry[]
   legendary: BeastEntry[]
   mythic: BeastEntry[]
+  /** Experience points the data states itself (a creature outside the standard table). */
+  xp?: number
+  /** Experience points in the lair, when they differ. */
+  xpLair?: number
+  /** The 2024 initiative modifier (Dexterity, and proficiency when the stat block has it). */
+  initiative?: number
   /** Lair actions and regional effects, from the creature's legendary group. */
   lair: BeastEntry[]
 }
@@ -89,9 +100,10 @@ interface RawMonster {
   type?: string | RawType
   alignment?: unknown[]
   size?: string[]
-  cr?: string | { cr?: string }
+  cr?: string | { cr?: string; xp?: number; xpLair?: number }
+  initiative?: { initiative?: number; proficiency?: number }
   ac?: (number | { ac?: number; from?: string[] })[]
-  hp?: { average?: number; formula?: string }
+  hp?: { average?: number; formula?: string; special?: string }
   speed?: Record<string, SpeedValue> | number
   str?: number
   dex?: number
@@ -168,6 +180,15 @@ function firstAc(ac: RawMonster['ac']): { ac: number; from?: string } {
 
 function crString(cr: RawMonster['cr']): string | undefined {
   return typeof cr === 'string' ? cr : cr?.cr
+}
+
+/** The 2024 initiative modifier: the stated one, or Dexterity plus proficiency as many times. */
+function initiativeOf(m: RawMonster, dex: number): number | undefined {
+  if (!m.initiative) return undefined
+  if (m.initiative.initiative !== undefined) return m.initiative.initiative
+  const cr = crString(m.cr)
+  const pb = cr === undefined ? 2 : proficiencyForCr(crToNumber(cr))
+  return abilityMod(dex) + (m.initiative.proficiency ?? 0) * pb
 }
 
 const typeTags = (type: RawMonster['type']): string[] =>
@@ -282,6 +303,7 @@ function normalize(
     crValue: crToNumber(cr ?? '0'),
     hasCr: cr !== undefined,
     swarm: typeof m.type === 'object' && !!m.type.swarmSize,
+    swarmSize: typeof m.type === 'object' ? m.type.swarmSize : undefined,
     type: typeName(m.type),
     tags: typeTags(m.type),
     alignment: alignmentText(m.alignment ?? []),
@@ -289,6 +311,7 @@ function normalize(
     acFrom: ac.from,
     hp: m.hp?.average ?? 0,
     hpFormula: m.hp?.formula,
+    hpSpecial: m.hp?.special,
     speed,
     hasFly: moves(speed, 'fly'),
     hasSwim: moves(speed, 'swim'),
@@ -316,6 +339,9 @@ function normalize(
     reactions: m.reaction ?? [],
     legendary: withHeader('Legendary Actions', m.legendaryHeader, m.legendary),
     mythic: withHeader('Mythic Actions', m.mythicHeader, m.mythic),
+    xp: typeof m.cr === 'object' ? m.cr.xp : undefined,
+    xpLair: typeof m.cr === 'object' ? m.cr.xpLair : undefined,
+    initiative: initiativeOf(m, ability(m.dex)),
     lair: m.legendaryGroup
       ? (groups.get(`${m.legendaryGroup.name}|${m.legendaryGroup.source}`) ?? [])
       : [],

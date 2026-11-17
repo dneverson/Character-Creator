@@ -62,7 +62,9 @@ export function BookPane({
     [root],
   )
   const renderStatblock = useCallback(
-    (entry: StatblockEntry) => <BookStatblock entry={entry} root={root} />,
+    (entry: StatblockEntry, headed: boolean) => (
+      <BookStatblock entry={entry} root={root} headed={headed} />
+    ),
     [root],
   )
   const context = useMemo(

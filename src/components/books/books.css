@@ -436,6 +436,18 @@
 .book-table-wrap {
   margin: 1rem 0;
 }
+/* A table wider than the screen scrolls sideways; a shadow on the edge that has more
+   beyond it says so, and goes when the edge is reached. */
+.book-table-wrap {
+  background:
+    linear-gradient(to right, var(--book-paper) 30%, transparent) 0 0 / 2rem 100% local,
+    linear-gradient(to left, var(--book-paper) 30%, transparent) 100% 0 / 2rem 100% local,
+    radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.3), transparent) 0 0 / 0.7rem
+      100% scroll,
+    radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.3), transparent) 100% 0 /
+      0.7rem 100% scroll;
+  background-repeat: no-repeat;
+}
 .book-table {
   --bs-table-bg: transparent;
   --bs-table-striped-bg: var(--book-stripe);
@@ -503,7 +515,8 @@
 .book-statblock.is-inset {
   margin-inline: 1rem;
 }
-.book-statblock .entry-book {
+.book-statblock .entry-book,
+.book-statblock .printed {
   --detail-font: var(--book-font);
   --detail-ink: var(--book-ink);
   --detail-title-color: var(--book-title);
@@ -518,6 +531,93 @@
   box-shadow: 0 0.15rem 0.5rem rgb(0 0 0 / 0.2);
   margin: 0;
   padding: 0.6rem 0.9rem 0.75rem !important;
+}
+.book-statblock .printed {
+  color: var(--book-ink);
+  font-family: var(--book-font);
+}
+.printed__name {
+  margin: 0 0 0.1rem;
+  color: var(--book-title);
+  font-family: var(--book-heading-font);
+  font-size: 1.5rem;
+  font-variant: small-caps;
+  line-height: 1.15;
+}
+.printed__kind {
+  margin: 0 0 0.2rem;
+}
+.printed__rule {
+  height: 2px;
+  margin: 0.3rem 0 0.45rem;
+  border: 0;
+  background: linear-gradient(90deg, var(--book-title), transparent);
+  opacity: 1;
+}
+.printed__line {
+  margin: 0 0 0.15rem;
+}
+.printed__label {
+  color: var(--book-title);
+}
+.printed__challenge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2rem;
+}
+.printed__section {
+  margin: 0.7rem 0 0.35rem;
+  padding-bottom: 0.1rem;
+  border-bottom: 1px solid var(--book-title);
+  color: var(--book-title);
+  font-family: var(--book-heading-font);
+  font-size: 1.15rem;
+  font-variant: small-caps;
+}
+.printed__abilities {
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  font-size: 0.9rem;
+}
+.printed__abilities th {
+  color: var(--book-title);
+  font-weight: 700;
+}
+.printed__abilities td,
+.printed__abilities th {
+  padding: 0.05rem 0.25rem;
+}
+.printed__abilities.is-split {
+  table-layout: fixed;
+  font-size: 0.85rem;
+}
+.printed__abilities.is-split td,
+.printed__abilities.is-split th {
+  padding: 0.05rem 0.1rem;
+}
+.printed__abilities.is-split th[scope='col'] {
+  font-size: 0.6rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.printed__abilities.is-split th[scope='row'] {
+  text-align: left;
+}
+.printed__abilities col.is-name {
+  width: 2rem;
+}
+.printed__abilities col.is-score {
+  width: 1.3rem;
+}
+.printed__abilities col.is-mod {
+  width: 1.55rem;
+}
+.printed__abilities col.is-save {
+  width: 1.75rem;
+}
+.printed .abbr {
+  text-decoration: none;
 }
 .book-statblock .entry-book__title {
   font-size: 1.5rem;
@@ -815,6 +915,13 @@ mark.book-hit.is-current {
   display: block;
   width: 100%;
   height: auto;
+}
+.book-viewer-grid.is-hex {
+  width: 100%;
+  height: 100%;
+  background: none;
+  fill: none;
+  stroke: rgb(0 0 0 / 0.55);
 }
 .book-viewer-grid {
   position: absolute;

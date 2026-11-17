@@ -54,6 +54,66 @@ describe('ImageViewer', () => {
     expect(grids()).toBe(0)
   })
 
+  describe('a hex grid', () => {
+    const hexMap = (type: string, size = 100): ImageEntry => ({
+      ...map,
+      grid: { type, size, offsetX: 10, offsetY: 20, distance: 6, units: 'mi' },
+    })
+    const pattern = () => document.querySelector('pattern')
+
+    it('is drawn when the data gives the size of a hex', () => {
+      render(<ImageViewer images={[hexMap('hexColsOdd')]} start={0} onClose={() => {}} />)
+      expect(grids()).toBe(0)
+      fireEvent.click(screen.getByRole('button', { name: 'Show grid' }))
+      expect(grids()).toBe(1)
+      expect(document.querySelector('svg.book-viewer-grid')).toHaveAttribute(
+        'viewBox',
+        '0 0 800 400',
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Hide grid' }))
+      expect(grids()).toBe(0)
+    })
+
+    it('has columns three sides wide when the hexes stand on a side', () => {
+      render(<ImageViewer images={[hexMap('hexColsOdd')]} start={0} onClose={() => {}} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Show grid' }))
+      const side = 100 / Math.sqrt(3)
+      expect(Number(pattern()?.getAttribute('width'))).toBeCloseTo(side * 3)
+      expect(pattern()?.getAttribute('height')).toBe('100')
+      expect(pattern()).toHaveAttribute('patternTransform', 'translate(10 20)')
+    })
+
+    it('has rows three sides tall when the hexes stand on a corner', () => {
+      render(<ImageViewer images={[hexMap('hexRowsOdd')]} start={0} onClose={() => {}} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Show grid' }))
+      expect(pattern()?.getAttribute('width')).toBe('100')
+      expect(Number(pattern()?.getAttribute('height'))).toBeCloseTo(
+        (100 / Math.sqrt(3)) * 3,
+      )
+    })
+
+    it('moves the first column down half a hex for an even grid', () => {
+      render(
+        <ImageViewer images={[hexMap('hexColsEven')]} start={0} onClose={() => {}} />,
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Show grid' }))
+      expect(pattern()).toHaveAttribute('patternTransform', 'translate(10 70)')
+    })
+
+    it('moves the first row along half a hex for an even grid of rows', () => {
+      render(
+        <ImageViewer images={[hexMap('hexRowsEven')]} start={0} onClose={() => {}} />,
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Show grid' }))
+      expect(pattern()).toHaveAttribute('patternTransform', 'translate(60 20)')
+    })
+
+    it('is not offered without a hex size', () => {
+      render(<ImageViewer images={[second]} start={0} onClose={() => {}} />)
+      expect(screen.queryByRole('button', { name: 'Show grid' })).toBeNull()
+    })
+  })
+
   it('steps through a gallery with the buttons and the arrow keys', () => {
     render(<ImageViewer images={[map, second]} start={0} onClose={() => {}} />)
     expect(screen.getByText('1 of 2')).toBeInTheDocument()

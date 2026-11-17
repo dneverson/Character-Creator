@@ -75,7 +75,7 @@ describe('an old dragonborn save', () => {
     expect(ensureCharacterDefaults({}).race).toBeUndefined()
   })
 
-  it('drops the pick of the type its dragon has, and keeps one of another type', () => {
+  it('drops the pick of the type its dragon has', () => {
     const red = {
       ...ref('Dragonborn (Chromatic)', 'FTD'),
       baseSource: 'FTD',
@@ -83,10 +83,34 @@ describe('an old dragonborn save', () => {
     }
     expect(oldSave(red, 'fire').grantPicks.resist).toEqual({})
     expect(oldSave(red, 'fire').race?.trait).toBe('Red')
-    expect(oldSave(red, 'cold').grantPicks.resist).toEqual({ cold: 'race' })
-    expect(oldSave({ ...red, trait: 'Purple' }, 'fire').grantPicks.resist).toEqual({
-      fire: 'race',
-    })
+  })
+
+  it('drops the pick of another type when the race has no free pick left', () => {
+    const red = {
+      ...ref('Dragonborn (Chromatic)', 'FTD'),
+      baseSource: 'FTD',
+      trait: 'Red',
+    }
+    const saved = oldSave(red, 'cold')
+    expect(saved.grantPicks.resist).toEqual({})
+    expect(saved.race?.trait).toBe('Red')
+    expect(ensureCharacterDefaults(saved)).toEqual(saved)
+  })
+
+  it('keeps a pick of another type where the race still has a free pick', () => {
+    for (const source of ['PHB', 'XPHB']) {
+      const gold = { ...ref('Dragonborn', source), baseSource: source, trait: 'Gold' }
+      expect(oldSave(gold, 'cold').grantPicks.resist).toEqual({ cold: 'race' })
+    }
+  })
+
+  it('keeps a pick when the dragon is not one the race has', () => {
+    const purple = {
+      ...ref('Dragonborn (Chromatic)', 'FTD'),
+      baseSource: 'FTD',
+      trait: 'Purple',
+    }
+    expect(oldSave(purple, 'fire').grantPicks.resist).toEqual({ fire: 'race' })
   })
 
   it('does nothing twice', () => {

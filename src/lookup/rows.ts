@@ -11,9 +11,9 @@ import { loadClassOptions } from '../data/classOptions'
 import { loadCreatures } from '../data/beasts'
 import { fetchData } from '../data/dataClient'
 import { loadBookEditions, type Edition } from '../data/edition'
-import { loadFeats } from '../data/feats'
+import { loadFeats, loadVersionedFeats } from '../data/feats'
 import { loadItems } from '../data/items'
-import { loadRaces } from '../data/race'
+import { loadParentRaces, loadRaces } from '../data/race'
 import { loadRewards } from '../data/rewards'
 import { classNames } from '../components/editor/spellFacts'
 import { loadSpells } from '../data/spells'
@@ -316,8 +316,10 @@ export const loadLookupRows = memoizeContent(async (): Promise<LookupRow[]> => {
     spells,
     items,
     races,
+    parentRaces,
     backgrounds,
     feats,
+    versionedFeats,
     rewards,
     options,
     classes,
@@ -327,8 +329,10 @@ export const loadLookupRows = memoizeContent(async (): Promise<LookupRow[]> => {
     loadSpells(),
     loadItems(),
     loadRaces(),
+    loadParentRaces(),
     loadBackgrounds(),
     loadFeats(),
+    loadVersionedFeats(),
     loadRewards(),
     loadClassOptions(),
     classRows(editionOf),
@@ -342,7 +346,7 @@ export const loadLookupRows = memoizeContent(async (): Promise<LookupRow[]> => {
     ...items.map((i) =>
       row('item', i.key, i.name, i.source, i.edition, { type: 'item', value: i }),
     ),
-    ...races.map((r) =>
+    ...[...races, ...parentRaces].map((r) =>
       row('race', r.key, r.name, r.source, r.edition, { type: 'race', value: r }),
     ),
     ...backgrounds.map((b) =>
@@ -351,7 +355,7 @@ export const loadLookupRows = memoizeContent(async (): Promise<LookupRow[]> => {
         value: b,
       }),
     ),
-    ...feats.map((f) =>
+    ...[...feats, ...versionedFeats].map((f) =>
       row('feat', f.key, f.label, f.source, f.edition, { type: 'feat', value: f }),
     ),
     ...rewards.map((r) =>

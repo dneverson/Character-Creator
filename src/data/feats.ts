@@ -255,13 +255,29 @@ export function featsFromEntries(entries: FeatEntry[]): Feat[] {
   return feats.sort((a, b) => a.label.localeCompare(b.label))
 }
 
-/** Load all feats, with `_copy` resolved and versions expanded. */
-export async function loadFeats(): Promise<Feat[]> {
+/** The feats of the data with every `_copy` worked in, versions still folded in. */
+async function readFeats(): Promise<FeatEntry[]> {
   const data = await fetchData<FeatsFile>('feats.json')
   const all = data.feat
   const find = (name: string, source: string) =>
     all.find((e) => e.name === name && e.source === source)
-  return featsFromEntries(all.map((f) => resolveCopy(f, find)))
+  return all.map((f) => resolveCopy(f, find))
+}
+
+/** Load all feats, with `_copy` resolved and versions expanded. */
+export async function loadFeats(): Promise<Feat[]> {
+  return featsFromEntries(await readFeats())
+}
+
+/**
+ * The feats that are only taken in one of their versions ("Strike of the Giants" and its
+ * six strikes), each as the feat itself: what the books describe before its versions.
+ */
+export async function loadVersionedFeats(): Promise<Feat[]> {
+  const all = await readFeats()
+  return all
+    .filter((entry) => entry._versions?.length)
+    .map((entry) => toFeat({ ...entry, _versions: undefined }, entry.name))
 }
 
 // ---- Feat grants (race / background) ---------------------------------------

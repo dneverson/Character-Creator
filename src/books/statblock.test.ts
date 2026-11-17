@@ -77,15 +77,26 @@ describe('what a stat block stands for', () => {
     })
   })
 
-  it('is nothing known for a nameless one, or a kind the content has no data for', () => {
+  it('is nothing known for a nameless one', () => {
     expect(targetOf({ type: 'statblock' })).toEqual({ kind: 'none' })
-    expect(targetOf({ type: 'statblock', tag: 'crochet', name: 'Hat' })).toEqual({
-      kind: 'none',
-    })
+  })
+
+  it('is a crochet pattern, or the description a book keeps for one', () => {
     expect(
-      targetOf({ type: 'statblock', prop: 'crochetPatternFluff', name: 'Hat' }),
+      targetOf({ type: 'statblock', tag: 'crochet', name: 'Hat', source: 'CaBoMP' }),
+    ).toEqual({ kind: 'crochet', name: 'Hat', source: 'CaBoMP' })
+    expect(
+      targetOf({
+        type: 'statblock',
+        prop: 'crochetPatternFluff',
+        name: 'Hat',
+        source: 'CaBoMP',
+      }),
     ).toEqual({
-      kind: 'none',
+      kind: 'fluff',
+      prop: 'crochetPatternFluff',
+      name: 'Hat',
+      source: 'CaBoMP',
     })
   })
 })
