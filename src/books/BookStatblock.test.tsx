@@ -103,6 +103,18 @@ describe('BookStatblock', () => {
     expect(container.querySelector('.book-statblock')).not.toHaveClass('is-loading')
   })
 
+  it('says where it is printed when the text only shows it', () => {
+    installObserver()
+    render(<BookStatblock entry={{ ...spell, printedOn: 334 }} root={null} />)
+    expect(screen.getByText('Printed on page 334')).toBeInTheDocument()
+  })
+
+  it('says nothing about a page when it is printed where it stands', () => {
+    installObserver()
+    render(<BookStatblock entry={spell} root={null} />)
+    expect(screen.queryByText(/Printed on page/)).toBeNull()
+  })
+
   it('reserves more space for a creature than for the rest', () => {
     installObserver()
     const { container } = render(

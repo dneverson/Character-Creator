@@ -5,6 +5,7 @@
 
 import type { Entry } from '../text/Entries'
 import { stripTags } from '../text/tags'
+import type { Listed } from './listed'
 
 /** A named part of the text: a chapter, a heading, a sidebar. */
 export interface Heading {
@@ -133,14 +134,25 @@ export function cellTextOf(cell: unknown): string {
   return typeof cell.entry === 'string' ? stripTags(cell.entry) : ''
 }
 
-/** Read the sections of a book's text, each section being one chapter. */
-export function scan(sections: Entry[]): Scan {
+/**
+ * Read the sections of a book's text, each section being one chapter. `listed` is what the
+ * book's contents list by chapter: a stat block they name is a heading too (the creatures
+ * of an appendix, the backgrounds of a chapter), the first one of each name.
+ */
+export function scan(sections: Entry[], listed: Listed = new Map()): Scan {
   const headings: Heading[] = []
   const blocks: Block[] = []
   const anchors = new Map<object, string>()
   const ids = new Map<string, Target>()
   const maps = new Map<string, Target[]>()
   const seen = new Map<number, Set<string>>()
+  // The listed names no heading of the chapter has yet.
+  const wanted = new Map<number, Set<string>>()
+  const wantedIn = (chapter: number): Set<string> => {
+    const names = wanted.get(chapter) ?? new Set(listed.get(chapter))
+    wanted.set(chapter, names)
+    return names
+  }
 
   /** A name's slug, with a number after it when the chapter has the slug already. */
   const anchorFor = (chapter: number, name: string): string => {
@@ -198,9 +210,12 @@ export function scan(sections: Entry[]): Scan {
     const label = String(
       (node as { displayName?: unknown }).displayName ?? node.name ?? '',
     )
-    if (!label || !(NAMED_STATBLOCKS.has(String(tag)) || prop === 'subclass')) return
+    if (!label) return
+    const slug = slugOf(label)
+    const isListed = wantedIn(chapter).delete(slug)
+    if (!isListed && !(NAMED_STATBLOCKS.has(String(tag)) || prop === 'subclass')) return
     const above = headings[heading]
-    if (above && slugOf(above.name) === slugOf(label)) return
+    if (above && slugOf(above.name) === slug) return
     const page = startPageOf(node)
     const entry: Heading = {
       chapter,
@@ -241,6 +256,7 @@ export function scan(sections: Entry[]): Scan {
         box,
         ...(page !== undefined && { page }),
       }
+      wantedIn(chapter).delete(slugOf(node.name))
       headings.push(entry)
       here = headings.length - 1
       anchors.set(node, entry.anchor)

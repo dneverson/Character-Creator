@@ -25,6 +25,51 @@ function book(entries: Entry[], words: string[] = [], pictures = false) {
 }
 
 describe('the book look of the entries', () => {
+  it('says where a part is printed when the text only shows it, in a heading, a box and a run-in', () => {
+    const entries: Entry[] = [
+      { type: 'entries', name: 'Cave Bear', printedOn: 334, entries: ['Text.'] },
+      { type: 'inset', name: 'Round Down', printedOn: 8, entries: ['Text.'] },
+      { type: 'entries', name: 'Spellcasting', printedOn: 79, entries: ['Text.'] },
+    ]
+    const { anchors } = scan(entries)
+    render(
+      <EntryContext.Provider value={{ book: true, anchors, words: [], runInFrom: 0 }}>
+        <Entries entries={entries} />
+      </EntryContext.Provider>,
+    )
+    expect(screen.getByText('Printed on page 334')).toBeInTheDocument()
+    expect(screen.getByText('Printed on page 8')).toBeInTheDocument()
+    expect(screen.getByText('Printed on page 79')).toBeInTheDocument()
+  })
+
+  it('carries the page the text marks on a heading and a run-in, for the page box', () => {
+    const entries: Entry[] = [
+      {
+        type: 'entries',
+        name: 'Communicating',
+        page: 24,
+        entries: [
+          { type: 'entries', name: 'Running In', page: 25, entries: ['Text.'] },
+          { type: 'entries', name: 'No Page', entries: ['Text.'] },
+        ],
+      },
+    ]
+    const { anchors } = scan(entries)
+    const { container } = render(
+      <EntryContext.Provider value={{ book: true, anchors, words: [], runInFrom: 1 }}>
+        <Entries entries={entries} />
+      </EntryContext.Provider>,
+    )
+    const pages = [...container.querySelectorAll('[data-page]')].map((el) => [
+      el.tagName,
+      el.getAttribute('data-page'),
+    ])
+    expect(pages).toEqual([
+      ['H2', '24'],
+      ['SPAN', '25'],
+    ])
+  })
+
   it('gives every named part a heading level by depth, with its address', () => {
     book(fixtureSections)
     const chapter = screen.getByRole('heading', { name: /Chapter 1: Wanderers/ })

@@ -28,6 +28,7 @@ import { flowOf, matchesOf, type Flow, type Unit } from '../../books/units'
 import { EntryPiece, PartTitle } from '../../text/Entries'
 import {
   EntryContext,
+  type AnchorProps,
   type EntryContextValue,
   type ImageEntry,
   type StatblockEntry,
@@ -202,6 +203,10 @@ interface Props {
   onColumn: (width: number) => void
   /** Shows the chapter list on a screen too narrow to keep it beside the text. */
   onChapters: () => void
+  /** Called with the height of the bars above the text, whenever it changes. */
+  onBars: (height: number) => void
+  /** Called when the reader goes to a place in the text without the list: the list closes. */
+  onRead: () => void
 }
 
 export function BookPane({
@@ -215,6 +220,8 @@ export function BookPane({
   column,
   onColumn,
   onChapters,
+  onBars,
+  onRead,
 }: Props) {
   const [root, setRoot] = useState<HTMLDivElement | null>(null)
   const bars = useRef<HTMLDivElement>(null)
@@ -260,11 +267,9 @@ export function BookPane({
     [root],
   )
   const renderStatblock = useCallback(
-    (
-      entry: StatblockEntry,
-      headed: boolean,
-      anchor: { id?: string; 'data-anchor'?: string },
-    ) => <BookStatblock entry={entry} root={root} headed={headed} anchor={anchor} />,
+    (entry: StatblockEntry, headed: boolean, anchor: AnchorProps) => (
+      <BookStatblock entry={entry} root={root} headed={headed} anchor={anchor} />
+    ),
     [root],
   )
   const contexts = useMemo<EntryContextValue[]>(
@@ -442,17 +447,22 @@ export function BookPane({
         if (el && topOf(el) <= line) low = mid
         else high = mid - 1
       }
-      let key = flow.units[low]?.heading ?? ''
-      for (const el of view.piece(low)?.querySelectorAll<HTMLElement>('[data-anchor]') ??
-        []) {
+      // The heading and the page in force at the line: those the piece at the line starts
+      // with, then those of the parts inside it that the line has passed.
+      const unit = flow.units[low]
+      let key = unit?.heading ?? ''
+      let at =
+        unit.page !== undefined && topOf(view.piece(low) as Element) <= line
+          ? unit.page
+          : unit.from
+      for (const el of view
+        .piece(low)
+        ?.querySelectorAll<HTMLElement>('[data-anchor], [data-page]') ?? []) {
         if (topOf(el) > line) break
         key = el.dataset.anchor ?? key
+        if (el.dataset.page !== undefined) at = Number(el.dataset.page)
       }
-      // The page in force at the line: the one the piece at the line starts, once passed.
-      const unit = flow.units[low]
-      const startsPage =
-        unit.page !== undefined && topOf(view.piece(low) as Element) <= line
-      setPage(startsPage ? unit.page : unit.from)
+      setPage(at)
       if (key === reading.current || !key) return
       reading.current = key
       const c = flow.units[low].chapter
@@ -468,13 +478,32 @@ export function BookPane({
     }
   }, [root, view, flow, tops, onHeading, atBar])
 
-  /** Go to a page: the piece it starts in, or the nearest marked page before it. */
+  // The list that covers the text on a phone opens below the bars, which stay in reach.
+  useLayoutEffect(() => {
+    const el = bars.current
+    if (!el) return
+    const report = () => onBars(el.offsetHeight)
+    report()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(report)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [onBars])
+
+  /** Go to a page: the part that starts it, or the nearest marked page before it. */
   const goPage = (typed: number) => {
+    onRead()
     const marked = [...flow.marked].reverse().find((m) => m <= typed)
     const index = marked === undefined ? 0 : (flow.pages.get(marked) ?? 0)
     land(() => {
       const piece = view?.piece(index)
-      return piece ? { el: piece, exact: true } : null
+      if (!piece) return null
+      // A page that begins inside the piece is where its part is, once the piece is drawn.
+      const inside = piece.querySelector(`[data-page="${marked}"]`)
+      return {
+        el: inside ?? piece,
+        exact: inside !== null || piece.childElementCount > 0,
+      }
     }, atBar)
   }
 

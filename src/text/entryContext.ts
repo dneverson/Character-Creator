@@ -65,6 +65,8 @@ export interface StatblockEntry {
   classSource?: string
   shortName?: string
   pantheon?: string
+  /** The page the book prints it on, when that is not where the text has it. */
+  printedOn?: number
   /** How the printed page sets it; `isSkipRootName`: the page prints no name above it. */
   data?: { renderCompact?: { isSkipRootName?: boolean } }
 }
@@ -98,8 +100,18 @@ export interface EntryContextValue {
   renderStatblock?: (
     entry: StatblockEntry,
     headed: boolean,
-    anchor: { id?: string; 'data-anchor'?: string },
+    anchor: AnchorProps,
   ) => ReactNode
+}
+
+/**
+ * What a heading (or a stat block that is one) carries in the page: its id and key, and the
+ * page the text marks it on, so the reader can tell the page of what is at its reading line.
+ */
+export interface AnchorProps {
+  id?: string
+  'data-anchor'?: string
+  'data-page'?: number
 }
 
 export const EntryContext = createContext<EntryContextValue | null>(null)

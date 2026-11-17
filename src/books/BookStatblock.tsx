@@ -11,9 +11,9 @@ import { describeLookup, lookupTags, lookupTitle } from '../components/lookup/lo
 import { useVisible } from '../hooks/useVisible'
 import { loadResolver } from '../lookup/references'
 import type { LookupRow } from '../lookup/types'
-import { Entries, StatblockNote, type Entry } from '../text/Entries'
+import { Entries, PrintedOn, StatblockNote, type Entry } from '../text/Entries'
 import { TaggedText } from '../text/TaggedText'
-import { EntryContext, type StatblockEntry } from '../text/entryContext'
+import { EntryContext, type AnchorProps, type StatblockEntry } from '../text/entryContext'
 import { PrintedEntry } from './PrintedEntry'
 import { stripTags } from '../text/tags'
 import { loadCrochet } from './crochet'
@@ -107,7 +107,7 @@ export function BookStatblock({
   /** The heading right above has this block's name, so the block does not print it. */
   headed?: boolean
   /** The id and key of the block's heading, when it is one. */
-  anchor?: { id?: string; 'data-anchor'?: string }
+  anchor?: AnchorProps
   /** The area that scrolls the text, which decides when a block is near. */
   root: Element | null
 }) {
@@ -173,6 +173,7 @@ export function BookStatblock({
   return (
     <EntryContext.Provider value={inside}>
       <div ref={frame} className={classes} style={{ minHeight: reserve }} {...anchor}>
+        <PrintedOn page={entry.printedOn} block />
         {entry.collapsed ? (
           <details open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
             <summary>

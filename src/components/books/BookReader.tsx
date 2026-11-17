@@ -126,6 +126,7 @@ export function BookReader({ doc, place, request, results }: Props) {
   const [width, setWidth] = useState(recallSidebarWidth)
   const [column, setColumn] = useState(recallColumnWidth)
   const [listOpen, setListOpen] = useState(false)
+  const [barsHeight, setBarsHeight] = useState(0)
   const phone = useMediaQuery(PHONE)
   // The heading the reader is at: it moves as the text scrolls.
   const [current, setCurrent] = useState<{ chapter: number; anchor: string | null }>({
@@ -227,7 +228,10 @@ export function BookReader({ doc, place, request, results }: Props) {
     <div
       ref={box}
       className={`book-reader${listOpen ? ' is-contents-open' : ''}`}
-      style={{ ['--book-contents-width' as string]: `${width}px` }}
+      style={{
+        ['--book-contents-width' as string]: `${width}px`,
+        ['--book-bars-height' as string]: `${barsHeight}px`,
+      }}
     >
       <aside className="book-contents" aria-label={`${doc.name}: chapters`}>
         {results && (
@@ -302,6 +306,8 @@ export function BookReader({ doc, place, request, results }: Props) {
             column={column}
             onColumn={changeColumn}
             onChapters={() => setListOpen(!listOpen)}
+            onBars={setBarsHeight}
+            onRead={() => setListOpen(false)}
           />
         )}
       </section>

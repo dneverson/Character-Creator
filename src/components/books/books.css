@@ -756,6 +756,17 @@
 .book-map-areas li {
   break-inside: avoid;
 }
+.book-printed-on {
+  margin-left: 0.75rem;
+  font-family: var(--bs-font-sans-serif);
+  font-size: 0.75rem;
+  font-weight: 400;
+  font-style: normal;
+  color: var(--book-muted);
+}
+div.book-printed-on {
+  margin: 0 0 0.35rem;
+}
 .book-heading-maps {
   margin-left: auto;
   font-family: var(--bs-font-sans-serif);
@@ -847,12 +858,24 @@ mark.book-hit.is-current {
   .book-width {
     display: none;
   }
+  /* The bars stay above the chapter list, which opens below them. */
+  .book-bars {
+    z-index: 4;
+  }
+  /* The page box has a row of its own. */
+  .book-bar {
+    flex-wrap: wrap;
+  }
+  .book-pagebox {
+    flex-basis: 100%;
+    justify-content: center;
+  }
   .book-reader {
     flex-direction: column;
   }
   .book-contents {
     position: absolute;
-    inset: 0;
+    inset: var(--book-bars-height, 0px) 0 0;
     z-index: 3;
     width: auto;
     display: none;

@@ -6,6 +6,7 @@ import { BookLink } from '../books/BookLink'
 import { referenceOf } from '../lookup/references'
 import {
   EntryContext,
+  type AnchorProps,
   type EntryContextValue,
   type ImageEntry,
   type StatblockEntry,
@@ -28,6 +29,8 @@ interface NamedEntry {
   type: 'entries' | 'section' | 'inset' | 'insetReadaloud' | 'variantInner' | 'flowBlock'
   name?: string
   page?: number
+  /** The page the book prints it on, when that is not where the text has it. */
+  printedOn?: number
   style?: string
   entries?: Entry[]
 }
@@ -154,16 +157,21 @@ function renderCells(
   })
 }
 
-/** The id and the key a heading carries in the page, from its anchor in its chapter. */
-function anchorProps(
-  entry: object,
-  context: EntryContextValue,
-): { id?: string; 'data-anchor'?: string } {
+/**
+ * The id and the key a heading carries in the page, from its anchor in its chapter, and the
+ * page the text marks it on.
+ */
+function anchorProps(entry: object, context: EntryContextValue): AnchorProps {
   const anchor = context.anchors?.get(entry)
   const chapter = context.chapter ?? 0
-  return anchor
-    ? { id: headingDomId(chapter, anchor), 'data-anchor': headingKey(chapter, anchor) }
-    : {}
+  const page = (entry as { page?: unknown }).page
+  return {
+    ...(anchor && {
+      id: headingDomId(chapter, anchor),
+      'data-anchor': headingKey(chapter, anchor),
+    }),
+    ...(typeof page === 'number' && { 'data-page': page }),
+  }
 }
 
 /** The way from an area's heading to the maps it is drawn on. */
@@ -188,6 +196,13 @@ function MapLinks({
   )
 }
 
+/** Where a part the text only shows is printed (see src/books/printOrder.ts). */
+export function PrintedOn({ page, block }: { page?: number; block?: boolean }) {
+  if (page === undefined) return null
+  const Tag = block ? 'div' : 'span'
+  return <Tag className="book-printed-on">Printed on page {page}</Tag>
+}
+
 /** A named part of the book: its heading, with the address a link or a result jumps to. */
 function BookHeading({
   entry,
@@ -210,6 +225,7 @@ function BookHeading({
       }
     >
       <TaggedText text={entry.name ?? ''} />
+      <PrintedOn page={entry.printedOn} />
       <MapLinks id={(entry as { id?: string }).id} context={context} />
     </Tag>
   )
@@ -240,6 +256,7 @@ function RunIn({
           <TaggedText text={entry.name ?? ''} />
           {/[.:!?]$/.test(stripTags(entry.name ?? '')) ? '' : '.'}
         </span>
+        <PrintedOn page={entry.printedOn} />
         {lead && (
           <>
             {' '}

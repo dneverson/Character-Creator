@@ -173,3 +173,44 @@ describe('scan ids and maps', () => {
     expect(result.maps.get('k1')?.map((t) => t.anchor)).toEqual(['image-m1', 'image-m2'])
   })
 })
+
+describe('the stat blocks the contents list', () => {
+  const creature = (name: string): Entry => ({ type: 'statblock', tag: 'creature', name })
+  const sections: Entry[] = [
+    {
+      type: 'section',
+      name: 'Appendix',
+      entries: [creature('Ape'), creature('Ape'), creature('Bat')],
+    },
+    {
+      type: 'section',
+      name: 'Other',
+      entries: [
+        creature('Ape'),
+        { type: 'section', name: 'Bat', entries: [creature('Bat')] },
+      ],
+    },
+  ]
+  const listed = new Map([
+    [0, new Set(['ape'])],
+    [1, new Set(['bat'])],
+  ])
+
+  it('is a heading, the first of its name in the chapter the contents list it in', () => {
+    const { headings } = scan(sections, listed)
+    expect(headings.map((h) => [h.chapter, h.name, h.depth])).toEqual([
+      [0, 'Appendix', 0],
+      [0, 'Ape', 1],
+      [1, 'Other', 0],
+      [1, 'Bat', 1],
+    ])
+  })
+
+  it('is not one where the contents do not list it, nor under its own heading', () => {
+    expect(scan(sections).headings.map((h) => h.name)).toEqual([
+      'Appendix',
+      'Other',
+      'Bat',
+    ])
+  })
+})

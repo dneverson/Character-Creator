@@ -11,6 +11,8 @@ import { docPath } from './catalog'
 import { expandBook } from './expand'
 import { withEntityPages } from './entityPages'
 import { scan, type Scan } from './outline'
+import { listedFor } from './listed'
+import { inPrintOrder } from './printOrder'
 import type { DocKind } from './types'
 
 /** A document's text, with what was read from it. */
@@ -39,8 +41,10 @@ export async function readBookText(
   const read = sectionsOf(file, id)
   if (!read) throw new Error(`"${id}" is not a book text`)
   const expanded = await expandBook(read, id)
-  const sections = withPages ? await withEntityPages(expanded, id) : expanded
-  return { sections, scan: scan(sections) }
+  const sections = inPrintOrder(
+    withPages ? await withEntityPages(expanded, id) : expanded,
+  )
+  return { sections, scan: scan(sections, await listedFor(kind, id, sections)) }
 }
 
 const recent = new Map<string, Promise<BookText>>()

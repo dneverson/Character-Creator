@@ -145,23 +145,23 @@ export function pageResolver(index: PageIndex): PageResolver {
     ref.kind && ref.source ? index.get(indexKey(ref.kind, ref.source, name)) : undefined
 }
 
-// Find the book-text top-level section for a contents chapter. The book text
-// prefixes chapters ("Chapter 1: Playing the Game") that the contents strips
-// ("Playing the Game"), so an exact match, a "...: name" suffix, or a normalised
-// suffix all count.
-function matchSection(name: string, sections: unknown[]): TextNode | null {
-  for (const section of sections) {
-    if (!isNode(section) || typeof section.name !== 'string') continue
+// Find the book-text top-level section for a contents chapter (its index, or the section
+// itself). The book text prefixes chapters ("Chapter 1: Playing the Game") that the
+// contents strips ("Playing the Game"), so an exact match, a "...: name" suffix, or a
+// normalised suffix all count.
+export function matchSectionIndex(name: string, sections: unknown[]): number {
+  return sections.findIndex((section) => {
+    if (!isNode(section) || typeof section.name !== 'string') return false
     const title = section.name
-    if (
-      title === name ||
-      title.endsWith(`: ${name}`) ||
-      norm(title).endsWith(norm(name))
-    ) {
-      return section
-    }
-  }
-  return null
+    return (
+      title === name || title.endsWith(`: ${name}`) || norm(title).endsWith(norm(name))
+    )
+  })
+}
+
+function matchSection(name: string, sections: unknown[]): TextNode | null {
+  const at = matchSectionIndex(name, sections)
+  return at < 0 ? null : (sections[at] as TextNode)
 }
 
 function byNormalisedName<V>(map: Map<string, V>): Map<string, V> {

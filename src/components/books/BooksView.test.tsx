@@ -234,6 +234,41 @@ describe('reading a book', () => {
     expect(document.querySelector('.book-reader')).toHaveClass('is-contents-open')
   })
 
+  it('keeps the bars, with the page box, above the chapter list, which closes on a page', async () => {
+    const height = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+      configurable: true,
+      get: () => 52,
+    })
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        report: () => void
+        constructor(report: () => void) {
+          this.report = report
+        }
+        observe() {
+          this.report()
+        }
+        disconnect() {}
+      },
+    )
+    try {
+      await open()
+      fireEvent.click(screen.getByRole('button', { name: 'Chapters' }))
+      const reader = document.querySelector('.book-reader') as HTMLElement
+      expect(reader).toHaveClass('is-contents-open')
+      expect(reader.style.getPropertyValue('--book-bars-height')).toBe('52px')
+      const box = screen.getByRole('textbox', { name: 'Page' })
+      fireEvent.change(box, { target: { value: '9' } })
+      fireEvent.submit(box)
+      expect(reader).not.toHaveClass('is-contents-open')
+    } finally {
+      vi.unstubAllGlobals()
+      if (height) Object.defineProperty(HTMLElement.prototype, 'offsetHeight', height)
+    }
+  })
+
   it('explains a text that cannot be had and tries again', async () => {
     vi.mocked(loadBookText).mockRejectedValueOnce(new Error('offline'))
     render(<BooksView />)
