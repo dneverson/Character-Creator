@@ -54,7 +54,8 @@ export interface BookIndex {
   has: (kind: DocKind, id: string) => boolean
   /** How many documents and blocks the index holds. */
   size: () => { docs: number; blocks: number }
-  search: (text: string) => BookSearchResult
+  /** The search, over every document, or over the one document `only` names. */
+  search: (text: string, only?: { kind: DocKind; id: string }) => BookSearchResult
   snippet: (hit: BookHit, words: string[]) => Snippet | undefined
 }
 
@@ -135,12 +136,19 @@ export function createBookIndex(): BookIndex {
 
     size: () => ({ docs: docs.length, blocks: texts.length }),
 
-    search(text) {
+    search(text, only) {
       const words = searchWords(text)
       if (words.length === 0) return { words, groups: [], total: 0 }
       // The smallest set first, so the others only have to be checked against it.
       const sets = words.map(blocksWith).sort((a, b) => a.size - b.size)
-      const matched = [...sets[0]].filter((block) => sets.every((set) => set.has(block)))
+      const scope = only
+        ? docs.findIndex((doc) => doc.kind === only.kind && doc.id === only.id)
+        : undefined
+      const matched = [...sets[0]].filter(
+        (block) =>
+          (scope === undefined || blockDoc[block] === scope) &&
+          sets.every((set) => set.has(block)),
+      )
       const phrase = words.join(' ')
       const byDoc = new Map<number, { block: number; score: number }[]>()
       for (const block of matched.sort((a, b) => a - b)) {

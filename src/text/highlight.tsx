@@ -5,13 +5,17 @@ import type { ReactNode } from 'react'
 
 const escapeRegExp = (word: string) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-/** The text with each word that starts with one of `words` marked; the text itself if none. */
-export function markWords(text: string, words: readonly string[]): ReactNode {
-  if (words.length === 0 || !text) return text
-  const pattern = new RegExp(
+/** What marks a word that starts with one of `words`; it also counts the marks of a text. */
+export const wordPattern = (words: readonly string[]): RegExp =>
+  new RegExp(
     `(?<![\\p{L}\\p{N}])(?:${words.map(escapeRegExp).join('|')})[\\p{L}\\p{N}]*`,
     'giu',
   )
+
+/** The text with each word that starts with one of `words` marked; the text itself if none. */
+export function markWords(text: string, words: readonly string[]): ReactNode {
+  if (words.length === 0 || !text) return text
+  const pattern = wordPattern(words)
   const parts: ReactNode[] = []
   let at = 0
   for (const match of text.matchAll(pattern)) {

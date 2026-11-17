@@ -97,7 +97,7 @@ export const PLAIN_TAGS: Readonly<Record<string, string>> = {
   style: STYLE,
   sup: STYLE,
   unit: STYLE,
-  m: STYLE,
+  m: 'the word Miss, nothing to look up',
   area: 'a label of a map, nothing to look up',
   book: `a place in a book, which ${NOT_HELD}`,
   adventure: `an adventure, which ${NOT_HELD}`,
@@ -107,7 +107,7 @@ export const PLAIN_TAGS: Readonly<Record<string, string>> = {
   link: 'a web address',
   tip: 'a hint of the text itself',
   '5etools': 'a pointer to the 5etools site',
-  hom: 'a marker of homebrew',
+  hom: 'the words Hit or Miss, nothing to look up',
   legroup: `a group of monsters, which ${NOT_HELD}`,
   comic: 'a comic, not a rule',
 }

@@ -24,9 +24,12 @@ import { inBackground } from '../content/inBackground'
 import { editionOf } from '../../books/edition'
 import { loadBookText, type BookText } from '../../books/load'
 import {
+  clampColumn,
   clampSidebar,
+  recallColumnWidth,
   recallPlace,
   recallSidebarWidth,
+  rememberColumnWidth,
   rememberPlace,
   rememberSidebarWidth,
 } from '../../books/memory'
@@ -121,9 +124,14 @@ export function BookReader({ doc, place, request, results }: Props) {
   const loaded = useBookText(doc, attempt)
   const [tab, setTab] = useState<'chapters' | 'results'>('chapters')
   const [width, setWidth] = useState(recallSidebarWidth)
+  const [column, setColumn] = useState(recallColumnWidth)
   const [listOpen, setListOpen] = useState(false)
   const phone = useMediaQuery(PHONE)
-  const [current, setCurrent] = useState<string | null>(null)
+  // The heading the reader is at: it moves as the text scrolls.
+  const [current, setCurrent] = useState<{ chapter: number; anchor: string | null }>({
+    chapter: 0,
+    anchor: null,
+  })
   const box = useRef<HTMLDivElement>(null)
 
   // Searching makes the results the list; clearing the search brings the chapters back.
@@ -147,25 +155,27 @@ export function BookReader({ doc, place, request, results }: Props) {
   const chapter = Math.min(Math.max(at.chapter ?? 0, 0), Math.max(chapters - 1, 0))
   const words = useMemo(() => searchWords(place.find ?? ''), [place.find])
 
-  // A new chapter starts at its top.
-  const [shownChapter, setShownChapter] = useState(chapter)
-  if (shownChapter !== chapter) {
-    setShownChapter(chapter)
-    setCurrent(at.anchor)
-  }
-
-  // Where a chapter or heading was asked for is where the book is left.
+  // Where a chapter or heading was asked for is where the book is left, and the outline
+  // shows it until the text has scrolled there and says where it is.
   const asked = at.anchor
+  const askedKey = `${doc.kind}/${doc.id}/${chapter}/${asked}/${request}`
+  const [shown, setShown] = useState(askedKey)
+  if (shown !== askedKey) {
+    setShown(askedKey)
+    setCurrent({ chapter, anchor: asked })
+  }
   useEffect(() => {
     if (text) rememberPlace(doc.kind, doc.id, { chapter, anchor: asked })
   }, [text, doc.kind, doc.id, chapter, asked])
 
   const onHeading = useCallback(
-    (anchor: string | null) => {
-      setCurrent(anchor)
-      rememberPlace(doc.kind, doc.id, { chapter, anchor })
+    (to: number, anchor: string | null) => {
+      setCurrent((now) =>
+        now.chapter === to && now.anchor === anchor ? now : { chapter: to, anchor },
+      )
+      rememberPlace(doc.kind, doc.id, { chapter: to, anchor })
     },
-    [doc.kind, doc.id, chapter],
+    [doc.kind, doc.id],
   )
   const go = useCallback((to: BookPlace) => {
     setListOpen(false)
@@ -174,6 +184,11 @@ export function BookReader({ doc, place, request, results }: Props) {
   const goTo = (to: number, anchor: string | null) =>
     go({ ...place, chapter: to, anchor })
 
+  const changeColumn = (next: number) => {
+    const clamped = clampColumn(next)
+    setColumn(clamped)
+    rememberColumnWidth(clamped)
+  }
   const resize = (next: number, remember: boolean) => {
     const clamped = clampSidebar(next)
     setWidth(clamped)
@@ -239,10 +254,12 @@ export function BookReader({ doc, place, request, results }: Props) {
         ) : text ? (
           <div className="book-contents-body">
             <BookOutline
+              doc={doc}
               headings={text.scan.headings}
-              chapter={chapter}
-              current={current}
+              chapter={current.chapter}
+              current={current.anchor}
               onGo={goTo}
+              onPick={() => setListOpen(false)}
             />
           </div>
         ) : null}
@@ -276,12 +293,14 @@ export function BookReader({ doc, place, request, results }: Props) {
         {text && (
           <BookPane
             text={text}
-            chapter={chapter}
+            chapter={current.chapter}
             place={{ ...at, chapter }}
             request={request}
             words={words}
             onHeading={onHeading}
             onGo={go}
+            column={column}
+            onColumn={changeColumn}
             onChapters={() => setListOpen(!listOpen)}
           />
         )}

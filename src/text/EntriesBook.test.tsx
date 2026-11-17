@@ -25,13 +25,14 @@ function book(entries: Entry[], words: string[] = [], pictures = false) {
 }
 
 describe('the book look of the entries', () => {
-  it('gives every named part a heading level by depth, with its address and page', () => {
+  it('gives every named part a heading level by depth, with its address', () => {
     book(fixtureSections)
     const chapter = screen.getByRole('heading', { name: /Chapter 1: Wanderers/ })
     expect(chapter.tagName).toBe('H2')
-    expect(chapter).toHaveAttribute('id', 'book-chapter-1-wanderers')
-    expect(chapter).toHaveAttribute('data-anchor', 'chapter-1-wanderers')
-    expect(within(chapter).getByText('p. 3')).toBeInTheDocument()
+    expect(chapter).toHaveAttribute('id', 'book-0-chapter-1-wanderers')
+    expect(chapter).toHaveAttribute('data-anchor', '0:chapter-1-wanderers')
+    // The page is a separator between pages, never a mark beside a heading.
+    expect(chapter).not.toHaveTextContent('p. 3')
     expect(screen.getAllByRole('heading', { name: /Packing/ })[0].tagName).toBe('H3')
   })
 
@@ -336,7 +337,7 @@ describe('the lowest headings run in', () => {
     runIn(0)
     const name = screen.getByText('Amphibious.')
     expect(name).toHaveClass('book-run-in')
-    expect(name).toHaveAttribute('data-anchor', 'amphibious')
+    expect(name).toHaveAttribute('data-anchor', '0:amphibious')
     expect(name.parentElement).toHaveTextContent('Amphibious. It breathes air and water.')
     expect(screen.getByText('A second paragraph.')).toBeInTheDocument()
     expect(screen.queryByRole('heading')).toBeNull()

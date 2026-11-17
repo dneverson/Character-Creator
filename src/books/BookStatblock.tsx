@@ -101,10 +101,13 @@ export function BookStatblock({
   entry,
   root,
   headed = false,
+  anchor = {},
 }: {
   entry: StatblockEntry
   /** The heading right above has this block's name, so the block does not print it. */
   headed?: boolean
+  /** The id and key of the block's heading, when it is one. */
+  anchor?: { id?: string; 'data-anchor'?: string }
   /** The area that scrolls the text, which decides when a block is near. */
   root: Element | null
 }) {
@@ -169,7 +172,7 @@ export function BookStatblock({
   const reserve = content.status === 'loading' ? reservedHeight(entry) : undefined
   return (
     <EntryContext.Provider value={inside}>
-      <div ref={frame} className={classes} style={{ minHeight: reserve }}>
+      <div ref={frame} className={classes} style={{ minHeight: reserve }} {...anchor}>
         {entry.collapsed ? (
           <details open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
             <summary>

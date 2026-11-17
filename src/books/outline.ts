@@ -77,8 +77,26 @@ const CHILDREN = [
   'blocks',
   'tables',
 ] as const
+/** The stat blocks whose name is a heading of the book: the entries a chapter is made of. */
+const NAMED_STATBLOCKS = new Set(['class', 'subclass', 'race', 'spell'])
+
 /** Parts that are not text of the book: a picture, a reference to an entry. */
 const NOT_TEXT = new Set(['image', 'statblock', 'gallery'])
+
+/** The key of a heading, unique in a book: its chapter and its anchor. */
+export const headingKey = (chapter: number, anchor: string): string =>
+  `${chapter}:${anchor}`
+
+/** The id of a heading's element in the page; a heading's anchor is unique only in its chapter. */
+export const headingDomId = (chapter: number, anchor: string): string =>
+  `book-${chapter}-${anchor}`
+
+/**
+ * The id of the element a place's anchor names: a heading's (see `headingDomId`), or a
+ * picture's ("image-032"), which is unique in the whole book.
+ */
+export const anchorDomId = (chapter: number, anchor: string): string =>
+  anchor.startsWith('image-') ? `book-${anchor}` : headingDomId(chapter, anchor)
 
 /** A heading's name as an address: lower case, words joined by hyphens. */
 export function slugOf(name: string): string {
@@ -108,15 +126,18 @@ export function scan(sections: Entry[]): Scan {
   const anchors = new Map<object, string>()
   const ids = new Map<string, Target>()
   const maps = new Map<string, Target[]>()
-  const seen = new Map<number, Map<string, number>>()
+  const seen = new Map<number, Set<string>>()
 
+  /** A name's slug, with a number after it when the chapter has the slug already. */
   const anchorFor = (chapter: number, name: string): string => {
-    const counts = seen.get(chapter) ?? new Map<string, number>()
-    seen.set(chapter, counts)
+    const used = seen.get(chapter) ?? new Set<string>()
+    seen.set(chapter, used)
     const base = slugOf(name) || 'part'
-    const count = (counts.get(base) ?? 0) + 1
-    counts.set(base, count)
-    return count === 1 ? base : `${base}-${count}`
+    let anchor = base
+    // "Extra Attack 2" is a slug of its own, so a second "Extra Attack" skips it.
+    for (let count = 2; used.has(anchor); count++) anchor = `${base}-${count}`
+    used.add(anchor)
+    return anchor
   }
 
   const text = (value: string, heading: number) => {
@@ -148,6 +169,37 @@ export function scan(sections: Entry[]): Scan {
     }
   }
 
+  /**
+   * A stat block that stands for a class, a race or a spell is a heading of the chapter,
+   * unless the heading right above has its name (the text prints the name once).
+   */
+  const statblockHeading = (
+    node: Node,
+    chapter: number,
+    depth: number,
+    heading: number,
+  ) => {
+    const tag = (node as { tag?: unknown }).tag
+    const prop = (node as { prop?: unknown }).prop
+    const label = String(
+      (node as { displayName?: unknown }).displayName ?? node.name ?? '',
+    )
+    if (!label || !(NAMED_STATBLOCKS.has(String(tag)) || prop === 'subclass')) return
+    const above = headings[heading]
+    if (above && slugOf(above.name) === slugOf(label)) return
+    const entry: Heading = {
+      chapter,
+      anchor: anchorFor(chapter, label),
+      name: stripTags(label),
+      depth,
+      box: false,
+      ...(typeof node.page === 'number' && { page: node.page }),
+    }
+    headings.push(entry)
+    anchors.set(node, entry.anchor)
+    text(label, headings.length - 1)
+  }
+
   const walk = (node: unknown, chapter: number, depth: number, heading: number) => {
     if (typeof node === 'string') return text(node, heading)
     if (typeof node === 'number') return text(String(node), heading)
@@ -158,6 +210,7 @@ export function scan(sections: Entry[]): Scan {
     if (!isObject(node)) return
     const type = typeof node.type === 'string' ? node.type : ''
     if (type === 'image' || type === 'gallery') return pictures(node, chapter)
+    if (type === 'statblock') return statblockHeading(node, chapter, depth, heading)
     if (NOT_TEXT.has(type)) return
 
     let here = heading

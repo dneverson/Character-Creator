@@ -74,6 +74,8 @@ export interface EntryContextValue {
   book: boolean
   /** The anchor of each named node of the text (see src/books/outline.ts). */
   anchors?: Map<object, string>
+  /** The chapter drawn, which makes an anchor unique in the whole book. */
+  chapter?: number
   /** The book or adventure drawn, for the links between its places. */
   doc?: Pick<BookDoc, 'kind' | 'id'>
   /** Where each id of the data is, and the maps each area is on (see src/books/outline.ts). */
@@ -91,8 +93,13 @@ export interface EntryContextValue {
   /**
    * How a stat block is drawn: the entry the text names, read when it is near. `headed`:
    * the heading right above carries the same name, so the block does not repeat it.
+   * `anchor`: the id and key to carry when the block is itself a heading of the book.
    */
-  renderStatblock?: (entry: StatblockEntry, headed: boolean) => ReactNode
+  renderStatblock?: (
+    entry: StatblockEntry,
+    headed: boolean,
+    anchor: { id?: string; 'data-anchor'?: string },
+  ) => ReactNode
 }
 
 export const EntryContext = createContext<EntryContextValue | null>(null)

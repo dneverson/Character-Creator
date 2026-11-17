@@ -8,6 +8,7 @@ import { bookSections } from '../data/bookPages'
 import { fetchDataUncached } from '../data/dataClient'
 import type { Entry } from '../text/Entries'
 import { docPath } from './catalog'
+import { expandBook } from './expand'
 import { scan, type Scan } from './outline'
 import type { DocKind } from './types'
 
@@ -26,8 +27,9 @@ export function sectionsOf(file: unknown, id: string): Entry[] | null {
 /** Read a document's text without keeping it (the search reads each one this way). */
 export async function readBookText(kind: DocKind, id: string): Promise<BookText> {
   const file = await fetchDataUncached<unknown>(docPath(kind, id))
-  const sections = sectionsOf(file, id)
-  if (!sections) throw new Error(`"${id}" is not a book text`)
+  const read = sectionsOf(file, id)
+  if (!read) throw new Error(`"${id}" is not a book text`)
+  const sections = await expandBook(read, id)
   return { sections, scan: scan(sections) }
 }
 

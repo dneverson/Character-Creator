@@ -10,10 +10,13 @@ import type { BookPlace } from './types'
 export function BookLink({
   place,
   className = 'tag-ref',
+  onOpen,
   children,
 }: {
   place: BookPlace
   className?: string
+  /** Called when the click opens the place, for what must close or change with it. */
+  onOpen?: () => void
   children: ReactNode
 }) {
   const open = (event: MouseEvent<HTMLAnchorElement>) => {
@@ -21,6 +24,7 @@ export function BookLink({
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return
     event.preventDefault()
     openBook(place)
+    onOpen?.()
   }
   return (
     <a href={formatBookHash(place)} className={className} onClick={open}>

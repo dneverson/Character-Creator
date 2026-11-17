@@ -44,6 +44,17 @@ describe('the book index', () => {
     expect(group.hits[0].chapter).toBe('Chapter 1: Wanderers')
   })
 
+  it('searches one document when asked, with the same index', async () => {
+    const index = await indexed()
+    await index.addDoc({ kind: 'adventure', id: 'ADV', name: 'A Quest' }, fixture)
+    const all = index.search('packing')
+    expect(all.groups.map((g) => g.doc.id).sort()).toEqual(['ADV', 'TST'])
+    const one = index.search('packing', { kind: 'adventure', id: 'ADV' })
+    expect(one.groups.map((g) => g.doc.id)).toEqual(['ADV'])
+    expect(one.total).toBe(all.groups.find((g) => g.doc.id === 'ADV')?.total)
+    expect(index.search('packing', { kind: 'book', id: 'NONE' }).total).toBe(0)
+  })
+
   it('gives each hit the address of its heading, with the search to mark', async () => {
     const index = await indexed()
     const { hits } = index.search('  dragon ').groups[0]

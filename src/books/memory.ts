@@ -1,5 +1,5 @@
 // What the reader remembers on this device: the place each book was left at, and the
-// width of the chapter list. Small settings, so they are device settings.
+// widths of the chapter list and of the text column. Small settings, so they are device settings.
 
 import { appConfig } from '../config/app'
 import { deviceSettings } from '../storage/deviceSettings'
@@ -7,6 +7,7 @@ import type { DocKind } from './types'
 
 const PLACES_KEY = 'cc-book-places'
 const WIDTH_KEY = 'cc-book-sidebar'
+const COLUMN_KEY = 'cc-book-column'
 
 export interface RememberedPlace {
   chapter: number
@@ -54,4 +55,19 @@ export function recallSidebarWidth(): number {
 
 export function rememberSidebarWidth(width: number): void {
   deviceSettings.setItem(WIDTH_KEY, String(Math.round(width)))
+}
+
+/** Keep a width within what the text column can be. */
+export const clampColumn = (width: number): number =>
+  Math.min(appConfig.books.column.max, Math.max(appConfig.books.column.min, width))
+
+export function recallColumnWidth(): number {
+  const saved = Number(deviceSettings.getItem(COLUMN_KEY))
+  return Number.isFinite(saved) && saved > 0
+    ? clampColumn(saved)
+    : appConfig.books.column.width
+}
+
+export function rememberColumnWidth(width: number): void {
+  deviceSettings.setItem(COLUMN_KEY, String(Math.round(width)))
 }

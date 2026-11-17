@@ -260,7 +260,9 @@
   transform: rotate(90deg);
 }
 .book-tree-link {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
   width: 100%;
   padding-top: 0.2rem;
   padding-bottom: 0.2rem;
@@ -270,6 +272,15 @@
 }
 .book-tree-link:hover {
   background: var(--bs-secondary-bg);
+}
+.book-tree-page {
+  margin-left: auto;
+  flex: none;
+  font-size: 0.75rem;
+  font-weight: 400;
+  font-style: normal;
+  color: var(--bs-secondary-color);
+  font-variant-numeric: tabular-nums;
 }
 .book-tree-chapter {
   font-weight: 600;
@@ -322,6 +333,29 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.book-width {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
+  font-size: 0.8rem;
+  color: var(--bs-secondary-color);
+}
+.book-width input {
+  width: 7rem;
+}
+.book-pagebox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
+  white-space: nowrap;
+}
+.book-pagebox-input {
+  width: 4rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 .book-bar-chapters {
   display: none;
 }
@@ -330,18 +364,36 @@
   transform: rotate(180deg);
 }
 .book-page {
-  max-width: 46rem;
+  max-width: var(--book-column, 46rem);
   margin: 0 auto;
   padding: 1.5rem 1.5rem 3rem;
   font-family: var(--book-font);
   font-size: 1.05rem;
   line-height: 1.6;
 }
-.book-page :is(h2, h3, h4, h5, h6) {
-  scroll-margin-top: 6.5rem;
+.book-flow {
+  overflow-anchor: auto;
 }
-.book-page mark.book-hit {
-  scroll-margin-top: 8rem;
+/* Where a page of the printed book begins: a rule with the page's number. */
+.book-page-break {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 2rem 0 1.25rem;
+  font-family: var(--bs-font-sans-serif);
+  font-size: 0.75rem;
+  color: var(--book-muted);
+  font-variant-numeric: tabular-nums;
+}
+.book-page-break::before,
+.book-page-break::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--book-rule);
+}
+/* A piece of the book: its box holds its margins, so its height is the same drawn or not. */
+.book-unit {
+  display: flow-root;
 }
 .book-heading {
   font-family: var(--book-heading-font);
@@ -379,17 +431,6 @@
   font-weight: 700;
   font-style: italic;
   color: var(--book-title);
-  scroll-margin-top: 6.5rem;
-}
-.book-page-mark {
-  margin-left: auto;
-  font-family: var(--bs-font-sans-serif);
-  font-size: 0.7rem;
-  font-weight: 400;
-  font-style: normal;
-  font-variant: normal;
-  color: var(--book-muted);
-  white-space: nowrap;
 }
 .book-run {
   font-style: italic;
@@ -723,9 +764,6 @@
   font-style: normal;
   font-variant: normal;
 }
-.book-heading-maps + .book-page-mark {
-  margin-left: 0;
-}
 .book-figure-spinner {
   position: absolute;
   inset: 0;
@@ -742,14 +780,6 @@
   color: var(--book-muted);
   text-align: center;
   margin-top: 0.25rem;
-}
-.book-page-turn {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-top: 2.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--book-rule);
 }
 
 /* Marked words */
@@ -806,6 +836,13 @@ mark.book-hit.is-current {
 }
 
 @media (max-width: 767.98px) {
+  /* The column is the width of the phone, whatever width was chosen. */
+  .book-page {
+    max-width: none;
+  }
+  .book-width {
+    display: none;
+  }
   .book-reader {
     flex-direction: column;
   }
@@ -948,9 +985,6 @@ mark.book-hit.is-current {
   padding: 0.3rem 1rem;
   background: var(--book-title);
   color: var(--book-paper);
-}
-.book-main[data-edition='2024'] .book-inset > .book-box-title .book-page-mark {
-  color: inherit;
 }
 .book-main[data-edition='2024'] .book-inset,
 .book-main[data-edition='2024'] .book-flowblock {

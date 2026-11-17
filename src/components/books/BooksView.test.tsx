@@ -130,11 +130,39 @@ describe('reading a book', () => {
     expect(useBookStore.getState().place).toMatchObject({ chapter: 0 })
   })
 
+  it('marks where each page begins, with the page box and the pages in the tree', async () => {
+    await open()
+    // The fixture marks pages 3, 4, 9 and 10; the last page is the highest of them.
+    expect(screen.getByRole('textbox', { name: 'Page' })).toHaveValue('3')
+    expect(screen.getByText('of 10')).toBeInTheDocument()
+    expect(screen.getByText('Page 4')).toBeInTheDocument()
+    expect(screen.queryByText('p. 4')).not.toBeInTheDocument()
+    const tree = screen.getByRole('navigation', { name: 'Chapters and headings' })
+    expect(within(tree).getByRole('button', { name: 'Packing' })).toHaveTextContent('4')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Page' }), {
+      target: { value: '9' },
+    })
+    fireEvent.submit(screen.getByRole('textbox', { name: 'Page' }))
+  })
+
+  it('changes the width of the text column and remembers it', async () => {
+    await open()
+    const { width, min, max } = appConfig.books.column
+    const slider = screen.getByRole('slider', { name: 'Width of the text column' })
+    const pane = document.querySelector<HTMLElement>('.book-pane')!
+    expect(pane.style.getPropertyValue('--book-column')).toBe(`${width}px`)
+    fireEvent.change(slider, { target: { value: String(max) } })
+    expect(pane.style.getPropertyValue('--book-column')).toBe(`${max}px`)
+    expect(localStorage.getItem('cc-book-column')).toBe(String(max))
+    fireEvent.change(slider, { target: { value: String(min) } })
+    expect(slider).toHaveValue(String(min))
+  })
+
   it('narrows the tree with the filter', async () => {
     await open()
-    const filter = screen.getByRole('searchbox', { name: 'Filter chapters and headings' })
+    const filter = screen.getByRole('searchbox', { name: 'Search this book' })
     fireEvent.change(filter, { target: { value: 'zzz' } })
-    expect(screen.getByText('Nothing in this book has that name.')).toBeInTheDocument()
+    expect(screen.getByText('No chapter or heading has that name.')).toBeInTheDocument()
     fireEvent.change(filter, { target: { value: 'arrival' } })
     expect(screen.getByRole('button', { name: 'Chapter 2: Arrival' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Close Chapter 2: Arrival' }))
@@ -172,6 +200,32 @@ describe('reading a book', () => {
     fireEvent(window, new MouseEvent('pointermove', { clientX: 420 }))
     fireEvent(window, new MouseEvent('pointerup', { clientX: 420 }))
     expect(bar).toHaveAttribute('aria-valuenow', '420')
+  })
+
+  it('searches the open book: names first, then the text, and a match opens in place', async () => {
+    await open()
+    const box = screen.getByRole('searchbox', { name: 'Search this book' })
+    fireEvent.change(box, { target: { value: 'lantern' } })
+    const region = await screen.findByRole(
+      'region',
+      { name: 'Matches in the text' },
+      { timeout: 3000 },
+    )
+    await within(region).findByText(/^\d+ matches in the text\.$/, undefined, {
+      timeout: 3000,
+    })
+    const link = within(region).getAllByRole('link')[0]!
+    fireEvent.click(link)
+    expect(useBookStore.getState().place).toMatchObject({
+      chapter: 0,
+      anchor: 'packing',
+      find: 'lantern',
+    })
+    await screen.findByText(/Match 1 of \d+ in this book/)
+    // Clearing the box brings the contents back.
+    fireEvent.change(box, { target: { value: '' } })
+    expect(screen.queryByRole('region', { name: 'Matches in the text' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Packing' })).toBeInTheDocument()
   })
 
   it('shows the chapter list over the text on a phone', async () => {
@@ -221,18 +275,20 @@ describe('searching the books', () => {
     expect(document.querySelectorAll('mark.book-hit').length).toBeGreaterThan(0)
   })
 
-  it('steps from match to match across chapters, and clears', async () => {
+  it('steps from match to match through the whole book, and clears', async () => {
     render(<BooksView />)
     act(() =>
       openBook({ kind: 'book', id: 'TST', chapter: 0, anchor: null, find: 'packing' }),
     )
-    await screen.findByText(/Match 1 of \d+ in this chapter/, undefined, {
-      timeout: 3000,
-    })
+    await screen.findByText('Match 1 of 3 in this book', undefined, { timeout: 3000 })
     fireEvent.click(screen.getByRole('button', { name: 'Next match' }))
-    await screen.findByRole('article', { name: 'Chapter 2: Arrival' })
+    await screen.findByText('Match 2 of 3 in this book')
+    fireEvent.click(screen.getByRole('button', { name: 'Next match' }))
+    await screen.findByText('Match 3 of 3 in this book')
+    fireEvent.click(screen.getByRole('button', { name: 'Next match' }))
+    await screen.findByText('Match 1 of 3 in this book')
     fireEvent.click(screen.getByRole('button', { name: 'Previous match' }))
-    await screen.findByRole('article', { name: 'Chapter 1: Wanderers' })
+    await screen.findByText('Match 3 of 3 in this book')
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
     expect(useBookStore.getState().place?.find).toBeNull()
   })

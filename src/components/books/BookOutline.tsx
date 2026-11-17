@@ -1,25 +1,43 @@
-// The chapters of an open book as a tree: each chapter opens to the headings in it. A filter
-// box narrows it to the headings whose names hold the words typed. Every row is a button,
-// so the tree is reached with the keyboard in reading order.
+// The chapters of an open book as a tree: each chapter opens to the headings in it. The box
+// above it searches the book: the tree narrows to the chapters and headings whose names hold
+// the words typed, and under it come the matches in the text (see BookTextHits). Every row is
+// a button or a link, so the list is reached with the keyboard in reading order.
 
 import { useMemo, useState } from 'react'
 import Form from 'react-bootstrap/Form'
+import { appConfig } from '../../config/app'
+import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { Icon } from '../Icon'
 import type { Heading } from '../../books/outline'
+import type { BookDoc } from '../../books/types'
+import { BookTextHits } from './BookTextHits'
 
 /** The deepest indent a heading gets; deeper ones sit at this depth. */
 const MAX_INDENT = 4
 
+/** The page a heading starts on, at the right edge of its row, when the text marks one. */
+function PageNumber({ page }: { page: number | undefined }) {
+  return page === undefined ? null : (
+    <span className="book-tree-page" aria-hidden="true">
+      {page}
+    </span>
+  )
+}
+
 interface Props {
+  doc: Pick<BookDoc, 'kind' | 'id'>
   headings: readonly Heading[]
   /** The chapter that is open, and the heading the reader is at in it (null: its top). */
   chapter: number
   current: string | null
   onGo: (chapter: number, anchor: string | null) => void
+  /** Called when a match in the text is chosen. */
+  onPick: () => void
 }
 
-export function BookOutline({ headings, chapter, current, onGo }: Props) {
+export function BookOutline({ doc, headings, chapter, current, onGo, onPick }: Props) {
   const [filter, setFilter] = useState('')
+  const typed = useDebouncedValue(filter, appConfig.books.searchDelayMs)
   // Chapters the reader opened or closed by hand; the open chapter is open until closed.
   const [toggled, setToggled] = useState<ReadonlyMap<number, boolean>>(new Map())
   const words = filter.toLowerCase().split(/\s+/).filter(Boolean)
@@ -55,14 +73,14 @@ export function BookOutline({ headings, chapter, current, onGo }: Props) {
         type="search"
         size="sm"
         className="book-outline-filter"
-        aria-label="Filter chapters and headings"
-        placeholder="Filter chapters and headings"
+        aria-label="Search this book"
+        placeholder="Search this book"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
       />
       {shown.length === 0 ? (
         <p className="small text-body-secondary mt-2 mb-0">
-          Nothing in this book has that name.
+          No chapter or heading has that name.
         </p>
       ) : (
         <ul className="book-tree">
@@ -87,7 +105,8 @@ export function BookOutline({ headings, chapter, current, onGo }: Props) {
                     aria-current={here && current === null ? 'location' : undefined}
                     onClick={() => onGo(title.chapter, null)}
                   >
-                    {title.name}
+                    <span>{title.name}</span>
+                    <PageNumber page={title.page} />
                   </button>
                 </div>
                 {open && inside.length > 0 && (
@@ -105,7 +124,8 @@ export function BookOutline({ headings, chapter, current, onGo }: Props) {
                             aria-current={isCurrent ? 'location' : undefined}
                             onClick={() => onGo(heading.chapter, heading.anchor)}
                           >
-                            {heading.name}
+                            <span>{heading.name}</span>
+                            <PageNumber page={heading.page} />
                           </button>
                         </li>
                       )
@@ -117,6 +137,7 @@ export function BookOutline({ headings, chapter, current, onGo }: Props) {
           })}
         </ul>
       )}
+      {words.length > 0 && <BookTextHits doc={doc} text={typed} onPick={onPick} />}
     </nav>
   )
 }

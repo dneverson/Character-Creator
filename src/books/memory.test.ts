@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { appConfig } from '../config/app'
 import {
+  clampColumn,
   clampSidebar,
+  recallColumnWidth,
+  rememberColumnWidth,
   recallPlace,
   recallSidebarWidth,
   rememberPlace,
@@ -51,5 +54,20 @@ describe('the width of the chapter list', () => {
     expect(recallSidebarWidth()).toBe(max)
     localStorage.setItem('cc-book-sidebar', 'wide')
     expect(recallSidebarWidth()).toBe(width)
+  })
+})
+
+describe('the width of the text column', () => {
+  it('is the default until one is chosen, and is kept within its bounds', () => {
+    const { width, min, max } = appConfig.books.column
+    expect(recallColumnWidth()).toBe(width)
+    rememberColumnWidth(900.4)
+    expect(recallColumnWidth()).toBe(900)
+    expect(clampColumn(1)).toBe(min)
+    expect(clampColumn(99999)).toBe(max)
+    localStorage.setItem('cc-book-column', 'wide')
+    expect(recallColumnWidth()).toBe(width)
+    localStorage.setItem('cc-book-column', '99999')
+    expect(recallColumnWidth()).toBe(max)
   })
 })

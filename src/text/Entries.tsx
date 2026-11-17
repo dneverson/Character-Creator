@@ -1,6 +1,7 @@
 import { Fragment, useContext, type ReactNode } from 'react'
 import Table from 'react-bootstrap/Table'
 import { placeOfTarget } from '../books/address'
+import { headingDomId, headingKey } from '../books/outline'
 import { BookLink } from '../books/BookLink'
 import { referenceOf } from '../lookup/references'
 import {
@@ -153,10 +154,16 @@ function renderCells(
   })
 }
 
-function pageMark(page: number | undefined, context: EntryContextValue | null) {
-  return context?.book && page !== undefined ? (
-    <span className="book-page-mark">p. {page}</span>
-  ) : null
+/** The id and the key a heading carries in the page, from its anchor in its chapter. */
+function anchorProps(
+  entry: object,
+  context: EntryContextValue,
+): { id?: string; 'data-anchor'?: string } {
+  const anchor = context.anchors?.get(entry)
+  const chapter = context.chapter ?? 0
+  return anchor
+    ? { id: headingDomId(chapter, anchor), 'data-anchor': headingKey(chapter, anchor) }
+    : {}
 }
 
 /** The way from an area's heading to the maps it is drawn on. */
@@ -195,18 +202,15 @@ function BookHeading({
 }) {
   const level = Math.min(depth + (box ? 3 : 2), 6)
   const Tag = `h${level}` as 'h2'
-  const anchor = context.anchors?.get(entry)
   return (
     <Tag
-      id={anchor ? `book-${anchor}` : undefined}
-      data-anchor={anchor}
+      {...anchorProps(entry, context)}
       className={
         box ? 'book-box-title' : `book-heading book-heading-${Math.min(depth, 4)}`
       }
     >
       <TaggedText text={entry.name ?? ''} />
       <MapLinks id={(entry as { id?: string }).id} context={context} />
-      {pageMark(entry.page, context)}
     </Tag>
   )
 }
@@ -227,17 +231,12 @@ function RunIn({
   context: EntryContextValue
   className?: string
 }) {
-  const anchor = context.anchors?.get(entry)
   const [first, ...rest] = entry.entries ?? []
   const lead = typeof first === 'string' || typeof first === 'number'
   return (
     <div className={className}>
       <p className="mb-2">
-        <span
-          id={anchor ? `book-${anchor}` : undefined}
-          data-anchor={anchor}
-          className="book-run-in"
-        >
+        <span {...anchorProps(entry, context)} className="book-run-in">
           <TaggedText text={entry.name ?? ''} />
           {/[.:!?]$/.test(stripTags(entry.name ?? '')) ? '' : '.'}
         </span>
@@ -680,7 +679,11 @@ function renderEntry(
       return (
         <Fragment key={key}>
           {context?.renderStatblock ? (
-            context.renderStatblock(obj as StatblockEntry, headed)
+            context.renderStatblock(
+              obj as StatblockEntry,
+              headed,
+              anchorProps(obj, context),
+            )
           ) : (
             <StatblockNote entry={obj as StatblockEntry} />
           )}
@@ -807,4 +810,34 @@ function EntryList({
 /** Render an array of 5etools "entries" as React nodes. */
 export function Entries({ entries }: { entries: Entry[] }) {
   return <EntryList entries={entries} depth={0} />
+}
+
+/**
+ * The heading of a named part, drawn alone: the whole-book flow draws a part in pieces, so
+ * the heading is one piece and what is under it are others (see src/books/units.ts).
+ */
+export function PartTitle({ entry, depth }: { entry: Entry; depth: number }) {
+  const context = useContext(EntryContext)
+  return context ? (
+    <BookHeading
+      entry={entry as NamedEntry}
+      depth={depth}
+      box={false}
+      context={context}
+    />
+  ) : null
+}
+
+/** A run of the entries under a part, at the depth they have in it. */
+export function EntryPiece({
+  entries,
+  depth,
+  under,
+}: {
+  entries: Entry[]
+  depth: number
+  /** The name of the heading right above the run, when it starts the part's entries. */
+  under?: string
+}) {
+  return <EntryList entries={entries} depth={depth} heading={under} />
 }

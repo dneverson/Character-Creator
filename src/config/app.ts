@@ -70,10 +70,16 @@ export const appConfig = {
     shortcut: 'b',
     /** The chapter list beside the text: its width in pixels and the bounds of dragging it. */
     sidebar: { width: 300, min: 200, max: 560, keyStep: 24 },
+    /** The width of the text column in pixels: its default, its bounds and a step of the slider. */
+    column: { width: 736, min: 520, max: 1600, step: 16 },
     /** Milliseconds the search waits after a keystroke before it runs. */
     searchDelayMs: 120,
     /** From this depth of nesting a named part of a book runs in, as the printed books set it. */
     runInFromDepth: 3,
+    /** About how tall, in pixels, a drawn piece of a book is before the next piece starts. */
+    pieceHeight: 800,
+    /** How far beyond the visible text, as a share of its height, pieces are kept drawn. */
+    drawnMargin: 150,
     /** Documents published from this date on have the look of the 2024 books. */
     newEditionFrom: '2024-09-17',
     /** The fewest characters a search needs before it runs. */

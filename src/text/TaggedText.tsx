@@ -12,7 +12,7 @@ import { referenceOf } from '../lookup/references'
 import { EntryContext } from './entryContext'
 import { markWords } from './highlight'
 import { TagRef } from './TagRef'
-import { stripTags } from './tags'
+import { stripTags, TAG_RULES, type TagStyle } from './tags'
 
 /** The end of the tag that opens at `start` (its closing brace), nesting counted. */
 function tagEnd(text: string, start: number): number {
@@ -24,20 +24,7 @@ function tagEnd(text: string, start: number): number {
   return -1
 }
 
-/** Tags that style the text they hold, and the element or class that does it. */
-const STYLES: Record<string, 'em' | 'strong' | 'u' | 's' | 'sup' | 'note'> = {
-  i: 'em',
-  italic: 'em',
-  b: 'strong',
-  bold: 'strong',
-  u: 'u',
-  s: 's',
-  strike: 's',
-  sup: 'sup',
-  note: 'note',
-}
-
-function Styled({ style, children }: { style: string; children: ReactNode }) {
+function Styled({ style, children }: { style: TagStyle; children: ReactNode }) {
   switch (style) {
     case 'em':
       return <em>{children}</em>
@@ -77,6 +64,8 @@ export function TaggedText({ text }: { text: string }) {
     const tag = match?.[1] ?? ''
     const reference = match && referenceOf(tag, stripTags(match[2]))
     const content = match ? stripTags(match[2]) : ''
+    const rule = TAG_RULES[tag]
+    const style = rule?.style
     const link =
       context?.book && match
         ? (placeOfTag(tag, content) ??
@@ -101,12 +90,21 @@ export function TaggedText({ text }: { text: string }) {
           {markWords(stripTags(link.text), words)}
         </BookLink>,
       )
-    } else if (match && tag in STYLES) {
+    } else if (match && style) {
       flush()
+      // Any other styled tag is a label ("Hit: "): its trailing space stays outside.
+      const label = rule.nested ? null : stripTags(raw)
       nodes.push(
-        <Styled key={start} style={STYLES[tag]}>
-          <TaggedText text={match[2]} />
-        </Styled>,
+        label === null ? (
+          <Styled key={start} style={style}>
+            <TaggedText text={match[2]} />
+          </Styled>
+        ) : (
+          <Fragment key={start}>
+            <Styled style={style}>{markWords(label.trim(), words)}</Styled>
+            {label.slice(label.trimEnd().length)}
+          </Fragment>
+        ),
       )
     } else plain += raw
     at = end + 1
