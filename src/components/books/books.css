@@ -805,6 +805,10 @@ mark.book-hit.is-current {
   font-size: 1.05rem;
   margin: 0 0 0.4rem;
 }
+/* Under the contents it narrows, the matches in the text start a section of their own. */
+.book-text-hits {
+  margin-top: 1.25rem;
+}
 .book-hits {
   list-style: none;
   margin: 0;

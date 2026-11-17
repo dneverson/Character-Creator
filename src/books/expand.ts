@@ -153,6 +153,7 @@ function tableOf(model: LevelTableModel, caption: string): Entry {
 function featureParts(
   byLevel: Map<number, ResolvedFeature[]>,
   pool: Pool,
+  source: string,
   intro?: string,
 ): { lead: Entry[]; parts: Entry[] } {
   const lead: Entry[] = []
@@ -163,7 +164,15 @@ function featureParts(
       const body = written(feature.entries, pool)
       // A feature that bears its subclass's name is that subclass's own introduction.
       if (intro && slugOf(feature.name) === slugOf(intro)) lead.push(...body)
-      else parts.push({ type: 'entries', name: feature.name, entries: body })
+      else
+        parts.push({
+          type: 'entries',
+          name: feature.name,
+          // The page the feature is printed on, in the book the data's record is of.
+          ...(feature.page !== undefined &&
+            feature.source === source && { page: feature.page }),
+          entries: body,
+        })
     }
   }
   return { lead, parts }
@@ -199,7 +208,7 @@ function subclassNode(
   page?: number,
 ): Entry {
   const features = resolveSubclassFeatures(pool.loaded.file, subclass)
-  const { lead, parts } = featureParts(features, pool, subclass.name)
+  const { lead, parts } = featureParts(features, pool, subclass.source, subclass.name)
   const model = subclass.subclassTableGroups
     ? buildLevelTable(subclass.subclassTableGroups, features)
     : undefined
@@ -242,7 +251,7 @@ async function classNodeOf(
   if (!loaded) return undefined
   const pool: Pool = { loaded, options }
   const features = resolveClassFeatures(loaded)
-  const { parts } = featureParts(features, pool)
+  const { parts } = featureParts(features, pool, source)
   const fluff = withFluff
     ? await loadFluff('classFluff', name, source).catch(() => undefined)
     : undefined
@@ -293,7 +302,7 @@ async function subclassNodeOf(
 }
 
 /** The same value with each of `replaced` swapped in; only what holds one is copied. */
-function replace(node: unknown, replaced: Map<object, Entry>): unknown {
+export function replace(node: unknown, replaced: Map<object, Entry>): unknown {
   if (Array.isArray(node)) {
     const next = node.map((child) => replace(child, replaced))
     return next.some((child, i) => child !== node[i]) ? next : node

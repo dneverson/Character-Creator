@@ -60,6 +60,9 @@ describe('expandBook', () => {
       }
       const barbarian = found.headings.find((h) => h.name === 'Barbarian')
       expect(barbarian?.page).toBe(46)
+      // The data prints every feature of the class on a page of its own, and says which.
+      expect(found.headings.find((h) => h.name === 'Rage')?.page).toBe(46)
+      expect(found.headings.find((h) => h.name === 'Mindless Rage')?.page).toBe(49)
       // No class stat block is left as a placeholder, and the chapter's text holds the class.
       expect(JSON.stringify(sectionsOf('phb'))).toContain('"tag":"class"')
       expect(found.blocks.some((b) => b.text.includes('primal ferocity'))).toBe(true)

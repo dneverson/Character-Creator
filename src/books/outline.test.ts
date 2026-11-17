@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { fixtureSections } from '../test/bookFixture'
 import type { Entry } from '../text/Entries'
-import { cellTextOf, scan, slugOf } from './outline'
+import { cellTextOf, scan, slugOf, startPageOf } from './outline'
 
 describe('slugOf', () => {
   it('joins the words of a name with hyphens, in lower case', () => {
@@ -23,6 +23,24 @@ describe('cellTextOf', () => {
   })
 })
 
+describe('startPageOf', () => {
+  it('is the page of a part, or of the part its first entry is', () => {
+    const block = { type: 'statblock', tag: 'creature', name: 'Aboleth', page: 13 }
+    expect(startPageOf({ type: 'section', name: 'A', page: 4, entries: [block] })).toBe(4)
+    expect(startPageOf({ type: 'section', name: 'Aboleth', entries: [block] })).toBe(13)
+    expect(
+      startPageOf({ type: 'section', entries: [{ type: 'entries', entries: [block] }] }),
+    ).toBe(13)
+  })
+
+  it('is nothing when the part starts with plain text', () => {
+    const block = { type: 'statblock', page: 13 }
+    expect(startPageOf({ type: 'section', entries: ['text', block] })).toBeUndefined()
+    expect(startPageOf({ type: 'section', entries: [] })).toBeUndefined()
+    expect(startPageOf('text')).toBeUndefined()
+  })
+})
+
 describe('scan', () => {
   const result = scan(fixtureSections)
 
@@ -35,6 +53,26 @@ describe('scan', () => {
       [0, 'read-aloud', 2, true, undefined],
       [1, 'chapter-2-arrival', 0, false, 9],
       [1, 'packing', 1, false, 10],
+    ])
+  })
+
+  it('gives a heading the page its first stat block is printed on', () => {
+    const paged: Entry[] = [
+      {
+        type: 'section',
+        name: 'Beasts',
+        entries: [
+          {
+            type: 'section',
+            name: 'Aboleth',
+            entries: [{ type: 'statblock', tag: 'creature', name: 'Aboleth', page: 13 }],
+          },
+        ],
+      },
+    ]
+    expect(scan(paged).headings.map((h) => [h.name, h.page])).toEqual([
+      ['Beasts', 13],
+      ['Aboleth', 13],
     ])
   })
 

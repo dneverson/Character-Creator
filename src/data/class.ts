@@ -166,6 +166,8 @@ interface ClassFeatureRecord extends Copyable {
   className: string
   classSource: string
   level: number
+  /** The printed page of the feature, in its own book. */
+  page?: number
   entries?: Entry[]
   /** An optional class feature (Tasha's): taken by choice, or in place of another. */
   isClassFeatureVariant?: boolean
@@ -202,6 +204,8 @@ interface SubclassFeatureRecord extends Copyable {
   subclassShortName: string
   subclassSource: string
   level: number
+  /** The printed page of the feature, in its own book. */
+  page?: number
   entries?: Entry[]
   /** An optional class feature (Tasha's): taken by choice, or in place of another. */
   isClassFeatureVariant?: boolean
@@ -392,6 +396,9 @@ export interface ResolvedFeature {
   isSubclassSlot?: boolean
   /** The feature's data identity, as `holderId` writes it, when the data has the record. */
   id?: string
+  /** The book the data's record is of, and the page it is printed on there. */
+  source?: string
+  page?: number
 }
 
 interface ParsedRef {
@@ -465,6 +472,8 @@ export function resolveClassFeatures(
         name: match.name,
         level: match.level,
         entries: match.entries,
+        source: match.source,
+        ...(match.page !== undefined && { page: match.page }),
         id: holderId({
           classFeature: {
             className: match.className,
@@ -523,6 +532,8 @@ export function resolveSubclassFeatures(
       level: parsed.level,
       entries: match?.entries ?? [],
       ...(match && {
+        source: match.source,
+        ...(match.page !== undefined && { page: match.page }),
         id: holderId({
           subclassFeature: {
             className: match.className,

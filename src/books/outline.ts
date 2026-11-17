@@ -109,6 +109,20 @@ export function slugOf(name: string): string {
 const isObject = (value: unknown): value is Node =>
   typeof value === 'object' && value !== null
 
+/**
+ * The page a part starts on: its own, or the one its first entry starts on, when that
+ * entry is a part that says (a heading followed at once by a stat block printed on page 13
+ * starts on page 13). A part whose first entry is plain text says nothing.
+ */
+export function startPageOf(node: unknown): number | undefined {
+  let at: unknown = node
+  while (isObject(at)) {
+    if (typeof at.page === 'number') return at.page
+    at = Array.isArray(at.entries) ? at.entries[0] : undefined
+  }
+  return undefined
+}
+
 /** The text a table cell shows when it is plain: a string, a number or a roll. */
 export function cellTextOf(cell: unknown): string {
   if (typeof cell === 'string' || typeof cell === 'number') return stripTags(String(cell))
@@ -187,13 +201,14 @@ export function scan(sections: Entry[]): Scan {
     if (!label || !(NAMED_STATBLOCKS.has(String(tag)) || prop === 'subclass')) return
     const above = headings[heading]
     if (above && slugOf(above.name) === slugOf(label)) return
+    const page = startPageOf(node)
     const entry: Heading = {
       chapter,
       anchor: anchorFor(chapter, label),
       name: stripTags(label),
       depth,
       box: false,
-      ...(typeof node.page === 'number' && { page: node.page }),
+      ...(page !== undefined && { page }),
     }
     headings.push(entry)
     anchors.set(node, entry.anchor)
@@ -217,13 +232,14 @@ export function scan(sections: Entry[]): Scan {
     let below = depth
     if (HEADINGS.has(type) && typeof node.name === 'string') {
       const box = BOXES.has(type)
+      const page = startPageOf(node)
       const entry: Heading = {
         chapter,
         anchor: anchorFor(chapter, node.name),
         name: stripTags(node.name),
         depth: box ? depth + 1 : depth,
         box,
-        ...(typeof node.page === 'number' && { page: node.page }),
+        ...(page !== undefined && { page }),
       }
       headings.push(entry)
       here = headings.length - 1

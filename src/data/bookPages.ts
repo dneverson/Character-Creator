@@ -64,7 +64,7 @@ export interface EntityRef {
 // A stub names its kind with `tag`, or, when it embeds the entity's description,
 // with the name of the list that description is kept in (`monsterFluff`,
 // `raceFluff`, ...) instead.
-function kindOfProp(prop: string): string {
+export function kindOfProp(prop: string): string {
   const kind = prop.replace(/Fluff$/, '')
   return kind === 'monster' ? 'creature' : kind
 }
@@ -110,7 +110,7 @@ export function collectRefs(
 /** The page of every entity read so far, by kind, source and name. */
 export type PageIndex = Map<string, number>
 
-const indexKey = (kind: string, source: string, name: string) =>
+export const indexKey = (kind: string, source: string, name: string) =>
   `${kind}|${source}|${norm(name)}`
 
 /**
@@ -296,7 +296,7 @@ const ENTITY_FILES: Record<string, FileFinder> = {
 }
 
 /** Read the pages of the entities the given references point at. */
-async function loadEntityPages(wanted: EntityRef[]): Promise<PageIndex> {
+export async function loadEntityPages(wanted: EntityRef[]): Promise<PageIndex> {
   const sourcesByKind = new Map<string, Set<string>>()
   for (const { kind, source } of wanted) {
     if (!kind || !source || !(kind in ENTITY_FILES)) continue

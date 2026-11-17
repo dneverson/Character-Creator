@@ -9,6 +9,7 @@ import { fetchDataUncached } from '../data/dataClient'
 import type { Entry } from '../text/Entries'
 import { docPath } from './catalog'
 import { expandBook } from './expand'
+import { withEntityPages } from './entityPages'
 import { scan, type Scan } from './outline'
 import type { DocKind } from './types'
 
@@ -24,12 +25,21 @@ export function sectionsOf(file: unknown, id: string): Entry[] | null {
   return bookSections(file, id) as Entry[] | null
 }
 
-/** Read a document's text without keeping it (the search reads each one this way). */
-export async function readBookText(kind: DocKind, id: string): Promise<BookText> {
+/**
+ * Read a document's text without keeping it (the search reads each one this way). The
+ * pages of what the text only names are read only for reading: the search has no use for
+ * them, and they are the data files of every kind of entry.
+ */
+export async function readBookText(
+  kind: DocKind,
+  id: string,
+  withPages = false,
+): Promise<BookText> {
   const file = await fetchDataUncached<unknown>(docPath(kind, id))
   const read = sectionsOf(file, id)
   if (!read) throw new Error(`"${id}" is not a book text`)
-  const sections = await expandBook(read, id)
+  const expanded = await expandBook(read, id)
+  const sections = withPages ? await withEntityPages(expanded, id) : expanded
   return { sections, scan: scan(sections) }
 }
 
@@ -50,7 +60,7 @@ export function loadBookText(kind: DocKind, id: string): Promise<BookText> {
     recent.set(key, kept)
     return kept
   }
-  const text = readBookText(kind, id)
+  const text = readBookText(kind, id, true)
   text.catch(() => recent.delete(key))
   recent.set(key, text)
   while (recent.size > appConfig.books.keepLastBooks) {

@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { fixtureSections } from '../test/bookFixture'
-import { buildFlow, flowOf, matchesOf } from './units'
+import { buildFlow, flowOf, matchesOf, type Unit } from './units'
 import { scan } from './outline'
 import { sectionsOf } from './load'
 import type { Entry } from '../text/Entries'
@@ -17,6 +17,9 @@ function strings(value: unknown, out: string[] = []): string[] {
     for (const [k, v] of Object.entries(value)) if (k !== 'type') strings(v, out)
   return out
 }
+
+const isTitled = (unit: Unit, name: string) =>
+  typeof unit.title === 'object' && (unit.title as { name?: string }).name === name
 
 describe('the pieces of a book', () => {
   it('cut a chapter at its headings and keep every line of it', () => {
@@ -66,6 +69,29 @@ describe('the pieces of a book', () => {
     expect(flow.units[packing + 1]).toMatchObject({ from: 4 })
     expect(flow.units[packing + 1].page).toBeUndefined()
     expect(at(9)).toMatchObject({ page: 9, from: 4 })
+  })
+
+  it('start a page before a heading whose first stat block is printed on it', () => {
+    const beasts: Entry[] = [
+      {
+        type: 'section',
+        name: 'Beasts',
+        page: 12,
+        entries: [
+          {
+            type: 'section',
+            name: 'Aboleth',
+            entries: [{ type: 'statblock', tag: 'creature', name: 'Aboleth', page: 13 }],
+          },
+        ],
+      },
+    ]
+    const made = buildFlow(beasts, scan(beasts))
+    const title = made.units.find((u) => isTitled(u, 'Aboleth'))
+    expect(title).toMatchObject({ page: 13, from: 12 })
+    // The stat block is on the page the heading began: it does not break the page again.
+    expect(made.units.at(-1)?.page).toBeUndefined()
+    expect(made.marked).toEqual([12, 13])
   })
 
   it('keep a styled part as one piece', () => {

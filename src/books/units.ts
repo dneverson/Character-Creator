@@ -8,7 +8,7 @@ import { appConfig } from '../config/app'
 import type { Entry } from '../text/Entries'
 import { wordPattern } from '../text/highlight'
 import { stripTags } from '../text/tags'
-import { headingKey, type Scan } from './outline'
+import { headingKey, startPageOf, type Scan } from './outline'
 
 /** One piece of the book: a heading drawn alone, or a run of entries. */
 export interface Unit {
@@ -174,7 +174,7 @@ export function buildFlow(sections: Entry[], scan: Scan): Flow {
       const places = [...keys, ...picturesIn(piece.entries, chapter)]
       for (const key of places) if (!byKey.has(key)) byKey.set(key, index)
       const own = isObj(piece.title) ? piece.title : piece.entries[0]
-      const begins = isObj(own) && typeof own.page === 'number' ? own.page : undefined
+      const begins = startPageOf(own)
       const held = piece.title
         ? begins === undefined
           ? []
@@ -227,7 +227,7 @@ export function buildFlow(sections: Entry[], scan: Scan): Flow {
           return
         }
         // A part that starts a page starts a piece, so a page break is never mid-piece.
-        if (isObj(child) && typeof child.page === 'number') flush()
+        if (startPageOf(child) !== undefined) flush()
         if (run.length === 0) runStart = index
         run.push(child)
         height += estimate(child)
