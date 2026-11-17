@@ -2,7 +2,7 @@
 // shows what the entry is and the start of its text; a click opens it in Quick lookup.
 // The entries are loaded the first time one is hovered, never when the text is drawn.
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 import { appConfig } from '../config/app'
@@ -13,7 +13,16 @@ import { KIND_LABELS, type LookupRow } from '../lookup/types'
 /** undefined while loading, null when the loaded content has no such entry. */
 type Found = LookupRow | null | undefined
 
-export function TagRef({ reference, text }: { reference: Reference; text: string }) {
+export function TagRef({
+  reference,
+  text,
+  label,
+}: {
+  reference: Reference
+  text: string
+  /** What the link shows when it is more than the text (the words of a search marked). */
+  label?: ReactNode
+}) {
   const [found, setFound] = useState<Found>(undefined)
   const openLookup = useLookupStore((s) => s.openLookup)
   const resolve = async (): Promise<LookupRow | null> => {
@@ -55,7 +64,7 @@ export function TagRef({ reference, text }: { reference: Reference; text: string
             .catch(() => setFound(null))
         }}
       >
-        {text}
+        {label ?? text}
       </button>
     </OverlayTrigger>
   )

@@ -8,6 +8,7 @@ import { loadBooks } from '../../data/loaders'
 import { loadBookContents } from '../../data/bookPages'
 import { coverPath } from '../../data/covers'
 import { coverUrls } from '../../content/covers'
+import { groupLabel, ordinalLabel } from '../../data/bookLabels'
 import { useCoverThumb } from '../../content/useCoverThumb'
 import { useCharacter, useUpdateCharacter } from '../../character/useCharacterDoc'
 import { formatDateParts } from '../../ui/date'
@@ -21,40 +22,8 @@ import type { Book, BookContentEntry, BookHeader } from '../../data/types'
 import type { Column } from '../table/types'
 import { EditorSection } from './EditorSection'
 
-// 5etools `group` codes decoded to plain labels (tooltip-helpers rule: never show
-// raw shorthand). Unknown codes fall back to a title-cased form of the code itself.
-const GROUP_LABELS: Record<string, string> = {
-  core: 'Core rulebook',
-  screen: 'DM screen',
-  setting: 'Campaign setting',
-  'setting-alt': 'Campaign setting (alternate)',
-  'organized-play': 'Organized play',
-  supplement: 'Supplement',
-  'supplement-alt': 'Supplement (alternate)',
-  recipe: 'Cookbook',
-  homecraft: 'Homecraft',
-  other: 'Other',
-}
-
-function groupLabel(group: string | undefined): string | null {
-  if (!group) return null
-  return (
-    GROUP_LABELS[group] ??
-    group.replace(/(^|[-\s])([a-z])/g, (_, sep, c) => sep + c.toUpperCase())
-  )
-}
-
 // Published dates are formatted app-wide by `formatDateParts` (src/ui/date): a
 // full "2014-08-19" → "2014/08/19", a year-only "2020" stays "2020".
-
-// A table-of-contents entry's chapter/appendix prefix, e.g. "Chapter 2" or
-// "Appendix A". Front matter (no ordinal) has none.
-function ordinalLabel(entry: BookContentEntry): string | null {
-  const ordinal = entry.ordinal
-  if (!ordinal) return null
-  const kind = ordinal.type === 'appendix' ? 'Appendix' : 'Chapter'
-  return ordinal.identifier === undefined ? kind : `${kind} ${ordinal.identifier}`
-}
 
 function headerText(header: BookHeader): string {
   return typeof header === 'string' ? header : header.header

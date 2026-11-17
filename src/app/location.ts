@@ -10,6 +10,8 @@
 //   #/c/<id>/levelup        a character gaining a level
 //   #/lookup                Quick lookup, open over whatever view was open
 //   #/lookup/<entry id>     Quick lookup, opened on one entry
+//   #/books                 the book reader, on its shelf of books, open over the view
+//   #/book/<id>/...         the book reader, at a place in a book (src/books/address.ts)
 //
 // The store is the source of truth. A change of view, character or tab writes the hash
 // (a new history entry when the view or character changed, so Back and Forward work; the
@@ -18,6 +20,9 @@
 // not understood, leads to the list.
 
 import { selectSheetTab, useCharacterStore, type View } from '../character/store'
+import { formatBookHash, parseBookHash } from '../books/address'
+import { useBookStore } from '../books/state'
+import type { BookPlace } from '../books/types'
 import { useLookupStore } from '../lookup/state'
 
 export interface Place {
@@ -26,6 +31,8 @@ export interface Place {
   tab?: string | null
   /** Quick lookup is open (over the view), on this entry when one is named. */
   lookup?: { entryId: string | null }
+  /** The book reader is open (over the view), at this place; null is its shelf. */
+  books?: { place: BookPlace | null }
 }
 
 const VIEW_SEGMENT = { editor: 'edit', sheet: 'sheet', levelUp: 'levelup' } as const
@@ -36,10 +43,11 @@ const SEGMENT_VIEW: Record<string, Exclude<View, 'list'>> = {
 }
 
 /** The hash for a place. */
-export function formatHash({ view, id, tab, lookup }: Place): string {
+export function formatHash({ view, id, tab, lookup, books }: Place): string {
   if (lookup) {
     return lookup.entryId ? `#/lookup/${encodeURIComponent(lookup.entryId)}` : '#/lookup'
   }
+  if (books) return formatBookHash(books.place)
   if (view === 'list' || !id) return '#/'
   const base = `#/c/${encodeURIComponent(id)}/${VIEW_SEGMENT[view]}`
   return view === 'sheet' && tab ? `${base}/${encodeURIComponent(tab)}` : base
@@ -47,6 +55,8 @@ export function formatHash({ view, id, tab, lookup }: Place): string {
 
 /** The place a hash names; anything that is not understood is the list. */
 export function parseHash(hash: string): Place {
+  const books = parseBookHash(hash)
+  if (books !== undefined) return { view: 'list', books: { place: books } }
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean)
   const [head, id, segment, tab] = parts
   if (head === 'lookup') {
@@ -76,8 +86,12 @@ function placeOf(): Place {
     view === 'list' || !activeId
       ? { view: 'list' }
       : { view, id: activeId, tab: selectSheetTab(state) }
+  const reader = useBookStore.getState()
+  const withBooks: Place = reader.open
+    ? { ...place, books: { place: reader.place } }
+    : place
   const { open, entryId } = useLookupStore.getState()
-  return open ? { ...place, lookup: { entryId } } : place
+  return open ? { ...withBooks, lookup: { entryId } } : withBooks
 }
 
 /**
@@ -112,7 +126,17 @@ function follow(): () => void {
       if (place.lookup) useLookupStore.getState().openLookup(place.lookup.entryId)
       else {
         useLookupStore.getState().closeLookup()
-        useCharacterStore.getState().restoreLocation(place)
+        const reader = useBookStore.getState()
+        if (place.books) {
+          // The reader opens over the view that is open; one already there stays as is.
+          const same =
+            reader.open &&
+            formatBookHash(reader.place) === formatBookHash(place.books.place)
+          if (!same) reader.openBook(place.books.place)
+        } else {
+          reader.closeBooks()
+          useCharacterStore.getState().restoreLocation(place)
+        }
       }
     } finally {
       applying = false
@@ -131,7 +155,11 @@ function follow(): () => void {
     if (applying || hash === formatHash(parseHash(window.location.hash))) return
     const sameEntry = before.lookup
       ? place.lookup !== undefined
-      : place.lookup === undefined && before.view === place.view && before.id === place.id
+      : place.lookup === undefined &&
+        before.books === undefined &&
+        place.books === undefined &&
+        before.view === place.view &&
+        before.id === place.id
     if (sameEntry) window.history.replaceState(null, '', hash)
     else window.history.pushState(null, '', hash)
   }
@@ -140,11 +168,13 @@ function follow(): () => void {
   last = placeOf()
   const unsubscribe = useCharacterStore.subscribe(write)
   const unsubscribeLookup = useLookupStore.subscribe(write)
+  const unsubscribeBooks = useBookStore.subscribe(write)
   window.addEventListener('popstate', apply)
   window.addEventListener('hashchange', apply)
   return () => {
     unsubscribe()
     unsubscribeLookup()
+    unsubscribeBooks()
     window.removeEventListener('popstate', apply)
     window.removeEventListener('hashchange', apply)
   }

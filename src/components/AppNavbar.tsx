@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react'
 import Container from 'react-bootstrap/Container'
 import Navbar from 'react-bootstrap/Navbar'
 import { ContentButton } from './content/ContentButton'
+import { BooksButton } from './books/BooksButton'
 import { LookupButton } from './lookup/LookupButton'
 import { ThemeToggle } from './ThemeToggle'
 import { BrandEmblem } from './BrandEmblem'
@@ -36,6 +37,7 @@ export function AppNavbar() {
           <span className="ms-2 d-sm-none">{appConfig.shortName}</span>
         </Navbar.Brand>
         <div className="ms-auto d-flex align-items-center gap-2">
+          <BooksButton />
           <LookupButton />
           <ContentButton />
           <ThemeToggle />

@@ -24,9 +24,9 @@ const OUT_DIR = join(ROOT, '.local', 'data')
 const CATALOG_MD = join(ROOT, 'docs', 'DATA_CATALOG.md')
 const CONCURRENCY = 8
 
-// Everything under data/ is pulled EXCEPT these - prose-only or other-tool artifacts
-// the character creator does not use. Keep this list small; trim more later if wanted.
-const EXCLUDE_DIRS = ['data/adventure/', 'data/book/']
+// Everything under data/ is pulled EXCEPT these - other-tool artifacts the character
+// creator does not use. The book and adventure text IS pulled: the reader reads it.
+const EXCLUDE_DIRS = []
 const EXCLUDE_FILE_RE =
   /(^|\/)(foundry-|roll20|makebrew-|makecards|converter|renderdemo|changelog|msbcr)/
 
@@ -150,9 +150,6 @@ async function writeCatalog(files, bytesByPath) {
     '',
     '## Excluded (not pulled)',
     '',
-    '- `data/adventure/`, `data/book/` - long-form prose, unused by the creator.',
-    "  (The app reads a book's text in the browser, when the book is opened, to",
-    '  work out its contents page numbers.)',
     '- `foundry-*`, `roll20*`, `makebrew-*`, `makecards`, `converter`, `renderdemo`,',
     '  `changelog`, `msbcr` - other-tool / meta artifacts.',
     '',

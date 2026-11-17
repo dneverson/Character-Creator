@@ -298,7 +298,12 @@ export function createContentLibrary({
   }
 
   function finishRun() {
-    record.complete = failed === 0 && !unreachable
+    // Complete means every prefetch file is stored, whatever else the run fetched
+    // (a run of books the reader asked for says nothing about the rest).
+    record.complete =
+      failed === 0 &&
+      !unreachable &&
+      contentConfig.prefetch.every((path) => record.files[path] !== undefined)
     done = 0
     total = 0
     void saveRecord()
@@ -402,6 +407,34 @@ export function createContentLibrary({
     },
 
     checkForUpdate,
+
+    /** Whether a file is stored in this browser now (asking never downloads it). */
+    async has(path: string): Promise<boolean> {
+      await restore()
+      return record.files[path] !== undefined
+    },
+
+    /**
+     * Download the files that are not stored yet, in the background and a few at a
+     * time, and resolve when the run ends. A file that cannot be had is skipped. It is
+     * the same queue and the same progress as the prefetch.
+     */
+    async download(paths: string[]): Promise<void> {
+      await restore()
+      if (!fullContentWanted() || unreachable) return
+      const wanted = paths.filter((path) => record.files[path] === undefined)
+      if (wanted.length === 0) return
+      const finished = new Promise<void>((resolve) => {
+        const previous = drained
+        drained = () => {
+          previous?.()
+          resolve()
+        }
+      })
+      failed = 0
+      enqueue(wanted)
+      await finished
+    },
 
     /** Switch the full content on and start downloading it. */
     async enable(): Promise<void> {

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createCharacter } from '../character/model'
 import { selectSheetTab, useCharacterStore } from '../character/store'
+import { openBook, useBookStore } from '../books/state'
 import { useLookupStore } from '../lookup/state'
 import { connectLocation, formatHash, parseHash } from './location'
 
@@ -23,6 +24,7 @@ function loadPage() {
     sheetTab: null,
   })
   useLookupStore.setState({ open: false, entryId: null })
+  useBookStore.setState({ open: false, place: null })
   disconnect = connectLocation()
 }
 
@@ -185,6 +187,62 @@ describe('keeping the address and the app in step', () => {
     expect(useLookupStore.getState().open).toBe(true)
     expect(useCharacterStore.getState().view).toBe('editor')
     expect(useCharacterStore.getState().activeId).toBe(tom.id)
+  })
+
+  it('opens the book reader over the open view, one step of history for each place', async () => {
+    loadPage()
+    useCharacterStore.getState().openCharacter(tom.id)
+    openBook(null)
+    expect(window.location.hash).toBe('#/books')
+    expect(useCharacterStore.getState().view).toBe('editor')
+    const place = {
+      kind: 'book' as const,
+      id: 'PHB',
+      chapter: 1,
+      anchor: 'a',
+      find: null,
+    }
+    openBook(place)
+    expect(window.location.hash).toBe('#/book/PHB/1/a')
+
+    let moved = nextEvent('popstate')
+    window.history.back()
+    await moved
+    expect(window.location.hash).toBe('#/books')
+    expect(useBookStore.getState()).toMatchObject({ open: true, place: null })
+
+    moved = nextEvent('popstate')
+    window.history.back()
+    await moved
+    expect(useBookStore.getState().open).toBe(false)
+    expect(window.location.hash).toBe(`#/c/${tom.id}/edit`)
+  })
+
+  it('opens the book reader from an address, after a reload', () => {
+    window.history.replaceState(null, '', '#/book/PHB/2?find=dragon')
+    loadPage()
+    expect(useBookStore.getState()).toMatchObject({
+      open: true,
+      place: { id: 'PHB', chapter: 2, find: 'dragon' },
+    })
+    expect(window.location.hash).toBe('#/book/PHB/2?find=dragon')
+  })
+
+  it('does not open a place again when the address already shows it', () => {
+    window.history.replaceState(null, '', '#/books')
+    loadPage()
+    const { request } = useBookStore.getState()
+    window.dispatchEvent(new Event('hashchange'))
+    expect(useBookStore.getState().request).toBe(request)
+  })
+
+  it('lets Quick lookup opened over the reader take the address', () => {
+    loadPage()
+    openBook(null)
+    useLookupStore.getState().openLookup()
+    expect(window.location.hash).toBe('#/lookup')
+    useLookupStore.getState().closeLookup()
+    expect(window.location.hash).toBe('#/books')
   })
 
   it('follows an address typed in', async () => {

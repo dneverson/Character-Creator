@@ -83,11 +83,11 @@ export const contentConfig = {
   booksFile: 'books.json',
 
   /**
-   * Folders left out when the visitor imports their own copy of the data folder:
-   * the long-form adventure text, which is large and which nothing reads. (The
-   * book text is kept: a book's contents page numbers are read from it.)
+   * Folders left out when the visitor imports their own copy of the data folder.
+   * None: the book and adventure text are kept, because the reader and its search
+   * read them (src/books).
    */
-  importExclude: ['adventure/'],
+  importExclude: [] as string[],
 
   /** How many background downloads run at once. Requests the user is waiting on are never queued. */
   backgroundConcurrency: 4,

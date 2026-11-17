@@ -17,5 +17,7 @@ export const fakeLibrary = {
     Promise.resolve(source).then(() => undefined),
   ),
   checkForUpdate: vi.fn((force?: boolean) => Promise.resolve(force === true)),
+  has: vi.fn((path: string) => Promise.resolve(path === '')),
+  download: vi.fn((paths: string[]) => Promise.resolve(paths).then(() => undefined)),
   importFiles: vi.fn((picked: File[]) => Promise.resolve(picked.length)),
 }

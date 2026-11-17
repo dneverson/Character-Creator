@@ -46,6 +46,28 @@ afterEach(() => {
 })
 
 describe('useVisible', () => {
+  it('observes within the area and margin it is given', () => {
+    const seen: (IntersectionObserverInit | undefined)[] = []
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(_: unknown, options?: IntersectionObserverInit) {
+          seen.push(options)
+        }
+        observe() {}
+        disconnect() {}
+      },
+    )
+    const root = document.createElement('div')
+    function Within() {
+      const ref = useRef<HTMLDivElement>(null)
+      useVisible(ref, { root, rootMargin: '600px 0px' })
+      return <div ref={ref} />
+    }
+    render(<Within />)
+    expect(seen).toEqual([{ root, rootMargin: '600px 0px' }])
+  })
+
   it('reports everything as visible where the browser cannot observe', () => {
     render(<Probe />)
     expect(screen.getByText('seen')).toBeInTheDocument()

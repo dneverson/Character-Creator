@@ -214,16 +214,21 @@ export function annotateContents(
 }
 
 /**
- * The top-level sections of a book's text file, or null when the file is not a
- * book text. Both layouts the source has used are read: the sections directly
- * under `data`, and under `bookData[].data`.
+ * The top-level sections of a book's text file (or an adventure's), or null when
+ * the file is not one. Every layout the source has used is read: the sections directly
+ * under `data`, and under `bookData[].data` or `adventureData[].data`.
  */
 export function bookSections(file: unknown, source: string): unknown[] | null {
   if (!isNode(file)) return null
-  const { data, bookData } = file as { data?: unknown; bookData?: unknown }
+  const { data, bookData, adventureData } = file as {
+    data?: unknown
+    bookData?: unknown
+    adventureData?: unknown
+  }
   if (Array.isArray(data)) return data
-  if (!Array.isArray(bookData)) return null
-  const books = bookData.filter(isNode) as { source?: unknown; data?: unknown }[]
+  const listed = bookData ?? adventureData
+  if (!Array.isArray(listed)) return null
+  const books = listed.filter(isNode) as { source?: unknown; data?: unknown }[]
   const book = books.find((entry) => entry.source === source) ?? books[0]
   return Array.isArray(book?.data) ? book.data : null
 }

@@ -419,7 +419,7 @@ export function ContentSettings({ show, onHide }: Props) {
         />
         <p className="small text-body-secondary">
           {canPickFolder()
-            ? `Choose a 5etools copy as a folder: either the folder that contains "${contentConfig.dataFolder}", or the "${contentConfig.dataFolder}" folder itself. Only .json files are stored, and ${contentConfig.importExclude.map((p) => `"${p}"`).join(', ')} is skipped. Cover images are optional: .webp files in a "covers" folder inside the one you choose are used as book covers. For example, choose "5etools-src" (it holds "${contentConfig.dataFolder}/books.json"), or choose "${contentConfig.dataFolder}" (it holds "books.json"). Nothing is uploaded.`
+            ? `Choose a 5etools copy as a folder: either the folder that contains "${contentConfig.dataFolder}", or the "${contentConfig.dataFolder}" folder itself. Only .json files are stored${contentConfig.importExclude.length > 0 ? `, and ${contentConfig.importExclude.map((p) => `"${p}"`).join(', ')} is skipped` : ''}. Cover images are optional: .webp files in a "covers" folder inside the one you choose are used as book covers. For example, choose "5etools-src" (it holds "${contentConfig.dataFolder}/books.json"), or choose "${contentConfig.dataFolder}" (it holds "books.json"). Nothing is uploaded.`
             : 'This browser cannot pick a folder, so importing your own copy is not available here.'}
           {status.origin === 'import' &&
             status.stored > 0 &&

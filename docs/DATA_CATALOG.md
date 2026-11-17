@@ -20,9 +20,6 @@ visitor's browser straight from the source. This file is the committed index of
 
 ## Excluded (not pulled)
 
-- `data/adventure/`, `data/book/` - long-form prose, unused by the creator.
-  (The app reads a book's text in the browser, when the book is opened, to
-  work out its contents page numbers.)
 - `foundry-*`, `roll20*`, `makebrew-*`, `makecards`, `converter`, `renderdemo`,
   `changelog`, `msbcr` - other-tool / meta artifacts.
 

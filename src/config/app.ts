@@ -64,6 +64,24 @@ export const appConfig = {
     /** Characters of an entry's text a tooltip on a reference shows. */
     summaryChars: 240,
   },
+  /** The book reader and the search across every book (src/books). */
+  books: {
+    /** The chapter list beside the text: its width in pixels and the bounds of dragging it. */
+    sidebar: { width: 300, min: 200, max: 560, keyStep: 24 },
+    /** Milliseconds the search waits after a keystroke before it runs. */
+    searchDelayMs: 120,
+    /** The fewest characters a search needs before it runs. */
+    minSearchChars: 2,
+    /** Results shown for each book at first, and the most a book can be opened up to. */
+    hitsPerBook: 4,
+    maxHitsPerBook: 60,
+    /** Characters of text shown on each side of the match in a result. */
+    snippetChars: 110,
+    /** Longest stretch, in milliseconds, the index is built before the page is given back. */
+    sliceMs: 8,
+    /** How many books' parsed text stay in memory for reading (the index keeps its own). */
+    keepLastBooks: 3,
+  },
   /** The record of what was done to a character (see src/character/history.ts). */
   history: {
     /**

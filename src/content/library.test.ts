@@ -363,8 +363,12 @@ describe('importing a copy of the data folder', () => {
       pickedFile('5etools/data/readme.md', 'hello'),
     ])
 
-    expect(count).toBe(2)
-    expect((await files.keys()).sort()).toEqual(['class/class-bard.json', 'feats.json'])
+    expect(count).toBe(3)
+    expect((await files.keys()).sort()).toEqual([
+      'adventure/adventure-cos.json',
+      'class/class-bard.json',
+      'feats.json',
+    ])
     expect(await library.read('feats.json')).toEqual({ feat: [] })
     expect(source.requests).toEqual([])
     expect(useContentSettings.getState().fullContent).toBe(true)
@@ -483,12 +487,67 @@ describe('importedDataPath', () => {
     )
   })
 
-  it('leaves out other file types and the excluded folders', () => {
+  it('leaves out other file types and the configured excluded folders', () => {
     expect(importedDataPath('data/readme.md')).toBeNull()
-    expect(importedDataPath('data/adventure/adventure-cos.json')).toBeNull()
+    contentConfig.importExclude.push('generated/')
+    try {
+      expect(importedDataPath('data/generated/lookup.json')).toBeNull()
+    } finally {
+      contentConfig.importExclude.pop()
+    }
+  })
+
+  it('keeps the adventure text, which the reader and its search read', () => {
+    expect(importedDataPath('data/adventure/adventure-cos.json')).toBe(
+      'adventure/adventure-cos.json',
+    )
   })
 
   it('keeps the book text, which the contents page numbers are read from', () => {
     expect(importedDataPath('data/book/book-phb.json')).toBe('book/book-phb.json')
+  })
+})
+
+describe('downloading chosen files', () => {
+  const book = 'book/book-phb.json'
+  const adventure = 'adventure/adventure-cos.json'
+
+  beforeEach(() => {
+    source.files[book] = { bookData: [] }
+    source.files[adventure] = { adventureData: [] }
+    useContentSettings.setState({ fullContent: true })
+  })
+
+  it('says whether a file is stored, without downloading it', async () => {
+    expect(await library.has(book)).toBe(false)
+    expect(source.dataRequests()).toEqual([])
+    await library.read(book)
+    expect(await library.has(book)).toBe(true)
+  })
+
+  it('stores the files that are missing and skips those already stored', async () => {
+    await library.read(book)
+    source.requests.length = 0
+    await library.download([book, adventure])
+    expect(source.dataRequests()).toEqual(['main:' + adventure])
+    expect(await library.has(adventure)).toBe(true)
+  })
+
+  it('does nothing when every file is stored', async () => {
+    await library.read(book)
+    source.requests.length = 0
+    await library.download([book])
+    expect(source.requests).toEqual([])
+  })
+
+  it('does nothing while the full content is switched off', async () => {
+    useContentSettings.setState({ fullContent: false })
+    await library.download([book])
+    expect(source.requests).toEqual([])
+  })
+
+  it('leaves the content incomplete: a run of books says nothing about the rest', async () => {
+    await library.download([book])
+    expect(status().complete).toBe(false)
   })
 })

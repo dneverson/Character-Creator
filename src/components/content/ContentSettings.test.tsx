@@ -266,13 +266,23 @@ describe('ContentSettings importing a copy from this device', () => {
     )
   })
 
+  it('names the folders that are skipped, when some are', () => {
+    contentConfig.importExclude.push('generated/')
+    try {
+      open()
+      expect(screen.getByText(/Only .json files are stored, and/)).toBeInTheDocument()
+    } finally {
+      contentConfig.importExclude.pop()
+    }
+  })
+
   it('stores the picked files and says how many', async () => {
     const user = userEvent.setup()
     open()
     expect(screen.getByRole('button', { name: 'Import from this device' })).toBeEnabled()
     expect(screen.getByText(/Nothing is uploaded/)).toBeInTheDocument()
     expect(screen.getByText(/Only \.json files are stored/)).toHaveTextContent(
-      /"adventure\/" is skipped.*Cover images are optional/,
+      /Only \.json files are stored\. Cover images are optional/,
     )
 
     await user.upload(screen.getByLabelText('Folder to import'), picked)
