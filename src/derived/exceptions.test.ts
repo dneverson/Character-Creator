@@ -176,4 +176,27 @@ describe('the rules exceptions of a build', () => {
     ])
     expect(exceptionsOf(c, deps([druid]))).toEqual([])
   })
+
+  it('flags more Wild Shape forms than the 2024 druid knows, with no beast data needed', () => {
+    const druid = loadedClass('Druid', [], [])
+    const c = build('Druid', 3, {}, [])
+    c.wildShapes = ['Wolf', 'Bear', 'Boar', 'Cat', 'Owl'].map((name) => ({
+      name,
+      source: 'XMM',
+    }))
+    const one = { ...deps([druid]), editionOf: () => 'one' as const }
+    expect(exceptionsOf(c, one)).toMatchObject([
+      {
+        id: 'wild-shape-count',
+        rule: 'More Wild Shape forms than known',
+        section: 'wildshape',
+        detail: '5 forms chosen, 4 known at druid level 3.',
+      },
+    ])
+    c.wildShapes.pop()
+    expect(exceptionsOf(c, one)).toEqual([])
+    // The 2014 rule has no count.
+    c.wildShapes.push({ name: 'Owl', source: 'MM' })
+    expect(exceptionsOf(c, deps([druid]))).toEqual([])
+  })
 })

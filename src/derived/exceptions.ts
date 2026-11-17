@@ -235,12 +235,26 @@ function spellCountExceptions(sources: Sources, deps: DeriveDeps): RuleException
 /** Wild Shape forms outside the limits of the druid's level. */
 function wildShapeExceptions(sources: Sources, deps: DeriveDeps): RuleException[] {
   const druids = sources.classes.filter((c) => c.row.name === 'Druid')
-  if (druids.length === 0 || !deps.beasts) return []
+  if (druids.length === 0) return []
   const level = druids.reduce((n, c) => n + c.level, 0)
   const moon = druids.some((c) => c.row.subclass?.shortName === 'Moon')
   const limits = wildShapeLimits(level, moon, deps.editionOf?.(druids[0].row.source))
+  const forms = sources.character.wildShapes
+  // The 2024 druid knows a number of forms by level; the 2014 rule has no count.
+  const count: RuleException[] =
+    limits.knownForms !== undefined && forms.length > limits.knownForms
+      ? [
+          {
+            id: 'wild-shape-count',
+            rule: 'More Wild Shape forms than known',
+            detail: `${forms.length} forms chosen, ${limits.knownForms} known at druid level ${limits.level}.`,
+            section: 'wildshape',
+          },
+        ]
+      : []
+  if (!deps.beasts) return count
   const known = new Map(deps.beasts.map((b) => [`${b.name}|${b.source}`, b]))
-  return sources.character.wildShapes.flatMap((ref) => {
+  const flagged = forms.flatMap((ref) => {
     const beast = known.get(`${ref.name}|${ref.source}`)
     const fit = beast && beastFit(beast, limits)
     return beast && fit && !fit.standard
@@ -254,6 +268,7 @@ function wildShapeExceptions(sources: Sources, deps: DeriveDeps): RuleException[
         ]
       : []
   })
+  return [...count, ...flagged]
 }
 
 /** The items carried against the limits the rules set on them. */

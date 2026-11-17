@@ -16,6 +16,7 @@ import type { ItemKind } from '../data/itemTypes'
 import type { GrantPicks, PickKind, PickMap } from './picks'
 import { normalizeFavorites, type Favorite } from './favorites'
 import { isPortrait } from './portrait'
+import { carriedDragon } from './legacyDragon'
 
 /** Default sources selected for a fresh character (2014 core), matching the legacy app. */
 export const DEFAULT_BOOKS = ['PHB', 'MM', 'DMG']
@@ -1180,6 +1181,10 @@ export function ensureCharacterDefaults(raw: StoredCharacter | undefined): Chara
   // Schema 23: the skill picks moved into `grantPicks.skill`.
   delete (merged as Character & { skillProficiencies?: PickMap }).skillProficiencies
   merged.grantPicks = storedPicks(raw?.grantPicks, raw?.skillProficiencies)
+  // A dragonborn's old resistance pick names its dragon where the damage type does.
+  const dragon = carriedDragon(merged.race, merged.grantPicks)
+  merged.race = dragon.race
+  merged.grantPicks = dragon.picks
   merged.grantAlt = numberMap(raw?.grantAlt)
   merged.classOptions = optionMap(raw?.classOptions)
   // Schema ≤16 stored the Tough feat as an HP checkbox; it is now a feat pick.

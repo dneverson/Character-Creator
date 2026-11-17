@@ -11,6 +11,7 @@ import { PROFICIENCY_FIELDS, type ProficiencyField } from './grants'
 import type { Speed } from './labels'
 import { ABILITIES } from '../dice/dice'
 import type { Entry } from '../text/Entries'
+import { stripTags } from '../text/tags'
 import type { RaceRef } from '../character/model'
 
 /** The grants a race lists plainly, every item given. */
@@ -50,6 +51,8 @@ interface RaceVersionEntry {
   source?: string
   _mod?: CopyRef['_mod']
   _abstract?: unknown
+  _implementations?: unknown
+  _variables?: unknown
   [k: string]: unknown
 }
 
@@ -111,6 +114,8 @@ export interface RaceTraitOption {
   name: string
   text: Entry[]
   race: PlayableRace
+  /** Labelled facts to compare the options by: a dragon's damage type and breath weapon. */
+  facts?: { label: string; value: string }[]
 }
 
 export interface RaceTraitChoice {
@@ -226,10 +231,13 @@ function toPlayable(base: RaceEntry, subrace?: RaceEntry): PlayableRace {
     const race = spellSet
       ? { ...versionOf(merged, v), additionalSpells: merged.additionalSpells }
       : versionOf(merged, v)
+    const text = versionText(v)
+    const facts = breathFacts(v, text)
     return {
       name,
-      text: versionText(v),
+      text,
       race: { ...playableOf(base, subrace, race), trait: name, spellSet },
+      ...(facts ? { facts } : {}),
     }
   })
   // Before an option is taken, none of what only some options give, nor what each
@@ -257,7 +265,7 @@ function toPlayable(base: RaceEntry, subrace?: RaceEntry): PlayableRace {
  * versions written as templates (a dragonborn's colors) are not options.
  */
 function traitVersions(entry: RaceEntry): RaceVersionEntry[] | undefined {
-  const versions = entry._versions
+  const versions = entry._versions?.flatMap(implementations)
   if (!versions || versions.length < 2) return undefined
   const ok = versions.every(
     (v) =>
@@ -267,6 +275,74 @@ function traitVersions(entry: RaceEntry): RaceVersionEntry[] | undefined {
         spellSetOf(entry, versionName(entry, v)) !== undefined),
   )
   return ok ? versions : undefined
+}
+
+/** A template's text with each `{{name}}` filled from the variables, at any depth. */
+function fillTemplate(value: unknown, vars: Record<string, string>): unknown {
+  if (typeof value === 'string')
+    return value.replace(/\{\{(\w+)\}\}/g, (_, name: string) => vars[name] ?? '')
+  if (Array.isArray(value)) return value.map((v) => fillTemplate(v, vars))
+  if (!isBlock(value)) return value
+  return Object.fromEntries(
+    Object.entries(value).map(([k, v]) => [k, fillTemplate(v, vars)]),
+  )
+}
+
+/**
+ * The versions a template version stands for (a dragonborn's colors): one per
+ * implementation, named by its first variable, with the template's text filled and the
+ * implementation's own fields (the damage type resisted) over it.
+ */
+function implementations(v: RaceVersionEntry): RaceVersionEntry[] {
+  if (!isBlock(v._abstract) || !Array.isArray(v._implementations)) return [v]
+  return v._implementations.filter(isBlock).map((impl): RaceVersionEntry => {
+    const { _variables, ...own } = impl
+    const vars = isBlock(_variables)
+      ? Object.fromEntries(
+          Object.entries(_variables).flatMap(([k, x]) =>
+            typeof x === 'string' ? [[k, x]] : [],
+          ),
+        )
+      : {}
+    const filled = fillTemplate(v._abstract, vars)
+    const template = isBlock(filled) ? filled : {}
+    return {
+      ...template,
+      ...own,
+      _variables: vars,
+      name: Object.values(vars)[0] ?? v.name,
+    }
+  })
+}
+
+/**
+ * What a dragon option says to compare it by: the damage type it resists and breathes,
+ * and the breath weapon's shape and saving throw, read from the text of its breath weapon.
+ */
+function breathFacts(
+  v: RaceVersionEntry,
+  text: Entry[],
+): { label: string; value: string }[] | undefined {
+  const vars = isBlock(v._variables) ? v._variables : {}
+  const type = Array.isArray(v.resist) ? v.resist[0] : vars.damageType
+  const plain = text
+    .flatMap((e) => (typeof e === 'string' ? [stripTags(e)] : []))
+    .join(' ')
+  const shapes = [
+    ...plain.matchAll(/(\d+(?:-foot-wide, \d+)?)-foot(?:-long)? (cone|line)/gi),
+  ]
+  const save =
+    /(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma) saving throw/.exec(
+      plain,
+    )
+  if (typeof type !== 'string' || shapes.length === 0 || !save) return undefined
+  return [
+    { label: 'Damage type', value: type.charAt(0).toUpperCase() + type.slice(1) },
+    {
+      label: 'Breath weapon',
+      value: `${shapes.map((m) => m[0].toLowerCase()).join(' or ')}, ${save[1]} save`,
+    },
+  ]
 }
 
 /** The names of the race's sets of spells, of which the player takes one. */
@@ -291,12 +367,13 @@ function versionName(owner: RaceEntry, v: RaceVersionEntry): string {
 }
 
 /** The replacements of a version's text: what its option says. */
-const replacements = (v: RaceVersionEntry) => {
+const entryMods = (v: RaceVersionEntry) => {
   const mods = v._mod?.entries
-  return (Array.isArray(mods) ? mods : mods ? [mods] : []).filter(
-    (m) => m.mode === 'replaceArr',
-  )
+  return Array.isArray(mods) ? mods : mods ? [mods] : []
 }
+
+const replacements = (v: RaceVersionEntry) =>
+  entryMods(v).filter((m) => m.mode === 'replaceArr')
 
 function versionText(v: RaceVersionEntry): Entry[] {
   return replacements(v).flatMap((m) => {
@@ -307,18 +384,23 @@ function versionText(v: RaceVersionEntry): Entry[] {
   })
 }
 
-/** The trait the versions are options of, by the text they replace. */
+/**
+ * The trait the versions are options of: the one they take out ("Draconic Ancestry", for
+ * the dragon each gives its own breath weapon and resistance), else the one they replace.
+ */
 function traitTitle(versions: RaceVersionEntry[]): string {
+  const mods = entryMods(versions[0])
+  const removed = mods.find((m) => m.mode === 'removeArr' && typeof m.names === 'string')
   const replaced = replacements(versions[0])[0]?.replace
-  return typeof replaced === 'string'
-    ? replaced.replace(/\s*\(Choose 1\)$/i, '')
-    : 'Trait'
+  const title = typeof removed?.names === 'string' ? removed.names : replaced
+  return typeof title === 'string' ? title.replace(/\s*\(Choose 1\)$/i, '') : 'Trait'
 }
 
 /** A race entry with a version's fields and text over it. */
 function versionOf(entry: RaceEntry, v: RaceVersionEntry): RaceEntry {
-  const { _mod, _abstract, name, source, ...own } = v
+  const { _mod, _abstract, _variables, name, source, ...own } = v
   void _abstract
+  void _variables
   void name
   void source
   const copy: RaceEntry = {

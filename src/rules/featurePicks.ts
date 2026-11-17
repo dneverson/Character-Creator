@@ -30,6 +30,8 @@ export interface FeaturePickOption {
   minLevel?: number
   /** Why taking it is against the rules, when it is: the pick is flagged, never refused. */
   unmet?: string
+  /** The damage type the option stands for, which a rule of the character reads. */
+  damageType?: string
   /** The group it counts in, for a pick that needs one of each group (a melee weapon). */
   group?: string
 }
@@ -237,6 +239,20 @@ export const TERRAINS = [
   'Underdark',
 ] as const
 
+/** The dragons of the Draconic Ancestry table of the 2014 sorcerer, with their damage types. */
+export const DRAGON_ANCESTORS = [
+  ['Black', 'acid'],
+  ['Blue', 'lightning'],
+  ['Brass', 'fire'],
+  ['Bronze', 'lightning'],
+  ['Copper', 'acid'],
+  ['Gold', 'fire'],
+  ['Green', 'poison'],
+  ['Red', 'fire'],
+  ['Silver', 'cold'],
+  ['White', 'cold'],
+] as const
+
 export const FEATURE_PICKS: readonly FeaturePick[] = [
   {
     title: 'Favored Enemy',
@@ -270,6 +286,28 @@ export const FEATURE_PICKS: readonly FeaturePick[] = [
       text: `In ${terrain === 'Underdark' ? 'the Underdark' : `${terrain} terrain`}, your proficiency bonus is doubled for Intelligence and Wisdom checks with a skill you are proficient in, and you travel and forage as the feature says.`,
     })),
     note: 'One favored terrain at 1st level, and one more at 6th and 10th.',
+  },
+  {
+    title: 'Dragon Ancestor',
+    noun: 'dragon ancestors',
+    holders: [
+      {
+        subclassFeature: {
+          className: 'Sorcerer',
+          shortName: 'Draconic',
+          source: 'PHB',
+          name: 'Dragon Ancestor',
+        },
+      },
+    ],
+    options: DRAGON_ANCESTORS.map(([dragon, type]) => ({
+      key: dragon.toLowerCase(),
+      name: dragon,
+      damageType: type,
+      text: `Your draconic ancestry is a ${dragon.toLowerCase()} dragon: its damage type, ${type}, is the one Elemental Affinity adds your Charisma modifier to and gives resistance to.`,
+      facts: [{ label: 'Damage type', value: titleCase(type) }],
+    })),
+    note: 'One type of dragon at 1st level. Its damage type is used by the features you gain later.',
   },
   {
     title: 'Kensei Weapons',

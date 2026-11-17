@@ -21,6 +21,11 @@ export interface DefenseRule {
   types: readonly string[]
   /** A condition the sheet cannot check: the defense shows, but is not counted. */
   when?: string
+  /**
+   * The title of a feature pick (rules/featurePicks.ts) whose options carry the damage
+   * type the row covers; `types` stands until one is taken.
+   */
+  fromPick?: string
   /** A type the player chooses: how many, of which. The pick is a card of its own. */
   choose?: { count: number; from: readonly string[] }
 }
@@ -65,13 +70,15 @@ type Row = [
   kind: DefenseKind,
   types: readonly string[] | { count: number; from: readonly string[] },
   when?: string,
+  fromPick?: string,
 ]
 
-const rowOf = ([holder, kind, types, when]: Row): DefenseRule => ({
+const rowOf = ([holder, kind, types, when, fromPick]: Row): DefenseRule => ({
   holder,
   kind,
   types: Array.isArray(types) ? types : [],
   ...('count' in types ? { choose: types } : {}),
+  ...(fromPick ? { fromPick } : {}),
   ...(when ? { when } : {}),
 })
 
@@ -364,6 +371,7 @@ const FEATURE_ROWS: readonly Row[] = [
     'resist',
     ['the damage type of your draconic ancestry'],
     'Only for 1 hour after you spend 1 sorcery point when you cast a spell of that type.',
+    'Dragon Ancestor',
   ],
   [
     sub('Sorcerer', 'Lunar', 'DSotDQ', 'Lunar Empowerment'),

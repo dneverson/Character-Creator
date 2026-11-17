@@ -130,15 +130,19 @@ function warlockCantrips(sources: Sources, pick: FeaturePick): FeaturePickOption
     }))
 }
 
-/** The kinds of weapons without some properties, and those named, by name in lower case. */
-function weaponOptions(
+/**
+ * The kinds of weapons without some properties, and those named, by name in lower case.
+ * A firearm is not one of the simple or martial weapons these lists mean: it has its own
+ * proficiency, and the DM allows it.
+ */
+export function weaponOptions(
   from: Extract<FeaturePickFrom, { kind: 'weapons' }>,
   items: readonly Item[],
 ): FeaturePickOption[] {
   const byName = new Map<string, FeaturePickOption>()
   for (const item of items) {
     const w = item.weapon
-    if (item.kind !== 'weapon' || item.magic || !w?.category) continue
+    if (item.kind !== 'weapon' || item.magic || item.firearm || !w?.category) continue
     if (from.melee && !w.melee) continue
     const key = item.name.toLowerCase()
     const codes = w.properties.map((p) => p.code)

@@ -210,6 +210,25 @@ describe.skipIf(!dataDir)('level up against the data', async () => {
         for (const held of heldFeaturePicks(sources)) {
           const ids = held.pick.holders.map(holderId)
           if (features.some((f) => f.id && ids.includes(f.id))) grown.add(held.tag)
+          // A feature a subclass's heading takes in (the Dragon Ancestor of the Draconic
+          // Bloodline) is gained at its own level.
+          if (
+            (loaded.file.subclassFeature ?? []).some(
+              (f) =>
+                f.level === to &&
+                ids.includes(
+                  holderId({
+                    subclassFeature: {
+                      className: f.className,
+                      shortName: f.subclassShortName,
+                      source: f.source,
+                      name: f.name,
+                    },
+                  }),
+                ),
+            )
+          )
+            grown.add(held.tag)
           if (held.pick.byLevel && held.count > (picksBefore.get(held.tag) ?? 0))
             grown.add(held.tag)
         }

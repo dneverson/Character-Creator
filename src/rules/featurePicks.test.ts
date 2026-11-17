@@ -8,6 +8,7 @@ import {
   type Rec,
 } from '../test/dataAudit'
 import {
+  DRAGON_ANCESTORS,
   ENEMY_TYPES,
   FEATURE_PICKS,
   HUMANOID_RACES,
@@ -88,6 +89,17 @@ describe.skipIf(!dataDir)('feature picks against the data', () => {
     // A race or an excuse that no creature is tagged with any more is stale.
     const known = [...races, ...Object.keys(HUMANOID_TAGS_NOT_RACES)]
     expect(known.filter((t) => !tags.has(t))).toEqual([])
+  })
+
+  it('offers exactly the dragons and damage types the Draconic Ancestry table lists', () => {
+    const entries = byId.get(
+      'subclassFeature|Dragon Ancestor|PHB|Sorcerer|Draconic',
+    )?.entries
+    const table = JSON.stringify(entries ?? '')
+    const rows = [
+      ...table.matchAll(/\["(\w+)","\{@filter \w+\|spells\|damage type=(\w+)\|/g),
+    ].map((m) => [m[1], m[2]])
+    expect(rows).toEqual(DRAGON_ANCESTORS.map((row) => [...row]))
   })
 
   it('reads the kensei weapons and how many from the text', () => {

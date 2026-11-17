@@ -4,6 +4,7 @@ import type { ClassOption } from '../data/classOptions'
 import { ITEMS, build, deps, loadedClass } from '../test/derivedFixtures'
 import { optionCards, cardChoiceWord } from './classOptions'
 import { featurePickCards, featurePickWord } from './featurePicks'
+import { deriveSheet } from '.'
 import { featureRows } from './features'
 import { grantBlocks } from './grantBlocks'
 import { proficiencies } from './proficiencies'
@@ -314,5 +315,69 @@ describe('the choices inside a chosen feature or option', () => {
       { label: 'Level', value: '6' },
       { label: 'Attunement', value: 'Yes' },
     ])
+  })
+})
+
+describe('the dragon ancestor of the Draconic sorcerer', () => {
+  const draconic = loadedClass('Sorcerer', [], [], {
+    subclassFeature: [
+      {
+        name: 'Dragon Ancestor',
+        source: 'PHB',
+        className: 'Sorcerer',
+        classSource: 'PHB',
+        subclassShortName: 'Draconic',
+        subclassSource: 'PHB',
+        level: 1,
+        entries: ['Choose one type of dragon.'],
+      },
+      {
+        name: 'Elemental Affinity',
+        source: 'PHB',
+        className: 'Sorcerer',
+        classSource: 'PHB',
+        subclassShortName: 'Draconic',
+        subclassSource: 'PHB',
+        level: 6,
+        entries: ['Add your Charisma modifier.'],
+      },
+    ],
+  })
+  const ANCESTOR = 'class:Sorcerer|PHB|pick:Dragon Ancestor'
+  const sorcerer = (level: number, picks: string[] = []) => {
+    const c = build('Sorcerer', level, {}, [])
+    c.classes[0].subclass = { name: 'Draconic', shortName: 'Draconic', source: 'PHB' }
+    c.classOptions = { [ANCESTOR]: picks }
+    return { c, d: deps([draconic]) }
+  }
+
+  it('offers the ten dragons, each with its damage type', () => {
+    const { c, d } = sorcerer(1)
+    const [card] = featurePickCards(collectSources(c, d))
+    expect(card.count).toBe(1)
+    expect(card.chips.map((chip) => chip.label)).toEqual([
+      'Black',
+      'Blue',
+      'Brass',
+      'Bronze',
+      'Copper',
+      'Gold',
+      'Green',
+      'Red',
+      'Silver',
+      'White',
+    ])
+    expect(card.chips[1].detail?.facts).toEqual([
+      { label: 'Damage type', value: 'Lightning' },
+    ])
+  })
+
+  it('resists the damage type of the dragon taken for Elemental Affinity', () => {
+    const resists = (picks: string[]) => {
+      const { c, d } = sorcerer(6, picks)
+      return deriveSheet(c, d).defenses.map((r) => [r.label, r.conditional ? 'when' : ''])
+    }
+    expect(resists([])).toEqual([['The damage type of your draconic ancestry', 'when']])
+    expect(resists(['silver'])).toEqual([['Cold', 'when']])
   })
 })

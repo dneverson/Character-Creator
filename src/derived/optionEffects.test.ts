@@ -179,8 +179,29 @@ describe('a pact weapon', () => {
     })
     expect(range).toMatchObject({
       label: 'Eldritch Spear',
+      op: 'base',
+      amount: 300,
+      on: 'range',
       how: 'Range of this spell is 300 feet',
     })
+    expect(damage.on).toBe('damage')
+  })
+
+  it('lists the riders of Repelling Blast, Grasp of Hadar and Lance of Lethargy on the spell', () => {
+    const { sheet } = warlock({
+      'class:Warlock|PHB|EI': [
+        'Repelling Blast|PHB',
+        'Grasp of Hadar|XGE',
+        'Lance of Lethargy|XGE',
+      ],
+    })
+    const lines = sheet.spellEffects['eldritch blast|phb']
+    expect(lines.map((l) => [l.label, l.op, l.on])).toEqual([
+      ['Repelling Blast', 'note', undefined],
+      ['Grasp of Hadar', 'note', undefined],
+      ['Lance of Lethargy', 'note', undefined],
+    ])
+    expect(lines[1].how).toBe('once a turn, pull the creature hit 10 feet closer')
   })
 
   it('lists the 2024 range the picked cantrip gets, and nothing while none is picked', () => {

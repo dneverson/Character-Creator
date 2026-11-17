@@ -11,9 +11,10 @@ import {
   ITEM_DEFENSE_NOT_STANDING,
   ITEM_DEFENSE_WHEN,
 } from '../rules/defenseRules'
-import type { DefenseKind } from '../rules/defenseRules'
+import type { DefenseKind, DefenseRule } from '../rules/defenseRules'
 import type { GrantBlock, GrantChoices } from './grantBlocks'
 import { grantState } from './grantBlocks'
+import { takenFeaturePicks } from './featurePicks'
 import { heldBy, type Sources } from './sources'
 import { quantity, type Line, type Quantity, type SourceRef } from './types'
 
@@ -51,6 +52,15 @@ const SENTENCE: Record<DefenseKind, (type: string) => string> = {
 const phrase = (type: string) => (type.includes(' ') ? type : `${type} damage`)
 
 export const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
+
+/** What a row covers: the damage types of the options taken of its pick, else its own words. */
+function typesOf(rule: DefenseRule, sources: Sources): readonly string[] {
+  if (!rule.fromPick) return rule.types
+  const taken = takenFeaturePicks(sources)
+    .filter(({ held }) => held.pick.title === rule.fromPick)
+    .flatMap(({ taken: options }) => options.flatMap((o) => o.damageType ?? []))
+  return taken.length > 0 ? taken : rule.types
+}
 
 function givenDefenses(
   sources: Sources,
@@ -91,10 +101,19 @@ function givenDefenses(
     if (kind) add(kind, value.key, source, choiceState(kind, source))
   }
   const sourceOf = new Map(blocks.map((b) => [b.card.tag, b.source]))
+  // A save from before a trait with options (a dragonborn's dragon) held the type the player
+  // chose of the race: until the trait is taken, that pick still counts for the race.
+  const race = sources.race
+  if (race?.traitChoice && !race.trait && !sourceOf.has('race'))
+    sourceOf.set('race', { kind: 'race', tag: 'race', label: race.name })
   for (const kind of KINDS) {
     for (const [type, tag] of Object.entries(picksOf(choices.picks, kind))) {
       const source = sourceOf.get(tag)
-      if (source) add(kind, type, source, choiceState(kind, source))
+      // A pick the same source already gives outright (the dragon taken since) adds nothing.
+      const repeats = given.some(
+        (g) => g.kind === kind && g.type === type && g.source.tag === source?.tag,
+      )
+      if (source && !repeats) add(kind, type, source, choiceState(kind, source))
     }
   }
   // An item gives what its data lists while it is worn, and attuned when it needs it.
@@ -120,7 +139,7 @@ function givenDefenses(
         : rule.when
           ? { status: 'conditional', when: rule.when }
           : undefined
-    for (const type of rule.types) add(rule.kind, type, held.source, state)
+    for (const type of typesOf(rule, sources)) add(rule.kind, type, held.source, state)
   }
   return given
 }

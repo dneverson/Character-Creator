@@ -61,6 +61,7 @@ import { EditorSection } from './EditorSection'
 import { NotInBooksAlert } from './NotInBooksAlert'
 import { GrantedSpells } from './GrantedSpells'
 import { SpellPicker } from './SpellPicker'
+import { useDerivedSheet } from './useDerivedSheet'
 import { YourSpells } from './YourSpells'
 import { useSpellList } from './useSpellList'
 
@@ -85,6 +86,7 @@ export interface SpellsScope {
 export function SpellsSection({ scope }: { scope?: SpellsScope } = {}) {
   const character = useCharacter()
   const updateActive = useUpdateCharacter()
+  const { sheet } = useDerivedSheet()
   // The character as it is now, for handlers that run more than once in a click.
   const latestCharacter = useLatestCharacter()
   const latestSelection = (classKey: string) =>
@@ -288,6 +290,7 @@ export function SpellsSection({ scope }: { scope?: SpellsScope } = {}) {
                 grants={cardAndPlaced}
                 byKey={byKey}
                 byName={byName}
+                effects={sheet?.spellEffects}
                 removeClassPick={(classKey, spell) =>
                   edit(classKey, (c) => ({
                     ...c,

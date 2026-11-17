@@ -60,6 +60,8 @@ export interface Line {
   why?: string
   /** A small tag beside the label: "Automatic", "Manual". */
   badge?: string
+  /** On a spell's line: the value of the spell the line changes. */
+  on?: 'damage' | 'range'
 }
 
 export interface Quantity {

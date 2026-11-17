@@ -2,6 +2,7 @@
 // source always gives, and what a grant let the player choose. A spell several
 // sources give is one line naming every source.
 
+import type { Line } from '../../derived/types'
 import type { Spell } from '../../data/spells'
 import type { Character, SpellRef } from '../../character/model'
 import { grantedSpell, type SpellGrant } from '../../character/spellGrants'
@@ -19,7 +20,12 @@ export interface YourSpellsInputs {
   byName: Map<string, Spell[]>
   removeClassPick: (classKey: string, spell: Spell) => void
   removeGrantPick: (grantId: string, spell: Spell) => void
+  /** What the character's class options do to a spell, by its key ("eldritch blast|phb"). */
+  effects?: Record<string, Line[]>
 }
+
+/** The spell's key as a class option names it: "eldritch blast|phb". */
+const effectKey = (spell: Spell) => `${spell.name}|${spell.source}`.toLowerCase()
 
 interface Entry {
   spell: Spell
@@ -41,6 +47,7 @@ export function yourSpellLines({
   byName,
   removeClassPick,
   removeGrantPick,
+  effects = {},
 }: YourSpellsInputs): { lines: SpellLine[]; granted: number } {
   const entries = new Map<string, Entry>()
   const add = (
@@ -105,6 +112,7 @@ export function yourSpellLines({
       cast: e.cast.join('; '),
       // A spell two sources give is not one pick to take away.
       remove: e.sources === 1 ? e.remove : undefined,
+      ...(effects[effectKey(e.spell)] ? { effects: effects[effectKey(e.spell)] } : {}),
     })),
     granted: sorted.filter((e) => e.granted).length,
   }

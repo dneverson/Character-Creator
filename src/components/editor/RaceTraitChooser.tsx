@@ -27,11 +27,36 @@ const textFact: Fact<RaceTraitOption> = {
   render: (o) => <Entries entries={o.text} />,
 }
 
-const describe: Describe<RaceTraitOption> = () => [
-  { key: 'option', title: 'The option', facts: [textFact] },
+const factValueOf = (o: RaceTraitOption, label: string) =>
+  o.facts?.find((f) => f.label === label)?.value ?? ''
+
+/** A fact the options carry (a dragon's damage type), once per label, in the order met. */
+const labelsOf = (options: RaceTraitOption[]) => [
+  ...new Set(options.flatMap((o) => o.facts?.map((f) => f.label) ?? [])),
 ]
 
-const columns: Column<RaceTraitOption>[] = [
+const factOf = (label: string): Fact<RaceTraitOption> => ({
+  key: label,
+  label,
+  text: (o) => factValueOf(o, label),
+})
+
+const describe: Describe<RaceTraitOption> = (options) => [
+  {
+    key: 'option',
+    title: 'The option',
+    facts: [...labelsOf(options).map(factOf), textFact],
+  },
+]
+
+const factColumn = (label: string): Column<RaceTraitOption> => ({
+  key: label,
+  header: label,
+  render: (o) => factValueOf(o, label),
+  sortValue: (o) => factValueOf(o, label),
+})
+
+const columnsOf = (options: RaceTraitOption[]): Column<RaceTraitOption>[] => [
   {
     key: 'name',
     header: 'Option',
@@ -39,6 +64,7 @@ const columns: Column<RaceTraitOption>[] = [
     sortValue: (o) => o.name,
     filterable: false,
   },
+  ...labelsOf(options).map(factColumn),
   {
     key: 'text',
     header: 'What it gives',
@@ -54,7 +80,7 @@ export function RaceTraitChooser({ choice, taken, onTake }: Props) {
     <PickOne<RaceTraitOption>
       tableId="race-trait"
       rows={choice.options}
-      columns={columns}
+      columns={columnsOf(choice.options)}
       idOf={(o) => o.name}
       nameOf={(o) => o.name}
       describe={describe}
@@ -63,7 +89,7 @@ export function RaceTraitChooser({ choice, taken, onTake }: Props) {
       onPick={(o) => onTake(o.name)}
       onClear={() => onTake(undefined)}
       noun="option"
-      summary={[textFact]}
+      summary={[...labelsOf(choice.options).map(factOf), textFact]}
       labels={{
         compare: `Compare ${choice.title} options`,
         search: 'Search options…',

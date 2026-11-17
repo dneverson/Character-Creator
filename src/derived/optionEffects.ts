@@ -323,6 +323,10 @@ function itemWords(sources: Sources, h: HeldEffect, item: EffectItem) {
 interface SpellPart {
   spell: string
   amount?: number
+  /** The value of the spell it changes; none for a rider on a hit. */
+  on?: 'damage' | 'range'
+  /** The new range in feet, when the option sets it instead of adding to it. */
+  set?: number
   /** In words, for the spell named: a spell's name, or "this spell" on the spell's own row. */
   how: (subject: string) => string
 }
@@ -331,7 +335,9 @@ const isSpellEffect = (e: OptionEffect) =>
   e.kind === 'spellDamage' ||
   e.kind === 'spellDamagePick' ||
   e.kind === 'spellRange' ||
-  e.kind === 'spellRangePick'
+  e.kind === 'spellRangePick' ||
+  e.kind === 'spellNote' ||
+  e.kind === 'spellNotePick'
 
 /** The picked spell keys of an option's card. */
 const pickedSpells = (sources: Sources, h: HeldEffect, pick: string) =>
@@ -353,6 +359,7 @@ function spellParts(
     return spells.map((spell) => ({
       spell,
       amount,
+      on: 'damage',
       how: (subject) =>
         `${ABILITY_NAMES[e.ability]} modifier to the damage of ${subject}`,
     }))
@@ -360,6 +367,8 @@ function spellParts(
   if (e.kind === 'spellRange') {
     return e.spells.map((spell) => ({
       spell,
+      on: 'range',
+      set: e.feet,
       how: (subject) => `Range of ${subject} is ${e.feet} feet`,
     }))
   }
@@ -368,8 +377,17 @@ function spellParts(
     return pickedSpells(sources, h, e.pick).map((spell) => ({
       spell,
       amount: feet,
+      on: 'range',
       how: (subject) =>
         `feet added to the range of ${subject} (${e.perLevel} feet times ${h.level} class levels)`,
+    }))
+  }
+  if (e.kind === 'spellNote' || e.kind === 'spellNotePick') {
+    const spells = e.kind === 'spellNote' ? e.spells : pickedSpells(sources, h, e.pick)
+    return spells.map((spell) => ({
+      spell,
+      how: (subject) =>
+        subject === 'this spell' ? e.text : `${e.text}, with ${subject}`,
     }))
   }
   return undefined
@@ -391,7 +409,11 @@ export function spellEffectLines(
     for (const [i, p] of parts.entries()) {
       const spell = out[p.spell] ?? []
       spell.push(
-        line(`spell|${p.spell}|${h.key}|${i}`, h, p.amount, { how: p.how('this spell') }),
+        line(`spell|${p.spell}|${h.key}|${i}`, h, p.set ?? p.amount, {
+          how: p.how('this spell'),
+          ...(p.on ? { on: p.on } : {}),
+          ...(p.set === undefined ? {} : { op: 'base' as const }),
+        }),
       )
       out[p.spell] = spell
     }

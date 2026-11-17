@@ -4,6 +4,7 @@
 
 import type { Spell } from '../../data/spells'
 import { formatMod } from '../../dice/dice'
+import { ChangedValue } from './ChangedValue'
 import { factColumn, type Describe, type Fact, type FactGroup } from '../table/facts'
 import type { Column } from '../table/types'
 import type { SpellLine } from './SpellLines'
@@ -32,6 +33,40 @@ const effectsFact: Fact<SpellLine> = {
       .join('; '),
 }
 
+type Changed = 'damage' | 'range'
+
+/** The lines of the class options that change a value of the spell, applied ones only. */
+const changesOf = (line: SpellLine, on: Changed) =>
+  (line.effects ?? []).filter((l) => l.on === on && l.status === 'applied')
+
+const signed = (n: number) => `${n < 0 ? '-' : '+'} ${Math.abs(n)}`
+
+/** The damage with what the options add: "1d10 + 4". Undefined when nothing is added. */
+function changedDamage(line: SpellLine): string | undefined {
+  const added = changesOf(line, 'damage').reduce((n, l) => n + (l.amount ?? 0), 0)
+  return line.spell.damage && added !== 0
+    ? `${line.spell.damage} ${signed(added)}`
+    : undefined
+}
+
+/** The range an option sets or lengthens: "300 ft.", "210 ft.". Undefined when none does. */
+function changedRange(line: SpellLine): string | undefined {
+  const lines = changesOf(line, 'range')
+  const set = lines.find((l) => l.op === 'base')
+  const added = lines.reduce((n, l) => (l.op === 'add' ? n + (l.amount ?? 0) : n), 0)
+  const feet = /^(\d+) ft\.$/.exec(line.spell.range)
+  if (set?.amount !== undefined) return `${set.amount + added} ft.`
+  if (added === 0) return undefined
+  return feet
+    ? `${Number(feet[1]) + added} ft.`
+    : `${line.spell.range} ${signed(added)} ft.`
+}
+
+const CHANGED: Record<Changed, (line: SpellLine) => string | undefined> = {
+  damage: changedDamage,
+  range: changedRange,
+}
+
 const ofSpell =
   <T,>(read: (spell: Spell) => T) =>
   (line: SpellLine) =>
@@ -39,16 +74,29 @@ const ofSpell =
 
 const lineColumn = (column: Column<Spell>): Column<SpellLine> => ({
   ...column,
-  render: ofSpell(column.render),
+  render: (line) => {
+    const on = column.key === 'damage' || column.key === 'range' ? column.key : undefined
+    const value = on && CHANGED[on](line)
+    return on && value ? (
+      <ChangedValue lines={changesOf(line, on)} value={value} />
+    ) : (
+      column.render(line.spell)
+    )
+  },
   sortValue: column.sortValue && ofSpell(column.sortValue),
   filterValue: column.filterValue && ofSpell(column.filterValue),
 })
 
-const lineFact = (fact: Fact<Spell>): Fact<SpellLine> => ({
-  ...fact,
-  text: ofSpell(fact.text),
-  render: fact.render && ofSpell(fact.render),
-})
+const lineFact = (fact: Fact<Spell>): Fact<SpellLine> => {
+  const on = fact.key === 'damage' || fact.key === 'range' ? fact.key : undefined
+  return {
+    ...fact,
+    text: (line) => (on && CHANGED[on](line)) || fact.text(line.spell),
+    render: fact.render
+      ? (line) => (on && CHANGED[on](line)) || fact.render?.(line.spell)
+      : undefined,
+  }
+}
 
 export const describeLines: Describe<SpellLine> = (lines) => [
   { key: 'source', title: 'On your character', facts: [fromFact, castFact, effectsFact] },

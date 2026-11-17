@@ -28,6 +28,9 @@ export type OptionEffect =
    */
   | { kind: 'spellRange'; spells: readonly string[]; feet: number }
   | { kind: 'spellRangePick'; pick: string; perLevel: number }
+  /** A rider on a hit with named spells, or with the spells picked on the option's card. */
+  | { kind: 'spellNote'; spells: readonly string[]; text: string }
+  | { kind: 'spellNotePick'; pick: string; text: string }
   /** A bonus to the attack and damage rolls with the item. */
   | {
       kind: 'weaponBonus'
@@ -115,6 +118,54 @@ export const OPTION_EFFECTS: readonly OptionEffectRule[] = [
     label: 'Eldritch Spear',
     text: 'Eldritch Spear: when you cast the Warlock cantrip you chose, one that deals damage and has a range of 10 feet or more, its range increases by 30 feet for each Warlock level you have.',
     effects: [{ kind: 'spellRangePick', pick: 'Eldritch Spear cantrip', perLevel: 30 }],
+  },
+  {
+    holder: option('Repelling Blast|PHB'),
+    label: 'Repelling Blast',
+    text: 'Repelling Blast: when you hit a creature with eldritch blast, you can push it up to 10 feet away from you in a straight line.',
+    effects: [
+      {
+        kind: 'spellNote',
+        spells: ['eldritch blast|phb'],
+        text: 'push the creature hit up to 10 feet away',
+      },
+    ],
+  },
+  {
+    holder: option('Repelling Blast|XPHB'),
+    label: 'Repelling Blast',
+    text: 'Repelling Blast: when you hit a Large or smaller creature with the Warlock cantrip you chose, you can push it up to 10 feet straight away from you.',
+    effects: [
+      {
+        kind: 'spellNotePick',
+        pick: 'Repelling Blast cantrip',
+        text: 'push a Large or smaller creature hit up to 10 feet away',
+      },
+    ],
+  },
+  {
+    holder: option('Grasp of Hadar|XGE'),
+    label: 'Grasp of Hadar',
+    text: 'Grasp of Hadar: once on each of your turns when you hit a creature with eldritch blast, you can move it in a straight line 10 feet closer to you.',
+    effects: [
+      {
+        kind: 'spellNote',
+        spells: ['eldritch blast|phb', 'eldritch blast|xphb'],
+        text: 'once a turn, pull the creature hit 10 feet closer',
+      },
+    ],
+  },
+  {
+    holder: option('Lance of Lethargy|XGE'),
+    label: 'Lance of Lethargy',
+    text: 'Lance of Lethargy: once on each of your turns when you hit a creature with eldritch blast, you can reduce its speed by 10 feet until the end of your next turn.',
+    effects: [
+      {
+        kind: 'spellNote',
+        spells: ['eldritch blast|phb', 'eldritch blast|xphb'],
+        text: 'once a turn, reduce the speed of the creature hit by 10 feet until the end of your next turn',
+      },
+    ],
   },
   {
     holder: option('Pact of the Blade|PHB'),
