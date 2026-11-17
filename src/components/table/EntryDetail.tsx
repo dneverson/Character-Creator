@@ -111,6 +111,8 @@ interface EntryDetailProps<T> extends EntryFactsProps<T> {
    * detail, under the text in the book styles.
    */
   action?: ReactNode
+  /** Draw the book layout whatever the detail style is set to (the reader's stat blocks). */
+  book?: boolean
   /** Further groups that only the detail of a single entry shows. */
   children?: ReactNode
 }
@@ -182,7 +184,7 @@ function EntryBook<T>({
 
 export function EntryDetail<T>(props: EntryDetailProps<T>) {
   const detailStyle = useDetailStyle()
-  if (detailStyle !== 'standard') return <EntryBook {...props} />
+  if (detailStyle !== 'standard' || props.book) return <EntryBook {...props} />
   const { entry, describe, name, tags = [], action, children } = props
   const detail = (
     <div className="p-3">

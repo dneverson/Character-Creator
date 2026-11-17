@@ -130,6 +130,57 @@ describe.skipIf(!dataDir)('species defenses against the data', () => {
     }
   })
 
+  it('make every dragon of the Fizban books resist its own type, with no free pick of one', async () => {
+    const wanted: Record<string, Record<string, string>> = {
+      'Dragonborn (Chromatic)': {
+        Black: 'acid',
+        Blue: 'lightning',
+        Green: 'poison',
+        Red: 'fire',
+        White: 'cold',
+      },
+      'Dragonborn (Metallic)': {
+        Brass: 'fire',
+        Bronze: 'lightning',
+        Copper: 'acid',
+        Gold: 'fire',
+        Silver: 'cold',
+      },
+      'Dragonborn (Gem)': {
+        Amethyst: 'force',
+        Crystal: 'radiant',
+        Emerald: 'psychic',
+        Sapphire: 'thunder',
+        Topaz: 'necrotic',
+      },
+    }
+    for (const [name, dragons] of Object.entries(wanted)) {
+      const race = await find(name, 'FTD')
+      // Before a dragon is chosen nothing is resisted and no damage type is a pick.
+      expect(keys(race)).toEqual([])
+      expect(sheetOf(race).picks.some((p) => p.kinds.includes('resist'))).toBe(false)
+      for (const [dragon, type] of Object.entries(dragons)) {
+        const option = race.traitChoice?.options.find((o) => o.name === dragon)
+        expect(option?.race.resist).toEqual([type])
+        expect(option && keys(option.race)).toEqual([`resist|${type}`])
+        expect(
+          option && sheetOf(option.race).picks.some((p) => p.kinds.includes('resist')),
+        ).toBe(false)
+        expect(option?.facts?.[0]?.value.toLowerCase()).toBe(type)
+      }
+    }
+  })
+
+  it('count a Chromatic dragon once, and keep the other type an old save picked', async () => {
+    const chromatic = await find('Dragonborn (Chromatic)', 'FTD')
+    const red = chromatic.traitChoice?.options.find((o) => o.name === 'Red')
+    const same = sheetOf(red?.race ?? chromatic, { resist: { fire: 'race' } }).defenses
+    expect(same.map((d) => d.key)).toEqual(['resist|fire'])
+    expect(same[0].held.lines).toHaveLength(1)
+    const other = sheetOf(red?.race ?? chromatic, { resist: { cold: 'race' } }).defenses
+    expect(other.map((d) => d.key).sort()).toEqual(['resist|cold', 'resist|fire'])
+  })
+
   it('give a dragonborn of Eberron no resistance of the base species', async () => {
     expect(keys(await find('Dragonborn (Draconblood)', 'EGW'))).toEqual([])
   })

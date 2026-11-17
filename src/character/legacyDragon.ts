@@ -55,12 +55,6 @@ const DRAGONS: Record<string, Record<string, string>> = {
   },
 }
 
-/**
- * The races whose dragon still leaves the damage type to the player (the Chromatic
- * dragonborn's data gives the dragon no resistance of its own), so the old pick stays.
- */
-const KEEPS_TYPE_PICK: ReadonlySet<string> = new Set(['Dragonborn (Chromatic)|FTD'])
-
 /** The races' dragons, for the audit that holds the table to the data. */
 export const LEGACY_DRAGONS = DRAGONS
 
@@ -70,23 +64,26 @@ const keyOf = (race: Pick<RaceRef, 'baseName' | 'baseSource' | 'source'>) =>
 
 /**
  * A dragonborn's old resistance pick carried to the dragon it names: the race takes the
- * dragon as its trait and the pick goes (the dragon resists the type itself), unless the
- * race's data still asks for the type. Nothing changes when the race has a trait already,
- * holds no such pick, or the type fits more than one dragon.
+ * dragon as its trait and the pick goes, as the dragon resists the type itself. A race
+ * that has its dragon already loses only a pick of that dragon's own type, which it
+ * would hold twice; a pick of another type is a resistance the save had, and stays.
+ * Nothing changes when the race holds no such pick, or the type fits more than one dragon.
  */
 export function carriedDragon(
   race: RaceRef | undefined,
   picks: GrantPicks,
 ): { race: RaceRef | undefined; picks: GrantPicks } {
-  const dragons = race && !race.trait ? DRAGONS[keyOf(race)] : undefined
+  const dragons = race ? DRAGONS[keyOf(race)] : undefined
   const old = Object.entries(picks.resist ?? {}).filter(([, tag]) => tag === 'race')
   if (!race || !dragons || old.length !== 1) return { race, picks }
   const type = old[0][0]
-  const named = Object.entries(dragons).filter(([, t]) => t === type)
-  if (named.length !== 1) return { race, picks }
-  if (KEEPS_TYPE_PICK.has(keyOf(race)))
-    return { race: { ...race, trait: named[0][0] }, picks }
+  let dragon = race.trait
+  if (dragon === undefined) {
+    const named = Object.keys(dragons).filter((d) => dragons[d] === type)
+    if (named.length !== 1) return { race, picks }
+    dragon = named[0]
+  } else if (dragons[dragon] !== type) return { race, picks }
   const resist: PickMap = { ...picks.resist }
   delete resist[type]
-  return { race: { ...race, trait: named[0][0] }, picks: { ...picks, resist } }
+  return { race: { ...race, trait: dragon }, picks: { ...picks, resist } }
 }

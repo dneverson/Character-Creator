@@ -5,6 +5,7 @@ import {
   formatBookHash,
   parseBookHash,
   placeInBook,
+  placeOfArea,
   placeOfTag,
 } from './address'
 import { scan } from './outline'
@@ -140,5 +141,24 @@ describe('the place a book tag names', () => {
   it('is nothing for other tags or a tag without a book', () => {
     expect(placeOfTag('spell', 'a|PHB')).toBeNull()
     expect(placeOfTag('book', 'only text')).toBeNull()
+  })
+})
+
+describe('areas', () => {
+  const ids = new Map([['k1', { chapter: 3, anchor: 'keep', name: 'The Keep' }]])
+  const doc = { kind: 'adventure' as const, id: 'TST' }
+
+  it('names the place of an area key, with its own text or the heading name', () => {
+    expect(placeOfArea('area', '12|k1|x', doc, ids)).toEqual({
+      text: '12',
+      place: { kind: 'adventure', id: 'TST', chapter: 3, anchor: 'keep', find: null },
+    })
+    expect(placeOfArea('area', '|k1', doc, ids)?.text).toBe('The Keep')
+  })
+
+  it('is nothing for another tag or an unknown key', () => {
+    expect(placeOfArea('b', '1|k1', doc, ids)).toBeNull()
+    expect(placeOfArea('area', '1|zz', doc, ids)).toBeNull()
+    expect(placeOfArea('area', '1', doc, ids)).toBeNull()
   })
 })

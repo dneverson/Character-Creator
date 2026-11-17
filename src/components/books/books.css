@@ -6,6 +6,7 @@
  */
 .books-modal {
   --book-font: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+  --book-heading-font: var(--book-font);
   --book-paper: #fbf4e2;
   --book-ink: #2b2118;
   --book-muted: #6b5a45;
@@ -15,6 +16,7 @@
   --book-inset-edge: #b79a5b;
   --book-readaloud: #e8ddc4;
   --book-stripe: #f2e8d0;
+  --book-statblock: #fdf1dc;
   --book-head: #e3d3ab;
   --book-hit: #ffe27a;
   --book-hit-current: #ffb347;
@@ -31,9 +33,35 @@
   --book-inset-edge: #8a7545;
   --book-readaloud: #332d24;
   --book-stripe: #2b2721;
+  --book-statblock: #2c2822;
   --book-head: #3d3527;
   --book-hit: #6d5a12;
   --book-hit-current: #a4631a;
+}
+
+/* The 2024 books: a lighter page, sans-serif headings, an orange-red accent. */
+.book-main[data-edition='2024'] {
+  --book-heading-font: 'Segoe UI', 'Trebuchet MS', 'Helvetica Neue', sans-serif;
+  --book-paper: #fdf9f0;
+  --book-title: #9b3a14;
+  --book-rule: #d9c7a4;
+  --book-inset: #f6ecd6;
+  --book-inset-edge: #c79a52;
+  --book-readaloud: #efe4cc;
+  --book-stripe: #f6eddc;
+  --book-statblock: #fff4e0;
+  --book-head: #ead9b4;
+}
+:root[data-bs-theme='dark'] .book-main[data-edition='2024'] {
+  --book-paper: #26221d;
+  --book-title: #e8a46c;
+  --book-rule: #5c5040;
+  --book-inset: #322c24;
+  --book-inset-edge: #94763f;
+  --book-readaloud: #382f25;
+  --book-stripe: #2d2923;
+  --book-statblock: #2e2923;
+  --book-head: #42382a;
 }
 
 .books-modal .modal-body {
@@ -316,7 +344,7 @@
   scroll-margin-top: 8rem;
 }
 .book-heading {
-  font-family: var(--book-font);
+  font-family: var(--book-heading-font);
   color: var(--book-title);
   font-weight: 700;
   border-bottom: 1px solid var(--book-rule);
@@ -339,12 +367,19 @@
 }
 .book-heading-2 {
   font-size: 1.3rem;
+  border-bottom: 0;
 }
 .book-heading-3,
 .book-heading-4 {
   font-size: 1.1rem;
   font-style: italic;
   border-bottom: 0;
+}
+.book-run-in {
+  font-weight: 700;
+  font-style: italic;
+  color: var(--book-title);
+  scroll-margin-top: 6.5rem;
 }
 .book-page-mark {
   margin-left: auto;
@@ -382,7 +417,7 @@
   font-style: italic;
 }
 .book-box-title {
-  font-family: var(--book-font);
+  font-family: var(--book-heading-font);
   color: var(--book-title);
   font-size: 1.1rem;
   font-weight: 700;
@@ -454,11 +489,77 @@
   border-color: var(--book-rule);
   opacity: 1;
 }
+/* A stat block: the printed one is a parchment panel between two heavy rules, with red
+   headings and a red rule under the name; drawn by the lookup's own description. */
 .book-statblock {
-  padding: 0.4rem 0.75rem;
-  border: 1px dashed var(--book-inset-edge);
-  border-radius: 0.2rem;
+  margin: 1rem 0;
   font-size: 0.95rem;
+  line-height: 1.45;
+  clear: both;
+}
+.book-statblock.is-narrow {
+  max-width: 27rem;
+}
+.book-statblock.is-inset {
+  margin-inline: 1rem;
+}
+.book-statblock .entry-book {
+  --detail-font: var(--book-font);
+  --detail-ink: var(--book-ink);
+  --detail-title-color: var(--book-title);
+  --detail-rule-color: var(--book-title);
+  --bs-body-color: var(--book-ink);
+  --bs-secondary-color: var(--book-muted);
+  --bs-border-color: var(--book-rule);
+  background: var(--book-statblock);
+  border-top: 4px solid var(--book-title);
+  border-bottom: 4px solid var(--book-title);
+  border-inline: 1px solid var(--book-inset-edge);
+  box-shadow: 0 0.15rem 0.5rem rgb(0 0 0 / 0.2);
+  margin: 0;
+  padding: 0.6rem 0.9rem 0.75rem !important;
+}
+.book-statblock .entry-book__title {
+  font-size: 1.5rem;
+  line-height: 1.15;
+}
+.book-statblock .entry-book__summary {
+  margin: 0 0 0.35rem;
+}
+.book-statblock .entry-book__rule {
+  height: 2px;
+  margin: 0.3rem 0 0.5rem;
+  border: 0;
+  background: linear-gradient(90deg, var(--book-title), transparent);
+}
+.book-statblock .entry-book__pairs dt {
+  color: var(--book-title);
+}
+.book-statblock .entry-book__block {
+  margin-bottom: 0.45rem;
+}
+.book-statblock.is-loading:not(.is-collapsible) {
+  background: var(--book-inset);
+  border: 1px dashed var(--book-inset-edge);
+}
+.book-statblock-wait {
+  margin: 0.5rem 0.75rem;
+  color: var(--book-muted);
+}
+.book-statblock > details > summary {
+  cursor: pointer;
+  padding: 0.35rem 0.75rem;
+  background: var(--book-inset);
+  border: 1px solid var(--book-inset-edge);
+  color: var(--book-title);
+  font-weight: 700;
+}
+.book-statblock > details > summary:focus-visible {
+  outline: 2px solid var(--book-focus);
+  outline-offset: 2px;
+}
+.book-statblock > details[open] > summary {
+  margin-bottom: 0.5rem;
 }
 .book-figure {
   margin: 1rem 0;
@@ -476,6 +577,54 @@
   display: block;
   width: 100%;
   height: auto;
+}
+.book-figure-open {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+.book-figure-open:focus-visible {
+  outline: 3px solid var(--book-focus);
+  outline-offset: 2px;
+}
+.book-figure.is-light-ground .book-figure-frame {
+  background: #fff;
+}
+.book-map-places {
+  margin-top: 0.5rem;
+  font-family: var(--bs-font-sans-serif);
+  font-size: 0.85rem;
+}
+.book-map-title,
+.book-map-parent {
+  margin: 0 0 0.25rem;
+  color: var(--book-muted);
+}
+.book-map-title {
+  font-weight: 600;
+}
+.book-map-areas {
+  columns: 12rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.book-map-areas li {
+  break-inside: avoid;
+}
+.book-heading-maps {
+  margin-left: auto;
+  font-family: var(--bs-font-sans-serif);
+  font-size: 0.75rem;
+  font-weight: 400;
+  font-style: normal;
+  font-variant: normal;
+}
+.book-heading-maps + .book-page-mark {
+  margin-left: 0;
 }
 .book-figure-spinner {
   position: absolute;
@@ -586,6 +735,9 @@ mark.book-hit.is-current {
   .books-toolbar {
     flex-wrap: wrap;
   }
+  .book-matchbar > [role='status'] {
+    flex-basis: 100%;
+  }
   .books-search {
     flex-basis: 100%;
     max-width: none;
@@ -620,4 +772,154 @@ mark.book-hit.is-current {
   border-top: 1px solid var(--book-rule);
   border-bottom: 1px solid var(--book-rule);
   padding: 0.75rem 1rem;
+}
+
+/* The picture viewer: the picture fits the window, and zooms by scrolling. */
+.book-viewer .modal-body {
+  padding: 0;
+}
+.book-viewer-title {
+  font-size: 1.1rem;
+  margin: 0;
+}
+.book-viewer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+.book-viewer-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.book-viewer-note {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--bs-secondary-color);
+}
+.book-viewer-body {
+  display: block;
+  overflow: auto;
+  background: var(--bs-tertiary-bg);
+}
+.book-viewer-sheet {
+  position: relative;
+  container-type: inline-size;
+  width: 100%;
+  margin: 0 auto;
+}
+.book-viewer-sheet img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.book-viewer-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgb(0 0 0 / 0.55) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(0 0 0 / 0.55) 1px, transparent 1px);
+}
+
+/* Printed-page details: a chapter opens with a drop cap; a sidebar, a quote or a table
+   is set as the printed book sets it. */
+.book-page .book-heading-0 + p::first-letter {
+  float: left;
+  font-family: var(--book-heading-font);
+  font-size: 5.4em;
+  line-height: 0.74;
+  padding: 0.07em 0.08em 0 0;
+  color: var(--book-title);
+}
+.book-main[data-edition='2024'] .book-inset > .book-box-title,
+.book-main[data-edition='2024'] .book-flowblock > .book-box-title {
+  margin: -0.75rem -1rem 0.6rem -1rem;
+  padding: 0.3rem 1rem;
+  background: var(--book-title);
+  color: var(--book-paper);
+}
+.book-main[data-edition='2024'] .book-inset > .book-box-title .book-page-mark {
+  color: inherit;
+}
+.book-main[data-edition='2024'] .book-inset,
+.book-main[data-edition='2024'] .book-flowblock {
+  border-left-width: 1px;
+}
+.book-inset.comic-speaker {
+  position: relative;
+  border: 2px solid var(--book-ink);
+  border-radius: 1rem;
+  background: var(--book-paper);
+  font-style: italic;
+  margin-bottom: 1.5rem;
+}
+.book-inset.comic-speaker::after {
+  content: '';
+  position: absolute;
+  left: 1.5rem;
+  bottom: -0.8rem;
+  border: 0.4rem solid transparent;
+  border-top: 0.8rem solid var(--book-ink);
+  border-bottom: 0;
+}
+.book-figure-comic-speaker-left,
+.book-figure-comic-speaker-right {
+  width: 30%;
+  min-width: 7rem;
+  margin: 0.25rem 1rem 0.5rem 0;
+  float: left;
+}
+.book-figure-comic-speaker-right {
+  float: right;
+  margin: 0.25rem 0 0.5rem 1rem;
+}
+.book-table thead th {
+  border-bottom: 2px solid var(--book-title);
+  font-family: var(--book-heading-font);
+}
+.book-table tr.row-indent-first > :first-child {
+  padding-left: 1.75rem;
+}
+.book-table th.th-skewer {
+  text-align: center;
+  background: var(--book-title);
+  color: var(--book-paper);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+.book-flowchart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.book-flowchart > .book-flowblock {
+  width: min(100%, 30rem);
+  margin: 0;
+  text-align: center;
+}
+.book-flowchart > .book-flowblock + .book-flowblock {
+  margin-top: 1.1rem;
+}
+.book-flowchart > .book-flowblock + .book-flowblock::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -1rem;
+  margin-left: -0.45rem;
+  border: 0.45rem solid transparent;
+  border-top: 0.7rem solid var(--book-inset-edge);
+  border-bottom: 0;
+}
+.book-flowchart > .book-flowblock {
+  position: relative;
+}
+.book-inset.comic-speaker {
+  display: flow-root;
+}
+.book-table td.text-center:first-child {
+  white-space: nowrap;
 }

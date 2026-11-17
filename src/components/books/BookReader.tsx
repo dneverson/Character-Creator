@@ -19,7 +19,9 @@ import { appConfig } from '../../config/app'
 import { contentLibrary } from '../../content'
 import { useContentStatus } from '../../content/library'
 import { useContentSummary } from '../../content/summary'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { inBackground } from '../content/inBackground'
+import { editionOf } from '../../books/edition'
 import { loadBookText, type BookText } from '../../books/load'
 import {
   clampSidebar,
@@ -103,6 +105,9 @@ function Unavailable({
   )
 }
 
+/** A screen too narrow to keep the chapter list beside the text (the style sheet's too). */
+const PHONE = '(max-width: 767.98px)'
+
 interface Props {
   doc: BookDoc
   place: BookPlace
@@ -117,6 +122,7 @@ export function BookReader({ doc, place, request, results }: Props) {
   const [tab, setTab] = useState<'chapters' | 'results'>('chapters')
   const [width, setWidth] = useState(recallSidebarWidth)
   const [listOpen, setListOpen] = useState(false)
+  const phone = useMediaQuery(PHONE)
   const [current, setCurrent] = useState<string | null>(null)
   const box = useRef<HTMLDivElement>(null)
 
@@ -126,6 +132,8 @@ export function BookReader({ doc, place, request, results }: Props) {
   if (hadResults !== (results !== null)) {
     setHadResults(results !== null)
     setTab(results !== null ? 'results' : 'chapters')
+    // On a phone the list is hidden: the results it now holds are shown at once.
+    if (results !== null && phone) setListOpen(true)
   }
 
   const text = loaded.status === 'ready' ? loaded.text : null
@@ -251,7 +259,7 @@ export function BookReader({ doc, place, request, results }: Props) {
         onPointerDown={startDrag}
         onKeyDown={onSeparatorKey}
       />
-      <section className="book-main" aria-label={doc.name}>
+      <section className="book-main" aria-label={doc.name} data-edition={editionOf(doc)}>
         {loaded.status === 'loading' && (
           <div className="book-loading" role="status">
             <Spinner animation="border" size="sm" className="me-2" />

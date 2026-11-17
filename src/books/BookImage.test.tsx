@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { EntryContext } from '../text/entryContext'
 import { BookImage } from './BookImage'
 
 /** An observer the test drives by hand. */
@@ -82,5 +83,46 @@ describe('BookImage', () => {
     installObserver()
     render(<BookImage image={{ type: 'image' }} root={null} />)
     expect(screen.getByText('This picture is not in the content.')).toBeInTheDocument()
+  })
+})
+
+describe('BookImage maps and the viewer', () => {
+  const area = {
+    ...image,
+    mapRegions: [
+      { area: 'a1', points: [] },
+      { area: 'zz', points: [] },
+    ],
+  }
+
+  it('lists the areas of a map as links to their headings, and the player version', () => {
+    installObserver()
+    const ids = new Map([
+      ['a1', { chapter: 2, anchor: 'the-keep', name: 'The Keep' }],
+      ['p1', { chapter: 2, anchor: 'map-dm', name: 'DM Map' }],
+    ])
+    render(
+      <EntryContext.Provider
+        value={{ book: true, words: [], doc: { kind: 'adventure', id: 'TST' }, ids }}
+      >
+        <BookImage image={{ ...area, mapParent: { id: 'p1' } }} root={null} />
+      </EntryContext.Provider>,
+    )
+    expect(screen.getByRole('link', { name: 'The Keep' })).toHaveAttribute(
+      'href',
+      '#/adventure/TST/2/the-keep',
+    )
+    expect(screen.getByRole('link', { name: 'DM Map' })).toBeInTheDocument()
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+  })
+
+  it('opens the viewer, and closes it again', () => {
+    const reports = installObserver()
+    render(<BookImage image={image} root={null} />)
+    act(() => reports[0](true))
+    fireEvent.click(screen.getByRole('button', { name: 'Open The old road larger' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

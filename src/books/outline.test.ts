@@ -107,3 +107,31 @@ describe('scan', () => {
     ])
   })
 })
+
+describe('scan ids and maps', () => {
+  const sections: Entry[] = [
+    {
+      type: 'section',
+      name: 'Part',
+      id: 'p0',
+      entries: [
+        { type: 'entries', name: 'Keep', id: 'k1', entries: ['a'] },
+        { type: 'image', id: 'm1', title: 'Map 1', mapRegions: [{ area: 'k1' }] },
+        {
+          type: 'gallery',
+          images: [{ type: 'image', id: 'm2', mapRegions: [{ area: 'k1' }] }],
+        },
+      ],
+    },
+  ]
+  const result = scan(sections)
+
+  it('finds a heading by its id, and a depth-0 one without an anchor', () => {
+    expect(result.ids.get('k1')).toMatchObject({ chapter: 0, anchor: 'keep' })
+    expect(result.ids.get('p0')).toMatchObject({ chapter: 0, anchor: null })
+  })
+
+  it('lists the pictures of each area, in a gallery too', () => {
+    expect(result.maps.get('k1')?.map((t) => t.anchor)).toEqual(['image-m1', 'image-m2'])
+  })
+})

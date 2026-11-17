@@ -66,10 +66,16 @@ export const appConfig = {
   },
   /** The book reader and the search across every book (src/books). */
   books: {
+    /** The key that opens the shelf from any page, when no field has the focus. */
+    shortcut: 'b',
     /** The chapter list beside the text: its width in pixels and the bounds of dragging it. */
     sidebar: { width: 300, min: 200, max: 560, keyStep: 24 },
     /** Milliseconds the search waits after a keystroke before it runs. */
     searchDelayMs: 120,
+    /** From this depth of nesting a named part of a book runs in, as the printed books set it. */
+    runInFromDepth: 3,
+    /** Documents published from this date on have the look of the 2024 books. */
+    newEditionFrom: '2024-09-17',
     /** The fewest characters a search needs before it runs. */
     minSearchChars: 2,
     /** Results shown for each book at first, and the most a book can be opened up to. */

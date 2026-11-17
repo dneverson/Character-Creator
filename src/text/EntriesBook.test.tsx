@@ -292,3 +292,143 @@ describe('the entries outside the book look', () => {
     expect(screen.getByText('Image: The map')).toBeInTheDocument()
   })
 })
+
+describe('the lowest headings run in', () => {
+  const nested: Entry[] = [
+    {
+      type: 'entries',
+      name: 'Amphibious',
+      entries: ['It breathes air and water.', 'A second paragraph.'],
+    },
+    {
+      type: 'entries',
+      name: 'Keen Senses:',
+      entries: [{ type: 'list', items: ['One'] }],
+    },
+  ]
+
+  function runIn(from: number | undefined) {
+    const { anchors } = scan(nested)
+    return render(
+      <EntryContext.Provider value={{ book: true, anchors, words: [], runInFrom: from }}>
+        <Entries entries={nested} />
+      </EntryContext.Provider>,
+    )
+  }
+
+  it('sets the name in bold italic at the start of the first paragraph', () => {
+    runIn(0)
+    const name = screen.getByText('Amphibious.')
+    expect(name).toHaveClass('book-run-in')
+    expect(name).toHaveAttribute('data-anchor', 'amphibious')
+    expect(name.parentElement).toHaveTextContent('Amphibious. It breathes air and water.')
+    expect(screen.getByText('A second paragraph.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading')).toBeNull()
+  })
+
+  it('keeps a name that ends a sentence as it is, and a first part that is not text', () => {
+    runIn(0)
+    expect(screen.getByText('Keen Senses:')).toHaveClass('book-run-in')
+    expect(screen.getByRole('list')).toBeInTheDocument()
+  })
+
+  it('leaves them as headings above that depth, or where the reader sets no depth', () => {
+    runIn(1)
+    expect(screen.getAllByRole('heading')).toHaveLength(2)
+  })
+})
+
+describe('areas and maps in the book look', () => {
+  const entries: Entry[] = [
+    {
+      type: 'section',
+      name: 'Part',
+      entries: [
+        {
+          type: 'entries',
+          name: 'The Keep',
+          id: 'k1',
+          entries: ['Go to {@area the hall|k1|x}.'],
+        },
+        { type: 'image', id: 'm1', title: 'Map 1', mapRegions: [{ area: 'k1' }] },
+      ],
+    },
+  ]
+
+  it('links an area key to its heading, and the heading to its maps', () => {
+    const { ids, maps, anchors } = scan(entries)
+    render(
+      <EntryContext.Provider
+        value={{
+          book: true,
+          anchors,
+          words: [],
+          ids,
+          maps,
+          doc: { kind: 'adventure', id: 'TST' },
+        }}
+      >
+        <Entries entries={entries} />
+      </EntryContext.Provider>,
+    )
+    expect(screen.getByRole('link', { name: 'the hall' })).toHaveAttribute(
+      'href',
+      '#/adventure/TST/0/the-keep',
+    )
+    expect(screen.getByRole('link', { name: 'Map: Map 1' })).toHaveAttribute(
+      'href',
+      '#/adventure/TST/0/image-m1',
+    )
+  })
+})
+
+describe('tables and lists as the printed book sets them', () => {
+  const table: Entry = {
+    type: 'table',
+    caption: 'Portals',
+    colStyles: ['col-2 text-center', 'col-2', 'col-8'],
+    colLabelRows: [
+      ['', { type: 'cellHeader', style: 'th-skewer', width: 2, entry: 'Destination' }],
+      ['d100', 'Anchor', 'Keys'],
+    ],
+    rows: [
+      { type: 'row', style: 'row-indent-first', row: ['01', 'Arch', 'Horn'] },
+      ['02', { type: 'cell', width: 2, entry: 'Both' }],
+    ],
+  }
+
+  it('draws header rows with spanning cells, a row style and a cell style', () => {
+    const { container } = book([table])
+    const heads = container.querySelectorAll('thead tr')
+    expect(heads).toHaveLength(2)
+    const skewer = screen.getByRole('columnheader', { name: 'Destination' })
+    expect(skewer).toHaveClass('th-skewer')
+    expect(skewer).toHaveAttribute('colspan', '2')
+    expect(container.querySelector('tbody tr')).toHaveClass('row-indent-first')
+    expect(screen.getByRole('cell', { name: 'Both' })).toHaveAttribute('colspan', '2')
+  })
+
+  it('gives each column the share of the width its style asks for', () => {
+    const { container } = book([table])
+    const widths = [...container.querySelectorAll('col')].map((col) => col.style.width)
+    expect(widths).toEqual([
+      '16.666666666666664%',
+      '16.666666666666664%',
+      '66.66666666666666%',
+    ])
+  })
+
+  it('leaves the widths to the browser when a column does not ask for one', () => {
+    const { container } = book([
+      { ...table, colStyles: ['col-2', 'text-center', 'col-8'] },
+    ])
+    expect(container.querySelector('colgroup')).toBeNull()
+  })
+
+  it('starts a numbered list at the number the data gives', () => {
+    const { container } = book([
+      { type: 'list', style: 'list-decimal', start: 0, items: ['first', 'second'] },
+    ])
+    expect(container.querySelector('ol')).toHaveAttribute('start', '0')
+  })
+})

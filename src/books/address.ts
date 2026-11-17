@@ -12,7 +12,7 @@
 // `{@book text|id|chapter|heading}` links name, so those links need no translation.
 
 import type { BookDoc, BookPlace, DocKind } from './types'
-import { slugOf, type Heading } from './outline'
+import { slugOf, type Heading, type Scan, type Target } from './outline'
 
 const KINDS: readonly string[] = ['book', 'adventure']
 
@@ -129,4 +129,34 @@ export function placeOfTag(
       find: null,
     },
   }
+}
+
+/** The place in the same document that a target of its scan is at. */
+export function placeOfTarget(
+  doc: Pick<BookDoc, 'kind' | 'id'>,
+  target: Target,
+): BookPlace {
+  return {
+    kind: doc.kind,
+    id: doc.id,
+    chapter: target.chapter,
+    anchor: target.anchor,
+    find: null,
+  }
+}
+
+/**
+ * The place a `{@area text|id|x}` key names in the document it is in, with the text it
+ * shows: the heading or the map that has the id. An id the text does not have is none.
+ */
+export function placeOfArea(
+  tag: string,
+  content: string,
+  doc: Pick<BookDoc, 'kind' | 'id'>,
+  ids: Scan['ids'],
+): { place: BookPlace; text: string } | null {
+  if (tag !== 'area') return null
+  const [text, id] = content.split('|').map((part) => part.trim())
+  const target = id ? ids.get(id) : undefined
+  return target ? { text: text || target.name, place: placeOfTarget(doc, target) } : null
 }

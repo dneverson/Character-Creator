@@ -6,7 +6,7 @@
 // Inside the reader the words of a search are marked wherever they appear.
 
 import { Fragment, useContext, type ReactNode } from 'react'
-import { placeOfTag } from '../books/address'
+import { placeOfArea, placeOfTag } from '../books/address'
 import { BookLink } from '../books/BookLink'
 import { referenceOf } from '../lookup/references'
 import { EntryContext } from './entryContext'
@@ -76,7 +76,14 @@ export function TaggedText({ text }: { text: string }) {
     const match = /^\{@(\w+)\s*([\s\S]*)\}$/.exec(raw)
     const tag = match?.[1] ?? ''
     const reference = match && referenceOf(tag, stripTags(match[2]))
-    const link = context?.book && match ? placeOfTag(tag, stripTags(match[2])) : null
+    const content = match ? stripTags(match[2]) : ''
+    const link =
+      context?.book && match
+        ? (placeOfTag(tag, content) ??
+          (context.doc && context.ids
+            ? placeOfArea(tag, content, context.doc, context.ids)
+            : null))
+        : null
     if (reference) {
       flush()
       nodes.push(

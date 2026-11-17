@@ -6,12 +6,18 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Button from 'react-bootstrap/Button'
+import { appConfig } from '../../config/app'
 import { BookImage } from '../../books/BookImage'
+import { BookStatblock } from '../../books/BookStatblock'
 import { chaptersWith } from '../../books/find'
 import type { BookText } from '../../books/load'
 import type { BookPlace } from '../../books/types'
 import { Entries } from '../../text/Entries'
-import { EntryContext, type ImageEntry } from '../../text/entryContext'
+import {
+  EntryContext,
+  type ImageEntry,
+  type StatblockEntry,
+} from '../../text/entryContext'
 import { Icon } from '../Icon'
 
 /** How far below the top of the pane a heading counts as the one being read. */
@@ -50,12 +56,28 @@ export function BookPane({
   const last = chapters.length - 1
 
   const renderImage = useCallback(
-    (image: ImageEntry) => <BookImage image={image} root={root} />,
+    (image: ImageEntry, group?: ImageEntry[]) => (
+      <BookImage image={image} root={root} group={group} />
+    ),
+    [root],
+  )
+  const renderStatblock = useCallback(
+    (entry: StatblockEntry) => <BookStatblock entry={entry} root={root} />,
     [root],
   )
   const context = useMemo(
-    () => ({ book: true, anchors: text.scan.anchors, words, renderImage }),
-    [text, words, renderImage],
+    () => ({
+      book: true,
+      anchors: text.scan.anchors,
+      doc: { kind: place.kind, id: place.id },
+      ids: text.scan.ids,
+      maps: text.scan.maps,
+      words,
+      runInFrom: appConfig.books.runInFromDepth,
+      renderImage,
+      renderStatblock,
+    }),
+    [text, place.kind, place.id, words, renderImage, renderStatblock],
   )
 
   const marks = useCallback(

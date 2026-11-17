@@ -643,3 +643,64 @@ describe('a race trait with options', () => {
     expect(findPlayableRace(races, ref('High Elf'))?.trait).toBe('High Elf Lineage')
   })
 })
+
+describe('dragons written as a template with implementations', () => {
+  const dragonborn = (inVariables: boolean) => ({
+    name: 'Dragonborn (Tinted)',
+    source: 'TST',
+    size: ['M'],
+    speed: 30,
+    resist: [{ choose: { from: ['acid', 'fire'] } }],
+    entries: [
+      { type: 'entries', name: 'Ancestry', entries: ['Choose a dragon.'] },
+      { type: 'entries', name: 'Breath Weapon', entries: ['A 15-foot cone.'] },
+    ],
+    _versions: [
+      {
+        _abstract: {
+          name: 'Dragonborn (Tinted; {{color}})',
+          source: 'TST',
+          _mod: {
+            entries: [
+              { mode: 'removeArr', names: 'Ancestry' },
+              {
+                mode: 'replaceArr',
+                replace: 'Breath Weapon',
+                items: {
+                  type: 'entries',
+                  name: 'Breath Weapon',
+                  entries: [
+                    'A 15-foot cone of {{damageType}}, Constitution saving throw.',
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        _implementations: [
+          ['Black', 'acid'],
+          ['Red', 'fire'],
+        ].map(([color, type]) =>
+          inVariables
+            ? { _variables: { color, damageType: type, resist: [type] } }
+            : { _variables: { color, damageType: type }, resist: [type] },
+        ),
+      },
+    ],
+  })
+
+  it.each([
+    ['beside the variables', false],
+    ['inside the variables', true],
+  ])('give each dragon its own resistance, written %s', async (_where, inVariables) => {
+    mockFetch.mockResolvedValue({ race: [dragonborn(inVariables)] })
+    const [race] = await loadRaces()
+    const options = race.traitChoice?.options ?? []
+    expect(options.map((o) => [o.name, o.race.resist])).toEqual([
+      ['Black', ['acid']],
+      ['Red', ['fire']],
+    ])
+    expect(options[1].facts?.[0]).toEqual({ label: 'Damage type', value: 'Fire' })
+    expect(options[1].text.join(' ')).toContain('cone of fire')
+  })
+})

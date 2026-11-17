@@ -85,6 +85,8 @@ describe('the book index', () => {
         { text: 'A red dragon wakes.', heading: 0 },
       ],
       anchors: new Map(),
+      ids: new Map(),
+      maps: new Map(),
     }
     await index.addDoc({ kind: 'book', id: 'X', name: 'X' }, text)
     const hits = index.search('red dragon').groups[0].hits
@@ -102,6 +104,8 @@ describe('the book index', () => {
           { text: 'more rope there', heading: 0 },
         ],
         anchors: new Map(),
+        ids: new Map(),
+        maps: new Map(),
       },
     )
     const result = index.search('rope')
@@ -135,6 +139,8 @@ describe('the book index', () => {
           headings: [{ chapter: 0, anchor: 'a', name: 'A', depth: 0, box: false }],
           blocks,
           anchors: new Map(),
+          ids: new Map(),
+          maps: new Map(),
         },
       )
     } finally {

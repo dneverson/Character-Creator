@@ -4,6 +4,8 @@
 // detail panes of the tables are unchanged.
 
 import { createContext, type ReactNode } from 'react'
+import type { Scan } from '../books/outline'
+import type { BookDoc } from '../books/types'
 
 /** A picture of a book's text, as the data has it. */
 export interface ImageEntry {
@@ -17,6 +19,52 @@ export interface ImageEntry {
   maxWidth?: number
   maxHeight?: number
   imageType?: string
+  /** The id other parts of the text name the picture by (a map's player version, an area key). */
+  id?: string
+  /** A smaller copy of the picture for lists, which the reader does not need. */
+  hrefThumbnail?: { type?: string; path?: string }
+  /** The overlay a battle map is meant to carry: a square or a hex grid, or none. */
+  grid?: ImageGrid
+  /** The areas drawn on a map: the id of the heading of each, and its outline. */
+  mapRegions?: { area: string; points?: number[][] }[]
+  /** The map this is the player version of. */
+  mapParent?: { id: string }
+  mapName?: string
+  /** A picture drawn for a light page (a handout), whatever the theme. */
+  expectsLightBackground?: boolean
+  /** How the printed page sets it ("comic-speaker-left"). */
+  style?: string
+}
+
+/** The grid of a battle map: where it starts, how big a cell is, and what it stands for. */
+export interface ImageGrid {
+  type?: string
+  /** A cell's size in pixels of the picture. */
+  size?: number
+  offsetX?: number
+  offsetY?: number
+  /** How far a cell stands for, and in what ("5" and "ft" when the data says nothing). */
+  distance?: number
+  units?: string
+  scale?: number
+}
+
+/** A `statblock` entry of a book's text, as the data has it. */
+export interface StatblockEntry {
+  type: 'statblock'
+  name?: string
+  displayName?: string
+  tag?: string
+  prop?: string
+  source?: string
+  /** "narrow" is the printed one-column block, "inset" one set into the text. */
+  style?: string
+  /** Shut until the reader opens it. */
+  collapsed?: boolean
+  className?: string
+  classSource?: string
+  shortName?: string
+  pantheon?: string
 }
 
 export interface EntryContextValue {
@@ -24,10 +72,22 @@ export interface EntryContextValue {
   book: boolean
   /** The anchor of each named node of the text (see src/books/outline.ts). */
   anchors?: Map<object, string>
+  /** The book or adventure drawn, for the links between its places. */
+  doc?: Pick<BookDoc, 'kind' | 'id'>
+  /** Where each id of the data is, and the maps each area is on (see src/books/outline.ts). */
+  ids?: Scan['ids']
+  maps?: Scan['maps']
   /** Lower-case words to mark wherever they start a word of the text. */
   words: readonly string[]
+  /**
+   * From which depth a named `entries` part runs in (its name in bold italic at the start
+   * of its text) rather than heading its own block. Left out, none does.
+   */
+  runInFrom?: number
   /** How a picture is drawn. */
-  renderImage?: (image: ImageEntry) => ReactNode
+  renderImage?: (image: ImageEntry, group?: ImageEntry[]) => ReactNode
+  /** How a stat block is drawn: the entry the text names, read when it is near. */
+  renderStatblock?: (entry: StatblockEntry) => ReactNode
 }
 
 export const EntryContext = createContext<EntryContextValue | null>(null)

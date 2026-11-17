@@ -27,11 +27,23 @@ export interface Block {
   heading: number
 }
 
+/** A place in the text that an id of the data names: a chapter, a heading or a map. */
+export interface Target {
+  chapter: number
+  /** A heading's anchor or a map's ("image-032"); null is the top of the chapter. */
+  anchor: string | null
+  name: string
+}
+
 export interface Scan {
   headings: Heading[]
   blocks: Block[]
   /** The anchor of each named node of the text, for the renderer. */
   anchors: Map<object, string>
+  /** Where each id of the data is: what an area key ({@area name|id}) points at. */
+  ids: Map<string, Target>
+  /** The maps each area (by its id) is drawn on, for the way from a heading to its map. */
+  maps: Map<string, Target[]>
 }
 
 interface Node {
@@ -45,6 +57,10 @@ interface Node {
   caption?: unknown
   colLabels?: unknown
   by?: unknown
+  id?: unknown
+  title?: unknown
+  mapRegions?: unknown
+  images?: unknown
 }
 
 const BOXES = new Set(['inset', 'insetReadaloud', 'variantInner', 'flowBlock'])
@@ -90,6 +106,8 @@ export function scan(sections: Entry[]): Scan {
   const headings: Heading[] = []
   const blocks: Block[] = []
   const anchors = new Map<object, string>()
+  const ids = new Map<string, Target>()
+  const maps = new Map<string, Target[]>()
   const seen = new Map<number, Map<string, number>>()
 
   const anchorFor = (chapter: number, name: string): string => {
@@ -106,6 +124,30 @@ export function scan(sections: Entry[]): Scan {
     if (plain) blocks.push({ text: plain, heading })
   }
 
+  /** The maps and pictures of the text are places too: a map has the areas drawn on it. */
+  const pictures = (node: Node, chapter: number) => {
+    if (node.type === 'gallery') {
+      for (const image of Array.isArray(node.images) ? node.images : []) {
+        if (isObject(image)) pictures(image, chapter)
+      }
+      return
+    }
+    if (typeof node.id !== 'string') return
+    const target: Target = {
+      chapter,
+      anchor: `image-${node.id}`,
+      name: typeof node.title === 'string' ? stripTags(node.title) : 'Map',
+    }
+    if (!ids.has(node.id)) ids.set(node.id, target)
+    for (const region of Array.isArray(node.mapRegions) ? node.mapRegions : []) {
+      const area = isObject(region) ? (region as { area?: unknown }).area : undefined
+      if (typeof area !== 'string') continue
+      const on = maps.get(area)
+      if (on) on.push(target)
+      else maps.set(area, [target])
+    }
+  }
+
   const walk = (node: unknown, chapter: number, depth: number, heading: number) => {
     if (typeof node === 'string') return text(node, heading)
     if (typeof node === 'number') return text(String(node), heading)
@@ -115,6 +157,7 @@ export function scan(sections: Entry[]): Scan {
     }
     if (!isObject(node)) return
     const type = typeof node.type === 'string' ? node.type : ''
+    if (type === 'image' || type === 'gallery') return pictures(node, chapter)
     if (NOT_TEXT.has(type)) return
 
     let here = heading
@@ -132,6 +175,12 @@ export function scan(sections: Entry[]): Scan {
       headings.push(entry)
       here = headings.length - 1
       anchors.set(node, entry.anchor)
+      if (typeof node.id === 'string' && !ids.has(node.id))
+        ids.set(node.id, {
+          chapter,
+          anchor: entry.depth > 0 ? entry.anchor : null,
+          name: entry.name,
+        })
       text(node.name, here)
       below = depth + 1
     }
@@ -184,5 +233,5 @@ export function scan(sections: Entry[]): Scan {
     })
     walk(section, chapter, 1, headings.length - 1)
   })
-  return { headings, blocks, anchors }
+  return { headings, blocks, anchors, ids, maps }
 }

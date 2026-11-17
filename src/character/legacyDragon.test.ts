@@ -53,10 +53,8 @@ describe('an old dragonborn save', () => {
     const saved = oldSave(race, type)
     if (named.length === 1) {
       expect(saved.race?.trait).toBe(named[0])
-      // The Chromatic dragon still leaves the type to the player; the others resist it.
-      expect(saved.grantPicks.resist).toEqual(
-        name === 'Dragonborn (Chromatic)' ? { [type]: 'race' } : {},
-      )
+      // The dragon resists the type itself, so the pick goes.
+      expect(saved.grantPicks.resist).toEqual({})
     } else {
       expect(named.length).toBeGreaterThan(1)
       expect(saved.race?.trait).toBeUndefined()
@@ -75,6 +73,20 @@ describe('an old dragonborn save', () => {
     expect(oldSave(ref('Elf', 'PHB'), 'poison').race?.trait).toBeUndefined()
     expect(oldSave(ref('Dragonborn', 'PHB'), 'poison', 'bg').race?.trait).toBeUndefined()
     expect(ensureCharacterDefaults({}).race).toBeUndefined()
+  })
+
+  it('drops the pick of the type its dragon has, and keeps one of another type', () => {
+    const red = {
+      ...ref('Dragonborn (Chromatic)', 'FTD'),
+      baseSource: 'FTD',
+      trait: 'Red',
+    }
+    expect(oldSave(red, 'fire').grantPicks.resist).toEqual({})
+    expect(oldSave(red, 'fire').race?.trait).toBe('Red')
+    expect(oldSave(red, 'cold').grantPicks.resist).toEqual({ cold: 'race' })
+    expect(oldSave({ ...red, trait: 'Purple' }, 'fire').grantPicks.resist).toEqual({
+      fire: 'race',
+    })
   })
 
   it('does nothing twice', () => {

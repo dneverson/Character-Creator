@@ -296,7 +296,18 @@ function fillTemplate(value: unknown, vars: Record<string, string>): unknown {
 function implementations(v: RaceVersionEntry): RaceVersionEntry[] {
   if (!isBlock(v._abstract) || !Array.isArray(v._implementations)) return [v]
   return v._implementations.filter(isBlock).map((impl): RaceVersionEntry => {
-    const { _variables, ...own } = impl
+    const { _variables, ...written } = impl
+    // The Chromatic dragons of the data write their lists in the variables, not beside
+    // them as the other dragons do: the list is the implementation's own all the same.
+    const own = {
+      ...Object.fromEntries(
+        LIST_FIELDS.flatMap((field) => {
+          const list = isBlock(_variables) ? _variables[field] : undefined
+          return Array.isArray(list) ? [[field, list]] : []
+        }),
+      ),
+      ...written,
+    }
     const vars = isBlock(_variables)
       ? Object.fromEntries(
           Object.entries(_variables).flatMap(([k, x]) =>

@@ -1,7 +1,14 @@
 import { Fragment, useContext, type ReactNode } from 'react'
 import Table from 'react-bootstrap/Table'
+import { placeOfTarget } from '../books/address'
+import { BookLink } from '../books/BookLink'
 import { referenceOf } from '../lookup/references'
-import { EntryContext, type EntryContextValue, type ImageEntry } from './entryContext'
+import {
+  EntryContext,
+  type EntryContextValue,
+  type ImageEntry,
+  type StatblockEntry,
+} from './entryContext'
 import { TaggedText } from './TaggedText'
 import { TagRef } from './TagRef'
 import { stripTags } from './tags'
@@ -13,6 +20,8 @@ interface ListEntry {
   name?: string
   style?: string
   columns?: number
+  /** The number the first item of a numbered list has. */
+  start?: number
 }
 interface NamedEntry {
   type: 'entries' | 'section' | 'inset' | 'insetReadaloud' | 'variantInner' | 'flowBlock'
@@ -25,6 +34,8 @@ interface TableEntry {
   type: 'table'
   caption?: string
   colLabels?: string[]
+  /** Header rows of several lines, whose cells may span columns. */
+  colLabelRows?: Entry[][]
   colStyles?: string[]
   /** A row is its cells, or a `row` entry that holds them. */
   rows: (Entry[] | Entry)[]
@@ -106,10 +117,68 @@ function columnClass(style: string | undefined): string | undefined {
   return classes.length > 0 ? classes.join(' ') : undefined
 }
 
+/** The share of the table's width each column asks for ("col-2" is 2 of 12), when all do. */
+function columnShares(styles: string[] | undefined): number[] | undefined {
+  const asked = (styles ?? []).map(
+    (style) => /(?:^|\s)col-(\d+)(?:\s|$)/.exec(style)?.[1],
+  )
+  if (asked.length === 0 || asked.some((width) => width === undefined)) return undefined
+  const total = asked.reduce((sum, width) => sum + Number(width), 0)
+  return asked.map((width) => (Number(width) / total) * 100)
+}
+
+/** The cells of one row, where a cell may span columns (its `width`) and carry a style. */
+function renderCells(
+  cells: Entry[],
+  depth: number,
+  cls: (column: number) => string | undefined,
+  head: boolean,
+  book: boolean,
+) {
+  let column = 0
+  return cells.map((cell, i) => {
+    const named =
+      typeof cell === 'object'
+        ? (cell as { type?: string; width?: number; style?: string })
+        : undefined
+    const span = book && named?.width && named.width > 1 ? named.width : undefined
+    const Cell = head || named?.type === 'cellHeader' ? 'th' : 'td'
+    const className = [cls(column), book && named?.style].filter(Boolean).join(' ')
+    column += span ?? 1
+    return (
+      <Cell key={i} className={className || undefined} colSpan={span}>
+        {cellText(cell, depth, book)}
+      </Cell>
+    )
+  })
+}
+
 function pageMark(page: number | undefined, context: EntryContextValue | null) {
   return context?.book && page !== undefined ? (
     <span className="book-page-mark">p. {page}</span>
   ) : null
+}
+
+/** The way from an area's heading to the maps it is drawn on. */
+function MapLinks({
+  id,
+  context,
+}: {
+  id: string | undefined
+  context: EntryContextValue
+}) {
+  const maps = id ? context.maps?.get(id) : undefined
+  const { doc } = context
+  if (!maps || !doc) return null
+  return (
+    <span className="book-heading-maps">
+      {maps.map((map) => (
+        <BookLink key={map.anchor} place={placeOfTarget(doc, map)}>
+          Map: {map.name}
+        </BookLink>
+      ))}
+    </span>
+  )
 }
 
 /** A named part of the book: its heading, with the address a link or a result jumps to. */
@@ -136,8 +205,51 @@ function BookHeading({
       }
     >
       <TaggedText text={entry.name ?? ''} />
+      <MapLinks id={(entry as { id?: string }).id} context={context} />
       {pageMark(entry.page, context)}
     </Tag>
+  )
+}
+
+/**
+ * A named part that runs in: its name in bold italic at the start of its first
+ * paragraph ("Amphibious. The aboleth can breathe..."), as the printed books set the
+ * lowest headings and every trait and action of a stat block.
+ */
+function RunIn({
+  entry,
+  depth,
+  context,
+  className,
+}: {
+  entry: NamedEntry
+  depth: number
+  context: EntryContextValue
+  className?: string
+}) {
+  const anchor = context.anchors?.get(entry)
+  const [first, ...rest] = entry.entries ?? []
+  const lead = typeof first === 'string' || typeof first === 'number'
+  return (
+    <div className={className}>
+      <p className="mb-2">
+        <span
+          id={anchor ? `book-${anchor}` : undefined}
+          data-anchor={anchor}
+          className="book-run-in"
+        >
+          <TaggedText text={entry.name ?? ''} />
+          {/[.:!?]$/.test(stripTags(entry.name ?? '')) ? '' : '.'}
+        </span>
+        {lead && (
+          <>
+            {' '}
+            <TaggedText text={String(first)} />
+          </>
+        )}
+      </p>
+      <EntryList entries={lead ? rest : (entry.entries ?? [])} depth={depth + 1} />
+    </div>
   )
 }
 
@@ -150,19 +262,22 @@ function ImageNote({ image }: { image: ImageEntry }) {
 }
 
 /** A stat block, or another entry the book only points at: named, and linked to the lookup. */
-function StatblockNote({ entry }: { entry: Record<string, unknown> }) {
-  const name = typeof entry.name === 'string' ? entry.name : ''
-  const tag = typeof entry.tag === 'string' ? entry.tag : ''
-  const source = typeof entry.source === 'string' ? `|${entry.source}` : ''
+export function StatblockNote({
+  entry,
+  note = 'drawn in the lookup, not in the text of the book.',
+}: {
+  entry: StatblockEntry
+  note?: string
+}) {
+  const name = entry.name ?? ''
+  const tag = entry.tag ?? ''
+  const source = entry.source ? `|${entry.source}` : ''
   const reference = name && tag ? referenceOf(tag, `${name}${source}`) : undefined
   return (
     <aside className="book-statblock mb-2">
       <span className="book-run">{tag ? 'Entry' : 'Stat block'}:</span>{' '}
       {reference ? <TagRef reference={reference} text={name} /> : name}
-      <span className="text-body-secondary">
-        {' '}
-        - drawn in the lookup, not in the text of the book.
-      </span>
+      <span className="text-body-secondary"> - {note}</span>
     </aside>
   )
 }
@@ -261,9 +376,14 @@ function rowCells(row: Entry[] | Entry): Entry[] {
   return []
 }
 
+/** The style a `row` entry names for its row ("row-indent-first"). */
+const rowStyle = (row: Entry): string | undefined =>
+  typeof row === 'object' ? (row as { style?: string }).style : undefined
+
 function renderTable(t: TableEntry, depth: number, context: EntryContextValue | null) {
   const book = context?.book === true
   const cls = (i: number) => (book ? columnClass(t.colStyles?.[i]) : undefined)
+  const shares = book ? columnShares(t.colStyles) : undefined
   return (
     <div className={`table-responsive mb-2${book ? ' book-table-wrap' : ''}`}>
       <Table
@@ -277,36 +397,41 @@ function renderTable(t: TableEntry, depth: number, context: EntryContextValue | 
             <TaggedText text={t.caption} />
           </caption>
         )}
-        {t.colLabels && (
+        {shares && (
+          <colgroup>
+            {shares.map((share, i) => (
+              <col key={i} style={{ width: `${share}%` }} />
+            ))}
+          </colgroup>
+        )}
+        {book && t.colLabelRows ? (
           <thead>
-            <tr>
-              {t.colLabels.map((c, i) => (
-                <th key={i} className={cls(i)}>
-                  {book ? <TaggedText text={c} /> : stripTags(c)}
-                </th>
-              ))}
-            </tr>
+            {t.colLabelRows.map((row, ri) => (
+              <tr key={ri}>{renderCells(row, depth, cls, true, book)}</tr>
+            ))}
           </thead>
+        ) : (
+          t.colLabels && (
+            <thead>
+              <tr>
+                {t.colLabels.map((c, i) => (
+                  <th key={i} className={cls(i)}>
+                    {book ? <TaggedText text={c} /> : stripTags(c)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          )
         )}
         <tbody>
-          {t.rows.map((row, ri) => {
-            const cells = rowCells(row)
-            return (
-              <tr key={ri}>
-                {cells.map((cell, ci) => {
-                  const header =
-                    typeof cell === 'object' &&
-                    (cell as { type?: string }).type === 'cellHeader'
-                  const Cell = header ? 'th' : 'td'
-                  return (
-                    <Cell key={ci} className={cls(ci)}>
-                      {cellText(cell, depth, book)}
-                    </Cell>
-                  )
-                })}
-              </tr>
-            )
-          })}
+          {t.rows.map((row, ri) => (
+            <tr
+              key={ri}
+              className={(book && !Array.isArray(row) && rowStyle(row)) || undefined}
+            >
+              {renderCells(rowCells(row), depth, cls, false, book)}
+            </tr>
+          ))}
         </tbody>
       </Table>
       {book && t.footnotes && (
@@ -346,6 +471,7 @@ function renderEntry(
             </p>
           )}
           <Tag
+            start={Tag === 'ol' && book ? list.start : undefined}
             className={`mb-2${book ? ` book-list ${style}` : ''}`}
             style={book && list.columns ? { columnCount: list.columns } : undefined}
           >
@@ -385,6 +511,23 @@ function renderEntry(
       const title = named.name && (
         <BookHeading entry={named} depth={depth} box={box} context={context} />
       )
+      const runIn =
+        !box &&
+        named.name &&
+        named.type === 'entries' &&
+        context.runInFrom !== undefined &&
+        depth >= context.runInFrom
+      if (runIn) {
+        return (
+          <RunIn
+            key={key}
+            entry={named}
+            depth={depth}
+            context={context}
+            className={style.join(' ') || undefined}
+          />
+        )
+      }
       if (!box) {
         return (
           <div key={key} className={style.join(' ') || undefined}>
@@ -509,7 +652,7 @@ function renderEntry(
           {(gallery.images ?? []).map((image, i) => (
             <Fragment key={i}>
               {context?.renderImage ? (
-                context.renderImage(image)
+                context.renderImage(image, gallery.images)
               ) : (
                 <ImageNote image={image} />
               )}
@@ -519,7 +662,15 @@ function renderEntry(
       )
     }
     case 'statblock':
-      return <StatblockNote key={key} entry={obj as Record<string, unknown>} />
+      return (
+        <Fragment key={key}>
+          {context?.renderStatblock ? (
+            context.renderStatblock(obj as StatblockEntry)
+          ) : (
+            <StatblockNote entry={obj as StatblockEntry} />
+          )}
+        </Fragment>
+      )
     case 'flowchart': {
       const blocks = ((obj as { blocks?: Entry[] }).blocks ?? []) as Entry[]
       return (

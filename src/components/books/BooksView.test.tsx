@@ -237,6 +237,36 @@ describe('searching the books', () => {
     expect(useBookStore.getState().place?.find).toBeNull()
   })
 
+  it('shows the results at once on a phone, where the list is hidden', async () => {
+    const original = window.matchMedia
+    window.matchMedia = (query: string): MediaQueryList =>
+      ({
+        matches: true,
+        media: query,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      }) as MediaQueryList
+    try {
+      render(<BooksView />)
+      act(() =>
+        openBook({ kind: 'book', id: 'TST', chapter: 0, anchor: null, find: null }),
+      )
+      await screen.findByRole('article', { name: 'Chapter 1: Wanderers' })
+      expect(document.querySelector('.book-reader')).not.toHaveClass('is-contents-open')
+      fireEvent.change(screen.getByRole('searchbox', { name: /Search the text/ }), {
+        target: { value: 'lantern' },
+      })
+      await screen.findByText(/matches in 2 books/, undefined, { timeout: 3000 })
+      expect(document.querySelector('.book-reader')).toHaveClass('is-contents-open')
+    } finally {
+      window.matchMedia = original
+    }
+  })
+
   it('says when nothing is found', async () => {
     await search('qqqqzz')
     expect(
