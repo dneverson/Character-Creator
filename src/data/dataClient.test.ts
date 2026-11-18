@@ -7,13 +7,23 @@ import {
 import { useContentSettings } from '../content/settings'
 import { memoryStore } from '../storage/keyValue'
 import { installFakeSource, type FakeSource } from '../test/contentSource'
-import { _clearDataCache, dataUrl, fetchData, fetchDataUncached } from './dataClient'
+import {
+  _clearDataCache,
+  dataUrl,
+  fetchData,
+  fetchDataUncached,
+  readStoredOnly,
+  storedMisses,
+} from './dataClient'
 
 // Each test gets its own content library, so nothing stored or learned about the
 // source in one test reaches the next.
 const current = vi.hoisted(() => ({ library: undefined as ContentLibrary | undefined }))
 vi.mock('../content', () => ({
-  contentLibrary: { read: (path: string) => current.library!.read(path) },
+  contentLibrary: {
+    read: (path: string) => current.library!.read(path),
+    readStored: (path: string) => current.library!.readStored(path),
+  },
 }))
 
 let source: FakeSource
@@ -126,5 +136,25 @@ describe('fetchData with the full content switched on', () => {
     current.library!.disable()
     expect(await fetchData('books.json')).toEqual({ book: ['free'] })
     expect(sourceRequests()).toEqual([])
+  })
+})
+
+describe('reading what is stored only', () => {
+  afterEach(() => readStoredOnly(false))
+
+  it('answers from storage and never downloads what is missing', async () => {
+    useContentSettings.setState({ fullContent: true })
+    source.freeRules['books.json'] = { book: ['free'] }
+    source.files['a.json'] = { a: 1 }
+    source.files['books.json'] = { book: ['full'] }
+    await current.library!.read('a.json')
+    source.requests.length = 0
+    readStoredOnly()
+    const before = storedMisses()
+    expect(await fetchDataUncached('a.json')).toEqual({ a: 1 })
+    // Not stored: the free rules answer, the source is not asked.
+    expect(await fetchDataUncached('books.json')).toEqual({ book: ['free'] })
+    expect(sourceRequests()).toEqual([])
+    expect(storedMisses()).toBe(before + 1)
   })
 })

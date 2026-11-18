@@ -398,6 +398,17 @@ export function createContentLibrary({
      */
     read: <T>(path: string): Promise<T> => read(path, 'high') as Promise<T>,
 
+    /**
+     * One stored file, and nothing else: it never downloads and never writes, so a second
+     * context (a worker) can read what the page stores without the two disagreeing about
+     * what is stored. Rejects when the file is not stored.
+     */
+    async readStored<T>(path: string): Promise<T> {
+      const stored = await files.get(path)
+      if (!stored) throw new Error(`"${path}" is not stored`)
+      return stored.data as T
+    },
+
     /** Bring the stored content up to date in the background. Call once at startup. */
     async start(): Promise<void> {
       await restore()

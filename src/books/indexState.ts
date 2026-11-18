@@ -6,7 +6,7 @@ import { create } from 'zustand'
 import { contentLibrary } from '../content'
 import { contentEpoch } from '../content/epoch'
 import { docPath } from './catalog'
-import { readBookText } from './load'
+import { openDocReader } from './docReader'
 import { createBookIndex, type BookIndex } from './searchIndex'
 import type { BookDoc } from './types'
 
@@ -39,20 +39,30 @@ export function currentIndex(): BookIndex {
 }
 
 async function pass(docs: BookDoc[]): Promise<void> {
-  for (const doc of docs) {
-    if (index.has(doc.kind, doc.id)) continue
-    if (!(await contentLibrary.has(docPath(doc.kind, doc.id)))) continue
-    try {
-      const { scan } = await readBookText(doc.kind, doc.id)
-      await index.addDoc({ kind: doc.kind, id: doc.id, name: doc.name }, scan)
-    } catch {
-      // A text that cannot be read is left out; the next pass tries it again.
-      continue
+  const reader = openDocReader()
+  // The words of a document are found while the one before it is merged into the index.
+  const fetchWords = async (doc: BookDoc) =>
+    !index.has(doc.kind, doc.id) && (await contentLibrary.has(docPath(doc.kind, doc.id)))
+      ? // A text that cannot be read is left out; the next pass tries it again.
+        reader.read(doc.kind, doc.id).catch(() => undefined)
+      : undefined
+  try {
+    // The words of the next few documents are found while the first of them is merged in.
+    const ahead = new Map<number, ReturnType<typeof fetchWords>>()
+    for (const [i, doc] of docs.entries()) {
+      for (let j = i; j < Math.min(docs.length, i + reader.parallel); j++)
+        if (!ahead.has(j)) ahead.set(j, fetchWords(docs[j]))
+      const tokens = await ahead.get(i)
+      ahead.delete(i)
+      if (!tokens) continue
+      await index.addTokens({ kind: doc.kind, id: doc.id, name: doc.name }, tokens)
+      useIndexStatus.setState((s) => ({
+        version: s.version + 1,
+        indexed: index.size().docs,
+      }))
     }
-    useIndexStatus.setState((s) => ({
-      version: s.version + 1,
-      indexed: index.size().docs,
-    }))
+  } finally {
+    reader.close()
   }
 }
 

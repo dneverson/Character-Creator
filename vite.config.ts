@@ -46,6 +46,10 @@ export default defineConfig(({ command }) => ({
         'src/storage/idb.ts',
         'src/content/thumbnail.ts',
         'src/portrait/imageFile.ts',
+        // Start the book search's worker, and its three-line entry: a worker is a browser
+        // feature jsdom does not have. The logic they call is tested (`docReader`).
+        'src/books/spawnDocWorker.ts',
+        'src/books/docTokens.worker.ts',
       ],
       thresholds: {
         lines: 90,

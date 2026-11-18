@@ -5,7 +5,7 @@
 
 import { Fragment, type ReactNode } from 'react'
 import { Abbr, AbbrText } from '../components/Abbr'
-import { classNames } from '../components/editor/spellFacts'
+import { classNames } from '../data/spells'
 import { describeLookup } from '../components/lookup/lookupFacts'
 import { factValue } from '../components/table/facts'
 import { type Beast, type BeastEntry } from '../data/beasts'

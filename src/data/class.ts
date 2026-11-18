@@ -7,6 +7,7 @@
 
 import type { AbilityKey } from '../dice/dice'
 import { fetchData } from './dataClient'
+import { memoizeContent } from '../content/epoch'
 import { resolveCopy, type Copyable, type CopyRef } from './copy'
 import type { Entry } from '../text/Entries'
 import type { ClassRef } from '../character/model'
@@ -243,8 +244,11 @@ async function loadClassIndex(): Promise<ClassIndex> {
   return fetchData<ClassIndex>('class/index.json')
 }
 
-/** Load every class entry (both editions) with its owning file. */
-export async function loadClasses(): Promise<LoadedClass[]> {
+/**
+ * Load every class entry (both editions) with its owning file. Resolving the class
+ * files costs a few hundred milliseconds, so it is done once per content.
+ */
+export const loadClasses = memoizeContent(async (): Promise<LoadedClass[]> => {
   const index = await loadClassIndex()
   const files = await Promise.all(
     Object.values(index).map((f) => fetchData<RawClassFile>(`class/${f}`)),
@@ -255,7 +259,7 @@ export async function loadClasses(): Promise<LoadedClass[]> {
   }
   out.sort((a, b) => a.entry.name.localeCompare(b.entry.name))
   return out
-}
+})
 
 /**
  * The class files with every `_copy` record resolved against its original: a class

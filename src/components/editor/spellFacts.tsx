@@ -8,7 +8,7 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 import { editionYear } from '../../data/labels'
 import { isCantripUpgrade, componentsText, materialText } from '../../data/spellText'
-import { schoolName, spellLevelLabel, type Spell } from '../../data/spells'
+import { classNames, schoolName, spellLevelLabel, type Spell } from '../../data/spells'
 import { Entries, type Entry } from '../../text/Entries'
 import { stripTags } from '../../text/tags'
 import { AbbrText } from '../Abbr'
@@ -23,11 +23,6 @@ export const spellTags = (spell: Spell) => [editionYear(spell.edition)]
 
 const YES = 'Yes'
 const ATTACK_ROLL = 'Attack roll'
-
-/** "Wizard", "Cleric": the classes whose own list holds the spell, once each. */
-export const classNames = perEntry((spell: Spell): string[] => [
-  ...new Set(spell.lists.classes.map((key) => key.split('|')[0])),
-])
 
 // ---- Facts ------------------------------------------------------------------
 

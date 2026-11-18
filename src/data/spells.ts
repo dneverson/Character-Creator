@@ -3,6 +3,7 @@
 // entries carry no `classes` field in current 5etools data). A class list is the
 // list of one class source, so a 2014 Wizard and a 2024 Wizard keep their own.
 
+import { perEntry } from '../components/table/facts'
 import { memoizeContent } from '../content/epoch'
 import { titleCase } from '../text/titleCase'
 import type { Entry } from '../text/Entries'
@@ -379,3 +380,8 @@ export const loadSpells = memoizeContent(async (): Promise<Spell[]> => {
 export function _clearSpellCache(): void {
   loadSpells.clear()
 }
+
+/** "Wizard", "Cleric": the classes whose own list holds the spell, once each. */
+export const classNames = perEntry((spell: Spell): string[] => [
+  ...new Set(spell.lists.classes.map((key) => key.split('|')[0])),
+])

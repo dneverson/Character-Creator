@@ -15,7 +15,7 @@ import {
 } from '../../lookup/types'
 import type { Snippet } from '../../lookup/search'
 import { describeBeasts } from '../editor/beastFacts'
-import { classNames } from '../editor/spellFacts'
+import { classNames } from '../../data/spells'
 import { describeBackgrounds } from '../editor/backgroundFacts'
 import { describeFeats } from '../editor/featFacts'
 import { editionFact, sourceFact } from '../editor/grantFacts'

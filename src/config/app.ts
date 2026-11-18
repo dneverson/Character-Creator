@@ -91,6 +91,8 @@ export const appConfig = {
     snippetChars: 110,
     /** Longest stretch, in milliseconds, the index is built before the page is given back. */
     sliceMs: 8,
+    /** How many workers read the books for the search index at the same time. */
+    indexWorkers: 3,
     /** How many books' parsed text stay in memory for reading (the index keeps its own). */
     keepLastBooks: 3,
   },

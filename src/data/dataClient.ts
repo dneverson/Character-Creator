@@ -27,12 +27,31 @@ async function fetchFreeRules(key: string): Promise<unknown> {
   return response.json()
 }
 
+let storedOnly = false
+let misses = 0
+
+/** How many files the full content did not have stored since `readStoredOnly` was set. */
+export function storedMisses(): number {
+  return misses
+}
+
+/**
+ * Make the full content answer only from what is stored, and never download.
+ * For a worker, which reads what the page stored and must not also manage the storage.
+ */
+export function readStoredOnly(only = true): void {
+  storedOnly = only
+}
+
 async function load(key: string): Promise<unknown> {
   if (fullContentWanted()) {
     try {
-      return await contentLibrary.read(key)
+      return await (storedOnly
+        ? contentLibrary.readStored(key)
+        : contentLibrary.read(key))
     } catch {
       // Not available from the full content; the free rules may have it.
+      if (storedOnly) misses++
     }
   }
   return fetchFreeRules(key)

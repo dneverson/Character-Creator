@@ -2,6 +2,8 @@
 // words of every block of text (a paragraph, a list item, a table row), built in small
 // slices so the page stays responsive. Documents are added one at a time, so a book read
 // or downloaded later joins the index without building it again.
+// The words of a document are found off the page's thread (`docReader`); the index only
+// keeps them.
 //
 // A search finds the blocks in which every word of the search starts a word, the last
 // word being the one still being typed. It reads the index, never the text, except to
@@ -10,6 +12,7 @@
 import { appConfig } from '../config/app'
 import { snippetOf, wordsIn, type Snippet } from '../lookup/search'
 import type { Heading, Scan } from './outline'
+import { tokenize, type DocTokens } from './tokenize'
 import type { BookPlace, DocKind } from './types'
 
 /** A document as the index knows it. */
@@ -49,7 +52,12 @@ export interface BookSearchResult {
 }
 
 export interface BookIndex {
-  /** Add a document, giving the page back every `sliceMs` while its blocks are read. */
+  /** Add a document, giving the page back every `sliceMs` while its words are merged in. */
+  addTokens: (
+    doc: Omit<IndexedDoc, 'headings' | 'chapters'>,
+    tokens: DocTokens,
+  ) => Promise<void>
+  /** Add a document from its text (the words are found here, on this thread). */
   addDoc: (doc: Omit<IndexedDoc, 'headings' | 'chapters'>, scan: Scan) => Promise<void>
   has: (kind: DocKind, id: string) => boolean
   /** How many documents and blocks the index holds. */
@@ -85,52 +93,66 @@ function lowerBound(sorted: string[], prefix: string): number {
 /** Gives the page back for a moment. */
 const nextSlice = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
 
+/** What the index knows of the words of one document: see `DocTokens`. */
+interface Postings {
+  /** The number the document's first block has among the blocks of every document. */
+  base: number
+  words: string[]
+  offsets: Uint32Array
+  ids: Uint32Array
+}
+
 export function createBookIndex(): BookIndex {
   const docs: IndexedDoc[] = []
   const known = new Set<string>()
   const texts: string[] = []
   const blockDoc: number[] = []
   const blockHeading: number[] = []
-  const postings = new Map<string, number[]>()
-  let sorted: string[] | null = null
+  /** The words of each document, by document: a word is looked up in each in turn. */
+  const postings: Postings[] = []
 
-  const blocksWith = (prefix: string): Set<number> => {
-    sorted ??= [...postings.keys()].sort()
-    const found = new Set<number>()
-    for (let i = lowerBound(sorted, prefix); i < sorted.length; i++) {
-      if (!sorted[i].startsWith(prefix)) break
-      for (const block of postings.get(sorted[i]) ?? []) found.add(block)
+  /**
+   * Marks (1) the blocks with a word starting `prefix`, among those of document `from`
+   * (every document when none).
+   */
+  const blocksWith = (prefix: string, from?: number): Uint8Array => {
+    const marked = new Uint8Array(texts.length)
+    for (const { base, words, offsets, ids } of from === undefined
+      ? postings
+      : postings.slice(from, from + 1)) {
+      for (let i = lowerBound(words, prefix); i < words.length; i++) {
+        if (!words[i].startsWith(prefix)) break
+        for (let at = offsets[i]; at < offsets[i + 1]; at++) marked[base + ids[at]] = 1
+      }
     }
-    return found
+    return marked
+  }
+
+  const addTokens: BookIndex['addTokens'] = async (meta, tokens) => {
+    const { headings, words, offsets, ids } = tokens
+    const chapters: string[] = []
+    for (const heading of headings)
+      if (heading.depth === 0) chapters[heading.chapter] = heading.name
+    const base = texts.length
+    let sliceStart = performance.now()
+    for (const [i, text] of tokens.texts.entries()) {
+      texts.push(text)
+      blockDoc.push(docs.length)
+      blockHeading.push(tokens.blockHeading[i])
+      if (performance.now() - sliceStart > appConfig.books.sliceMs) {
+        await nextSlice()
+        sliceStart = performance.now()
+      }
+    }
+    // The document is found by a search only once all of it is here.
+    docs.push({ ...meta, headings, chapters })
+    postings.push({ base, words, offsets, ids })
+    known.add(`${meta.kind}/${meta.id}`)
   }
 
   return {
-    async addDoc(meta, { headings, blocks }) {
-      const chapters: string[] = []
-      for (const heading of headings)
-        if (heading.depth === 0) chapters[heading.chapter] = heading.name
-      const docIndex = docs.length
-      docs.push({ ...meta, headings, chapters })
-      known.add(`${meta.kind}/${meta.id}`)
-      let sliceStart = performance.now()
-      for (const block of blocks) {
-        const id = texts.length
-        texts.push(block.text)
-        blockDoc.push(docIndex)
-        blockHeading.push(block.heading)
-        for (const word of new Set(wordsIn(block.text))) {
-          const list = postings.get(word)
-          if (!list) postings.set(word, [id])
-          else list.push(id)
-        }
-        if (performance.now() - sliceStart > appConfig.books.sliceMs) {
-          sorted = null
-          await nextSlice()
-          sliceStart = performance.now()
-        }
-      }
-      sorted = null
-    },
+    addTokens,
+    addDoc: (meta, scan) => addTokens(meta, tokenize(scan)),
 
     has: (kind, id) => known.has(`${kind}/${id}`),
 
@@ -139,34 +161,36 @@ export function createBookIndex(): BookIndex {
     search(text, only) {
       const words = searchWords(text)
       if (words.length === 0) return { words, groups: [], total: 0 }
-      // The smallest set first, so the others only have to be checked against it.
-      const sets = words.map(blocksWith).sort((a, b) => a.size - b.size)
       const scope = only
         ? docs.findIndex((doc) => doc.kind === only.kind && doc.id === only.id)
         : undefined
-      const matched = [...sets[0]].filter(
-        (block) =>
-          (scope === undefined || blockDoc[block] === scope) &&
-          sets.every((set) => set.has(block)),
-      )
+      // A block matches when every word marks it; the blocks come out in the order of the text.
+      const [first, ...others] = words.map((word) => blocksWith(word, scope))
+      for (const other of others)
+        for (let i = 0; i < first.length; i++) first[i] &= other[i]
+      const matched: number[] = []
+      for (let block = 0; block < first.length; block++)
+        if (first[block]) matched.push(block)
       const phrase = words.join(' ')
-      const byDoc = new Map<number, { block: number; score: number }[]>()
-      for (const block of matched.sort((a, b) => a - b)) {
+      /** Per document: the blocks that hold the words one after the other, and the rest. */
+      const byDoc = new Map<number, { together: number[]; apart: number[] }>()
+      for (const block of matched) {
         // A block holding the words one after the other reads better than one that
         // holds them apart.
-        const score =
-          words.length > 1 && wordsIn(texts[block]).join(' ').includes(phrase) ? 1 : 0
-        const list = byDoc.get(blockDoc[block])
-        if (list) list.push({ block, score })
-        else byDoc.set(blockDoc[block], [{ block, score }])
+        const together =
+          words.length > 1 && wordsIn(texts[block]).join(' ').includes(phrase)
+        let lists = byDoc.get(blockDoc[block])
+        if (!lists) byDoc.set(blockDoc[block], (lists = { together: [], apart: [] }))
+        ;(together ? lists.together : lists.apart).push(block)
       }
-      const groups: BookHitGroup[] = [...byDoc].map(([docIndex, list]) => {
+      const groups: BookHitGroup[] = [...byDoc].map(([docIndex, { together, apart }]) => {
         const doc = docs[docIndex]
-        const best = [...list].sort((a, b) => b.score - a.score || a.block - b.block)
+        const keep = appConfig.books.maxHitsPerBook
+        const best = [...together.slice(0, keep), ...apart.slice(0, keep)].slice(0, keep)
         return {
           doc,
-          total: list.length,
-          hits: best.slice(0, appConfig.books.maxHitsPerBook).map(({ block }) => {
+          total: together.length + apart.length,
+          hits: best.map((block) => {
             const heading = doc.headings[blockHeading[block]]
             return {
               block,

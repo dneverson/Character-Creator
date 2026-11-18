@@ -525,6 +525,15 @@ describe('downloading chosen files', () => {
     expect(await library.has(book)).toBe(true)
   })
 
+  it('reads a stored file without ever downloading or writing', async () => {
+    await expect(library.readStored(book)).rejects.toThrow('not stored')
+    expect(source.dataRequests()).toEqual([])
+    await library.read(book)
+    source.requests.length = 0
+    expect(await reopen().readStored(book)).toEqual({ bookData: [] })
+    expect(source.dataRequests()).toEqual([])
+  })
+
   it('stores the files that are missing and skips those already stored', async () => {
     await library.read(book)
     source.requests.length = 0
