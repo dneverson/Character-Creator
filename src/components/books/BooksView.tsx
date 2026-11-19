@@ -13,6 +13,7 @@ import { useContentStatus } from '../../content/library'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { loadBookDocs } from '../../books/catalog'
+import { docOfSource } from '../../books/address'
 import { currentIndex, syncIndex, useIndexStatus } from '../../books/indexState'
 import { openBook, useBookStore } from '../../books/state'
 import type { BookDoc, BookPlace } from '../../books/types'
@@ -24,8 +25,9 @@ import { BookShelf } from './BookShelf'
 
 /** The document a place is in; one the catalog does not list is shown by its id. */
 function docOf(docs: readonly BookDoc[], place: BookPlace): BookDoc {
+  // An address may spell the id in another case; the catalog's spelling is the name's.
   return (
-    docs.find((doc) => doc.kind === place.kind && doc.id === place.id) ?? {
+    docOfSource(docs, place.id, place.kind) ?? {
       kind: place.kind,
       id: place.id,
       name: place.id,

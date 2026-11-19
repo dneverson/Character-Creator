@@ -5,6 +5,7 @@
 import { memoizeContent } from '../content/epoch'
 import { coverPath } from '../data/covers'
 import { fetchData } from '../data/dataClient'
+import { registerBookSources } from '../data/glossary'
 import type { Book } from '../data/types'
 import type { BookDoc, DocKind } from './types'
 
@@ -38,6 +39,8 @@ export const loadBookDocs = memoizeContent(async (): Promise<BookDoc[]> => {
       adventure: [] as Adventure[],
     })),
   ])
+  // An adventure's code is named by the same lookup as a book's (footers, tooltips).
+  registerBookSources(adventures.adventure ?? [])
   return [
     ...(books.book ?? []).map((entry) => docOf('book', entry)),
     ...(adventures.adventure ?? []).map((entry) => docOf('adventure', entry)),

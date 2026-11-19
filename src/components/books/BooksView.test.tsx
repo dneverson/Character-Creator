@@ -110,6 +110,13 @@ describe('reading a book', () => {
     return screen.findByRole('article', { name: 'Chapter 1: Wanderers' })
   }
 
+  it('names an adventure opened by an address that spells its id in another case', async () => {
+    render(<BooksView />)
+    act(() => openBook({ ...place(0), kind: 'adventure', id: 'adv' }))
+    await screen.findByRole('article', { name: 'Chapter 1: Wanderers' })
+    expect(document.querySelector('.books-toolbar-title')).toHaveTextContent('A Quest')
+  })
+
   it('shows the chapter in the book look, with the tree beside it', async () => {
     await open()
     const tree = screen.getByRole('navigation', { name: 'Chapters and headings' })
