@@ -382,6 +382,21 @@ body.sheet-page {
   text-align: center;
   color: var(--sheet-muted-ink);
 }
+/* The icon of a row that rolls that opens its full text: it sits above the cover. */
+.roll-info {
+  border: 0;
+  background: transparent;
+  padding: 0 0.25rem 0 0;
+  color: var(--sheet-muted-ink);
+  cursor: pointer;
+}
+.roll-info:hover {
+  color: var(--sheet-ink);
+}
+.roll-info:focus-visible {
+  outline: 2px solid var(--sheet-accent);
+  outline-offset: 1px;
+}
 .derived-number__info:hover {
   color: var(--sheet-ink);
 }
@@ -796,6 +811,9 @@ tr.roll-host:has(.roll-cover:focus-visible) > td {
   outline-offset: -2px;
 }
 .roll-host .derived-number__info,
+.roll-host .roll-info,
+.roll-host .data-table-grid__action button,
+.roll-host .data-table-grid__select,
 .roll-host .sheet-pin button,
 .roll-host .sheet-favs__controls,
 .roll-host .abbr {

@@ -15,6 +15,7 @@ import {
   d20Modifier,
   rollD20,
   rollExpression,
+  rollPieces,
   type RollMode,
   type RollOutcome,
   type Rng,
@@ -93,11 +94,12 @@ export function RollerProvider({
         return [record(spec.label, outcome, spec.parts, spec.effect)]
       }
       const critical = part === 'critical'
-      const label = `${damage.name} ${critical ? 'critical damage' : 'damage'}`
+      const what = critical ? 'critical damage' : (damage.verb ?? 'damage')
+      const label = `${damage.name} ${what}${damage.detail ? ` (${damage.detail})` : ''}`
       return [
         record(
           label,
-          rollExpression(damage.expression, rng, critical, damageBonus),
+          rollPieces(damage.pieces, rng, critical, damageBonus),
           damage.parts,
         ),
       ]

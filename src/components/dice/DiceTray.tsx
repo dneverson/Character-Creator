@@ -21,6 +21,8 @@ export interface TrayDie {
   dropped?: boolean
   /** Where it came from, when not the roll itself. */
   tag?: 'bonus' | 'extra'
+  /** The kind of damage it rolls, said under it. */
+  type?: string
 }
 
 /** A group of dice under a heading ("To hit", "Damage"). */
@@ -68,6 +70,7 @@ function TrayDieView({
         : undefined
   const caption = [
     `d${die.sides}`,
+    die.type,
     die.dropped && 'dropped',
     die.tag && TAG_TEXT[die.tag],
   ]
@@ -122,7 +125,7 @@ export function DiceTray({
       aria-label="Dice"
     >
       {sections.map((section, sectionAt) => (
-        <div key={section.title ?? sectionAt} className="dice-tray__section">
+        <div key={`${sectionAt}-${section.title ?? ''}`} className="dice-tray__section">
           {sections.length > 1 && section.title && (
             <div className="dice-tray__title">{section.title}</div>
           )}

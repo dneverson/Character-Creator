@@ -36,14 +36,18 @@ const effectsFact: Fact<SpellLine> = {
 type Changed = 'damage' | 'range'
 
 /** The lines of the class options that change a value of the spell, applied ones only. */
-const changesOf = (line: SpellLine, on: Changed) =>
+export const changesOf = (line: SpellLine, on: Changed) =>
   (line.effects ?? []).filter((l) => l.on === on && l.status === 'applied')
 
 const signed = (n: number) => `${n < 0 ? '-' : '+'} ${Math.abs(n)}`
 
+/** What the class options add to the damage of the spell, in all. */
+export const damageAddedBy = (line: SpellLine) =>
+  changesOf(line, 'damage').reduce((n, l) => n + (l.amount ?? 0), 0)
+
 /** The damage with what the options add: "1d10 + 4". Undefined when nothing is added. */
 function changedDamage(line: SpellLine): string | undefined {
-  const added = changesOf(line, 'damage').reduce((n, l) => n + (l.amount ?? 0), 0)
+  const added = damageAddedBy(line)
   return line.spell.damage && added !== 0
     ? `${line.spell.damage} ${signed(added)}`
     : undefined

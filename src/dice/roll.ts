@@ -40,6 +40,8 @@ export interface DiceRolled {
    * critical added, so the result can show and label them.
    */
   extraFrom?: number
+  /** Damage: what kind of damage these dice are ("fire"); absent when untyped. */
+  type?: string
 }
 
 /** What a roll came to, with every die that went into it. */
@@ -57,6 +59,8 @@ export interface RollOutcome {
   natural?: 20 | 1
   /** The dice were doubled: damage from a critical hit. */
   critical?: true
+  /** Damage of several types: what each type came to, in the order rolled. */
+  typed?: { type: string; total: number }[]
 }
 
 /** An expression that cannot be rolled; the message says why in plain words. */
@@ -302,4 +306,46 @@ export function rollD20(
       ...(natural && { natural }),
     },
   )
+}
+
+/** One part of a damage roll: its dice and flat numbers, and the type of damage. */
+export interface RollPiece {
+  expression: string
+  /** "fire", "healing"; "" when untyped. */
+  type: string
+}
+
+/**
+ * Rolls the parts of one damage or healing roll, each with its own type, as one outcome:
+ * every die carries its type and `typed` says what each type came to. The situational
+ * `bonus` goes with the first part. With `critical` the dice of every part are doubled.
+ */
+export function rollPieces(
+  pieces: readonly RollPiece[],
+  rng: Rng = cryptoRng,
+  critical = false,
+  bonus: readonly Term[] = [],
+): RollOutcome {
+  const rolled = pieces.map((piece, at) => ({
+    piece,
+    outcome: rollExpression(piece.expression, rng, critical, at === 0 ? bonus : []),
+  }))
+  const typed = rolled.some(({ piece }) => piece.type !== '')
+  return {
+    expression: rolled.map(({ outcome }) => outcome.expression).join('+'),
+    mode: 'normal',
+    dice: rolled.flatMap(({ piece, outcome }) =>
+      outcome.dice.map((group) => (piece.type ? { ...group, type: piece.type } : group)),
+    ),
+    modifier: rolled.reduce((sum, { outcome }) => sum + outcome.modifier, 0),
+    total: rolled.reduce((sum, { outcome }) => sum + outcome.total, 0),
+    ...(bonus.length > 0 && { bonus: bonusText(bonus) }),
+    ...(critical && { critical: true as const }),
+    ...(typed && {
+      typed: rolled.map(({ piece, outcome }) => ({
+        type: piece.type,
+        total: outcome.total,
+      })),
+    }),
+  }
 }

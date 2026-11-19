@@ -3,10 +3,11 @@
 // whole list. The same stats as every spell table (spellFacts), drawn once more
 // around a spell line instead of a bare spell.
 
+import { useMemo, type ReactNode } from 'react'
 import type { Line } from '../../derived/types'
 import type { Spell } from '../../data/spells'
 import { BrowseTable, type BrowseTableProps } from '../table/BrowseTable'
-import type { DetailTarget } from '../table/types'
+import type { Column, DetailTarget } from '../table/types'
 import { spellName, spellSearchText, spellTags } from './spellFacts'
 import { describeLines, spellLineColumns } from './spellLineFacts'
 
@@ -27,6 +28,40 @@ export interface SpellLine {
   remove?: () => void
 }
 
+/** What makes a row of spells roll: the button over the row, and the one that opens the text. */
+export interface RowCover {
+  /** The button laid over the whole row. */
+  button: ReactNode
+  /** The icon button that opens the spell's full text, which a click on the row no longer does. */
+  info: ReactNode
+}
+
+/** The name cell of a row that rolls carries the button over the row and the info button. */
+function withCover(
+  columns: Column<SpellLine>[],
+  cover: ((line: SpellLine) => RowCover | undefined) | undefined,
+): Column<SpellLine>[] {
+  const [name, ...rest] = columns
+  if (!cover || !name) return columns
+  return [
+    {
+      ...name,
+      render: (line) => {
+        const found = cover(line)
+        return found ? (
+          <>
+            {found.button}
+            {found.info} {name.render(line)}
+          </>
+        ) : (
+          name.render(line)
+        )
+      },
+    },
+    ...rest,
+  ]
+}
+
 export function SpellLines({
   tableId,
   lines,
@@ -34,6 +69,7 @@ export function SpellLines({
   detailTarget,
   action,
   pin,
+  cover,
 }: {
   tableId: string
   lines: SpellLine[]
@@ -44,12 +80,18 @@ export function SpellLines({
   action?: BrowseTableProps<SpellLine>['action']
   /** The cell of the Favorites pin column, when the table has one. */
   pin?: BrowseTableProps<SpellLine>['pin']
+  /**
+   * A row that rolls: the button that lies over the whole row, and the info button that
+   * still opens its full text. Undefined for a row that rolls nothing.
+   */
+  cover?: (line: SpellLine) => RowCover | undefined
 }) {
+  const columns = useMemo(() => withCover(spellLineColumns, cover), [cover])
   return (
     <BrowseTable<SpellLine>
       tableId={tableId}
       rows={lines}
-      columns={spellLineColumns}
+      columns={columns}
       idOf={(line) => line.id}
       nameOf={(line) => spellName(line.spell)}
       tagsOf={(line) => spellTags(line.spell)}
@@ -58,7 +100,7 @@ export function SpellLines({
       rowMeta={(line) =>
         line.locked
           ? { standard: true, gated: { reason: line.locked } }
-          : { standard: true }
+          : { standard: true, ...(cover?.(line) && { rowClass: 'roll-host' }) }
       }
       action={
         action ??

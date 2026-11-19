@@ -84,6 +84,8 @@ export interface RowMeta {
    * "inform, never hard-block" guardrail.
    */
   gated?: { reason: string }
+  /** A class for the row (the sheet's rows that roll are hosts of a cover button). */
+  rowClass?: string
 }
 
 /**

@@ -4,7 +4,7 @@
 
 import type { PlayState, RollPart } from '../../character/model'
 import type { Quantity } from '../../derived/types'
-import type { RollOutcome } from '../../dice/roll'
+import type { RollOutcome, RollPiece } from '../../dice/roll'
 import { tablesOf } from '../derived/breakdownTables'
 import type { BreakdownSpec } from '../derived/DerivedNumber'
 import type { BreakdownTable } from './SheetDetail'
@@ -12,19 +12,35 @@ import type { BreakdownTable } from './SheetDetail'
 /** Changes the play state with what a roll came to (a death save marks itself). */
 export type PlayEffect = (play: PlayState, outcome: RollOutcome) => PlayState
 
-/** The damage an attack rolls, apart from its to-hit. */
+/** The damage or healing a roll makes, apart from its to-hit. */
 export interface DamageSpec {
   name: string
-  /** The dice and the flat bonus: "1d8+3". */
-  expression: string
+  /** What makes it this one, after the name in the log: "level 4", "two hands". */
+  detail?: string
+  /** Healing is rolled and named as healing; the default is damage. */
+  verb?: 'damage' | 'healing'
+  /** The dice and flat numbers of each part, with its type: "1d8+3", or "2d8" cold. */
+  pieces: RollPiece[]
   /** How the damage bonus adds up. */
   tables: BreakdownTable[]
   parts: RollPart[]
+  /** A line the window says beside it ("3 beams: roll once for each"). */
+  note?: string
+}
+
+/** Something the player picks that changes the damage: the level a spell is cast at. */
+export interface RollChoice {
+  id: string
+  label: string
+  options: { value: string; label: string }[]
+  initial: string
+  /** Offered as a list to pick from (many options), not as buttons side by side. */
+  list?: boolean
 }
 
 export interface RollSpec {
-  /** A d20 test, or the dice a player typed. */
-  kind: 'test' | 'free'
+  /** A d20 test, the dice a player typed, or damage alone (a save spell, a healing spell). */
+  kind: 'test' | 'free' | 'damage'
   /** What is rolled, as the window and the log name it: "Stealth check". */
   label: string
   /** The flat number a d20 test adds. */
@@ -33,6 +49,11 @@ export interface RollSpec {
   tables: BreakdownTable[]
   parts: RollPart[]
   damage?: DamageSpec
+  /** What the player picks beside the damage, and the damage each pick makes. */
+  choices?: RollChoice[]
+  damageFor?: (picked: Record<string, string>) => DamageSpec
+  /** A line the window says above the rolls ("Targets make a Dexterity saving throw"). */
+  note?: string
   effect?: PlayEffect
   /** A free roll: the dice typed. */
   expression?: string

@@ -2,20 +2,25 @@
 // how many of the spells each class allows are chosen, and every spell they can cast with
 // its full text one click away in the sheet's detail pane.
 
+import { useCallback } from 'react'
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
+import Tooltip from 'react-bootstrap/Tooltip'
+import { totalLevel } from '../../character/derive'
 import type { Character } from '../../character/model'
 import { EMPTY_SELECTION } from '../../character/spellTiers'
-import { formatMod } from '../../dice/dice'
 import type { DerivedSheet } from '../../derived'
 import type { ClassCaster } from '../../rules/spellcasting'
 import { Abbr } from '../Abbr'
-import { DerivedNumber, type BreakdownSpec } from '../derived/DerivedNumber'
-import { SpellLines } from '../editor/SpellLines'
+import { DerivedNumber } from '../derived/DerivedNumber'
+import { Icon } from '../Icon'
+import { SpellLines, type RowCover, type SpellLine } from '../editor/SpellLines'
 import { useSpellLines } from '../editor/useSpellLines'
 import { useCharacter } from '../../character/useCharacterDoc'
 import { concentrationAction } from './concentrationAction'
 import { PinButton } from './PinButton'
 import { RollCover } from './RollCover'
 import { testRoll } from './rollSpec'
+import { spellAttackSpec, spellRoll } from './spellRoll'
 import { useSheetRowDetail } from './SheetDetail'
 import { SlotPips } from './SheetPips'
 import { useApplyPlay } from './usePlay'
@@ -39,6 +44,34 @@ export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
   const character = useCharacter()
   const { casters, lines, granted, loading } = useSpellLines(sheet.spellEffects)
   const detailTarget = useSheetRowDetail('spells')
+  const level = character ? totalLevel(character) : 0
+  // A spell that deals damage or heals rolls from its whole row; its full text is one click
+  // away on the info icon.
+  const cover = useCallback(
+    (line: SpellLine): RowCover | undefined => {
+      const spec = spellRoll(line, sheet, level)
+      return (
+        spec && {
+          button: <RollCover spec={spec} />,
+          info: (
+            <OverlayTrigger
+              placement="top"
+              overlay={<Tooltip>Full text of {line.spell.name}</Tooltip>}
+            >
+              <button
+                type="button"
+                className="roll-info"
+                aria-label={`Full text of ${line.spell.name}`}
+              >
+                <Icon name="info" />
+              </button>
+            </OverlayTrigger>
+          ),
+        }
+      )
+    },
+    [sheet, level],
+  )
   if (!character) return null
   return (
     <div className="sheet-spells">
@@ -58,13 +91,7 @@ export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
           {sheet.spellStats.map((row) => {
             const caster = casters.find((c) => c.name === row.from)
             const flag = row.dc.lines.find((l) => l.status === 'flag')
-            const attackSpec: BreakdownSpec = {
-              id: `spell:${row.id}:attack`,
-              label: `${row.from} spell attack bonus`,
-              amountHeader: 'Spell attack bonus',
-              quantity: row.attack,
-              format: formatMod,
-            }
+            const attackSpec = spellAttackSpec(row)
             return (
               <tr key={row.id}>
                 <td>
@@ -103,6 +130,7 @@ export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
               lines={lines}
               label="Your spells"
               detailTarget={detailTarget}
+              cover={cover}
               pin={(line) => <PinButton kind="spell" id={line.id} />}
               action={{
                 key: 'concentrate',

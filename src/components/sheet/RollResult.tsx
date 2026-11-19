@@ -27,7 +27,7 @@ const signed = (amount: number) => `${amount < 0 ? '-' : '+'}${Math.abs(amount)}
 function expressionOf(record: CheckRollRecord) {
   const dice = record.dice
     .map((group, at) => {
-      const text = `${group.rolls.length}d${group.sides}`
+      const text = `${group.rolls.length}d${group.sides}${group.type ? ` ${group.type}` : ''}`
       if (at === 0) return group.sign === -1 ? `-${text}` : text
       return `${group.sign === -1 ? '-' : '+'} ${text}`
     })
@@ -80,6 +80,7 @@ function Breakdown({ record }: { record: CheckRollRecord }) {
                 {group.sign === -1 && '- '}
                 <span className="sheet-roll__sides">d{group.sides}</span>{' '}
                 {note === 'dropped' ? <s>{die}</s> : die}
+                {group.type && <span className="sheet-roll__note"> {group.type}</span>}
                 {note && <span className="sheet-roll__note"> {note}</span>}
               </span>
             )
@@ -87,6 +88,11 @@ function Breakdown({ record }: { record: CheckRollRecord }) {
         )}
         {record.modifier !== 0 && <span>{flat(record.modifier)}</span>}
       </div>
+      {record.typed && record.typed.length > 1 && (
+        <div className="small text-body-secondary">
+          {record.typed.map((part) => `${part.type} ${part.total}`).join(', ')}
+        </div>
+      )}
       {record.parts && record.parts.length > 0 && (
         <div className="small text-body-secondary">
           Modifier:{' '}

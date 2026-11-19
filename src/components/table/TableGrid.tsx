@@ -123,6 +123,8 @@ interface TableRowProps<T> {
   /** meta.standard and, for a non-standard row, meta.reason - flat for the same reason. */
   standard: boolean
   nonStandardReason: string | undefined
+  /** meta.rowClass, flat for the same reason. */
+  hostClass: string | undefined
   columns: Column<T>[]
   selectionMode: SelectionMode
   rowClick: 'focus' | 'select'
@@ -155,6 +157,7 @@ function TableRowInner<T>({
   gatedReason,
   standard,
   nonStandardReason,
+  hostClass,
   columns,
   selectionMode,
   rowClick,
@@ -175,6 +178,7 @@ function TableRowInner<T>({
     // A non-standard row is greyed whether or not it can be selected.
     !canSelect || !standard ? 'text-body-secondary' : '',
     !standard ? 'data-table-grid__nonstandard' : '',
+    hostClass ?? '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -754,6 +758,7 @@ export function TableGrid<T>({
                   gatedReason={meta.gated?.reason}
                   standard={meta.standard}
                   nonStandardReason={meta.standard ? undefined : meta.reason}
+                  hostClass={meta.rowClass}
                   columns={columns}
                   selectionMode={selectionMode}
                   rowClick={rowClick}

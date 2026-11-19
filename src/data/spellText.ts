@@ -288,7 +288,7 @@ const DAMAGE_TYPES = new Set([
 ])
 
 /** Every string inside an entry tree, in reading order. */
-function textOf(entries: unknown): string {
+export function textOf(entries: unknown): string {
   const out: string[] = []
   const walk = (node: unknown) => {
     if (typeof node === 'string') out.push(node)
@@ -325,19 +325,60 @@ export function damageOf(
   const dice = new Set<string>()
   const written: string[] = []
   let average = 0
-  for (const m of textOf(entries).matchAll(damageTag)) {
-    const word = m[2]?.toLowerCase()
-    if (word && DAMAGE_TYPES.has(word)) written.push(titleCase(word))
-    const roll = m[1].trim()
-    dice.add(roll)
-    average = Math.max(average, parseDice(roll)?.average ?? 0)
-    if (scales) break
+  for (const tag of damageTags(entries, scales)) {
+    if (tag.type) written.push(titleCase(tag.type))
+    dice.add(tag.roll)
+    average = Math.max(average, parseDice(tag.roll)?.average ?? 0)
   }
   return {
     text: [...dice].join('; '),
     average,
     types: [...new Set([...inflict, ...written])],
   }
+}
+
+/** One roll of a spell's damage with its type in lower case ("" when nothing names it). */
+export interface DamagePart {
+  roll: string
+  type: string
+}
+
+/** The damage tags of a text, in reading order (a scaling cantrip's first only). */
+function damageTags(entries: unknown, scales: boolean): DamagePart[] {
+  const found: DamagePart[] = []
+  for (const m of textOf(entries).matchAll(damageTag)) {
+    const word = m[2]?.toLowerCase()
+    found.push({ roll: m[1].trim(), type: word && DAMAGE_TYPES.has(word) ? word : '' })
+    if (scales) break
+  }
+  return found
+}
+
+/**
+ * The distinct rolls of a spell's damage, each with its type: the word written after the
+ * tag, else what the spell inflicts when that is one type or as many types as rolls.
+ */
+export function damagePartsOf(
+  entries: unknown,
+  damageInflict: string[] | undefined,
+  scales = false,
+): DamagePart[] {
+  const inflict = damageInflict ?? []
+  const found = damageTags(entries, scales)
+  const typed = found.map((part, at) => ({
+    roll: part.roll,
+    type:
+      part.type ||
+      (inflict.length === 1
+        ? inflict[0]
+        : found.length === inflict.length
+          ? inflict[at]
+          : ''),
+  }))
+  return typed.filter(
+    (part, at) =>
+      typed.findIndex((p) => p.roll === part.roll && p.type === part.type) === at,
+  )
 }
 
 /** The healing a spell gives: dice when its text states them, else "Yes", else "". */
@@ -384,20 +425,41 @@ export function upcastOf(higher: unknown[] | undefined): string {
   return 'Yes'
 }
 
+/** What a cantrip rolls from a character level on: "2d10" from level 5. */
+export interface CantripTier {
+  level: number
+  dice: string
+}
+
+/** One thing a cantrip rolls as it grows ("Necrotic damage to wounded creature"). */
+export interface CantripDice {
+  label: string
+  tiers: CantripTier[]
+}
+
+/** The scaling of a cantrip's damage, each roll with its tiers in level order. */
+export function cantripDiceOf(
+  scaling: RawScalingLevelDice | RawScalingLevelDice[] | undefined,
+): CantripDice[] {
+  if (!scaling) return []
+  return (Array.isArray(scaling) ? scaling : [scaling]).map((s) => ({
+    label: s.label,
+    tiers: Object.entries(s.scaling)
+      .map(([level, dice]) => ({ level: Number(level), dice }))
+      .sort((a, b) => a.level - b.level),
+  }))
+}
+
 /** "1d6, 2d6 at 5, 3d6 at 11, 4d6 at 17" from a cantrip's scaling; "" when none. */
 export function cantripScalingOf(
   scaling: RawScalingLevelDice | RawScalingLevelDice[] | undefined,
 ): string {
-  if (!scaling) return ''
-  const list = Array.isArray(scaling) ? scaling : [scaling]
-  const one = (s: RawScalingLevelDice) =>
-    Object.entries(s.scaling)
-      .sort(([a], [b]) => Number(a) - Number(b))
-      .map(([level, dice], i) => (i === 0 ? dice : `${dice} at ${level}`))
-      .join(', ')
-  return list.length === 1
-    ? one(list[0])
-    : list.map((s) => `${s.label}: ${one(s)}`).join('; ')
+  const list = cantripDiceOf(scaling)
+  const one = (dice: CantripDice) =>
+    dice.tiers.map((t, i) => (i === 0 ? t.dice : `${t.dice} at ${t.level}`)).join(', ')
+  return list.length <= 1
+    ? list.map(one).join('')
+    : list.map((d) => `${d.label}: ${one(d)}`).join('; ')
 }
 
 // ---- Small decodes ----------------------------------------------------------

@@ -18,6 +18,10 @@ import {
   castingUnitOf,
   componentsOf,
   damageOf,
+  damagePartsOf,
+  cantripDiceOf,
+  type CantripDice,
+  type DamagePart,
   durationKindOf,
   durationText,
   healingOf,
@@ -90,6 +94,8 @@ export interface Spell {
   /** The average of its biggest roll (a scaling cantrip's first), to sort by; 0 when none. */
   damageAverage: number
   damageTypes: string[]
+  /** The rolls it deals, each with its own type, for the sheet to roll ([] when none). */
+  damageParts: DamagePart[]
   /** "2d8 + spellcasting modifier", "Yes", or "". */
   healing: string
   /** Saving-throw abilities in full ("Dexterity"). */
@@ -105,6 +111,8 @@ export interface Spell {
   upcast: string
   /** "1d6, 2d6 at 5, 3d6 at 11, 4d6 at 17", or "". */
   cantripScaling: string
+  /** What a cantrip rolls at each character level, for each thing it rolls. */
+  cantripDice: CantripDice[]
   entries: Entry[]
   entriesHigherLevel?: Entry[]
   lists: SpellLists
@@ -357,6 +365,7 @@ export const loadSpells = memoizeContent(async (): Promise<Spell[]> => {
         damage: damage.text,
         damageAverage: damage.average,
         damageTypes: damage.types,
+        damageParts: damagePartsOf(raw.entries, raw.damageInflict, scales),
         healing: healingOf(raw.entries, raw.miscTags),
         save: (raw.savingThrow ?? []).map(titleCase),
         attack: attackOf(raw.spellAttack),
@@ -366,6 +375,7 @@ export const loadSpells = memoizeContent(async (): Promise<Spell[]> => {
         tags: tagsOf(raw.miscTags),
         upcast: upcastOf(raw.entriesHigherLevel),
         cantripScaling: cantripScalingOf(raw.scalingLevelDice),
+        cantripDice: cantripDiceOf(raw.scalingLevelDice),
         entries: raw.entries ?? [],
         entriesHigherLevel: raw.entriesHigherLevel,
         lists: listsFor(lookup[raw.source.toLowerCase()]?.[raw.name.toLowerCase()]),

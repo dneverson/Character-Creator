@@ -16,8 +16,16 @@ export function RollCover({ spec }: { spec: RollSpec }) {
     <button
       type="button"
       className="roll-cover"
-      aria-label={`Roll ${spec.label}, ${formatMod(spec.modifier)}`}
-      onClick={() => roller.open(spec)}
+      aria-label={
+        spec.kind === 'damage'
+          ? `Roll ${spec.label}`
+          : `Roll ${spec.label}, ${formatMod(spec.modifier)}`
+      }
+      onClick={(event) => {
+        // The row may be a table row whose own click opens its text: this click is the roll's.
+        event.stopPropagation()
+        roller.open(spec)
+      }}
     />
   )
 }

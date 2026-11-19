@@ -197,3 +197,30 @@ describe('a situational bonus', () => {
     expect(outcome.total).toBe(3 + 6 + 2 + 5 + 3)
   })
 })
+
+describe('rollPieces', () => {
+  it('rolls typed parts together and reports each part total', async () => {
+    const { rollPieces } = await import('./roll')
+    const out = rollPieces(
+      [
+        { expression: '1d6', type: 'bludgeoning' },
+        { expression: '1d4+1', type: 'cold' },
+      ],
+      dice(3, 2),
+    )
+    expect(out.total).toBe(6)
+    expect(out.typed).toEqual([
+      { type: 'bludgeoning', total: 3 },
+      { type: 'cold', total: 3 },
+    ])
+    expect(out.dice.map((d) => d.type)).toEqual(['bludgeoning', 'cold'])
+  })
+
+  it('leaves untyped parts untyped and doubles dice on a critical', async () => {
+    const { rollPieces } = await import('./roll')
+    const out = rollPieces([{ expression: '1d6', type: '' }], dice(1, 2), true)
+    expect(out.typed).toBeUndefined()
+    expect(out.critical).toBe(true)
+    expect(out.total).toBe(3)
+  })
+})
