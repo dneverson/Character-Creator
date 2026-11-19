@@ -9,6 +9,8 @@ import {
 import {
   ROLL_HISTORY_LIMIT,
   activeRoll,
+  checkRollById,
+  checkRolls,
   newRoll,
   rollAction,
   rollRecords,
@@ -155,5 +157,50 @@ describe('a roll refined after it was made', () => {
       e.action?.type === 'roll' ? [e.action.roll] : [],
     )
     expect(steps).toEqual([matrix, picked])
+  })
+})
+
+describe('a roll made on the sheet', () => {
+  const checkRoll = (label: string, total: number) =>
+    newRoll({
+      stream: 'check',
+      kind: 'check',
+      label,
+      expression: '1d20+5',
+      mode: 'normal',
+      dice: [{ sign: 1, sides: 20, rolls: [total - 5], dropped: [] }],
+      modifier: 5,
+      total,
+    })
+
+  it('is recorded in the history with its label, expression, dice and total', () => {
+    const roll = checkRoll('Stealth check', 17)
+    const made = edited(createCharacter(), {}, rollAction(roll))
+    const entry = made.history[made.history.length - 1]
+    expect(entry.by).toBe('device')
+    expect(entry.action).toEqual({ type: 'roll', roll })
+    expect(roll).toMatchObject({
+      label: 'Stealth check',
+      expression: '1d20+5',
+      total: 17,
+      dice: [{ rolls: [12] }],
+    })
+  })
+
+  it('is read back from the history, oldest first, apart from the other rolls', () => {
+    const first = checkRoll('Stealth check', 17)
+    const second = checkRoll('Strength save', 9)
+    const made = withRolls([first, statRoll([15]), second])
+    expect(checkRolls(made.history)).toEqual([first, second])
+  })
+
+  it('is found by its id, and only when it is a roll of the sheet', () => {
+    const roll = checkRoll('Stealth check', 17)
+    const other = statRoll([15])
+    const made = withRolls([roll, other])
+    expect(checkRollById(made, roll.id)).toEqual(roll)
+    expect(checkRollById(made, other.id)).toBeUndefined()
+    expect(checkRollById(made, 'nothing')).toBeUndefined()
+    expect(checkRollById(made, null)).toBeUndefined()
   })
 })

@@ -8,6 +8,7 @@
 // step while the browser shows each roll once, as it stands now.
 
 import type {
+  CheckRollRecord,
   Character,
   HistoryAction,
   HistoryEntry,
@@ -80,4 +81,29 @@ export function withCursor(
   id: string | null,
 ): RollCursors {
   return { ...character.rollCursors, [stream]: id }
+}
+
+/** Whether a recorded roll is one made on the sheet in play. */
+export function isCheckRoll(roll: RollRecord): roll is CheckRollRecord {
+  return roll.kind === 'check'
+}
+
+/** The rolls made on the sheet, oldest first (the sheet's roll log reads these). */
+export function checkRolls(history: readonly HistoryEntry[]): CheckRollRecord[] {
+  return rollRecords(history, 'check').filter(isCheckRoll)
+}
+
+/** The roll made on the sheet with this id, or undefined when the history has none. */
+export function checkRollById(
+  character: Character,
+  id: string | null,
+): CheckRollRecord | undefined {
+  if (!id) return undefined
+  for (let at = character.history.length - 1; at >= 0; at--) {
+    const action = character.history[at].action
+    if (action?.type === 'roll' && action.roll.id === id && isCheckRoll(action.roll)) {
+      return action.roll
+    }
+  }
+  return undefined
 }

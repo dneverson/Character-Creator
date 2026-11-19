@@ -2,9 +2,11 @@
 // a button that says what it is and whether it is used, so none depends on how it looks.
 
 import type { ReactNode } from 'react'
+import Button from 'react-bootstrap/Button'
 import { ordinal } from '../../data/spellText'
 import type { DerivedSheet } from '../../derived'
 import {
+  deathSaveRolled,
   restorePact,
   restoreSlot,
   spendPact,
@@ -14,6 +16,8 @@ import {
   type DeathSave,
 } from '../../play/actions'
 import type { Pool } from '../../play/derivePlay'
+import { naturalOf } from '../../dice/roll'
+import { useRoller } from './rollerContext'
 import { useApplyPlay, usePlay } from './usePlay'
 
 /** One pip: a button that names what it is and whether it is used. */
@@ -145,6 +149,7 @@ const STATE_TEXT = { dying: 'Dying', stable: 'Stable', dead: 'Dead', conscious: 
 /** The death saves, shown while the character is at 0 hit points or has any marked. */
 export function DeathSaves({ sheet }: { sheet: DerivedSheet }) {
   const current = usePlay(sheet)
+  const roller = useRoller()
   if (!current) return null
   const { play, derived } = current
   const { successes, failures } = play.deathSaves
@@ -154,6 +159,25 @@ export function DeathSaves({ sheet }: { sheet: DerivedSheet }) {
       <span className="sheet-slots__name">Death saves</span>
       <DeathSaveRow kind="successes" marked={successes} />
       <DeathSaveRow kind="failures" marked={failures} />
+      {roller && derived.deathState === 'dying' && (
+        <Button
+          size="sm"
+          variant="primary"
+          onClick={() =>
+            roller.open({
+              kind: 'test',
+              label: 'Death saving throw',
+              modifier: 0,
+              tables: [],
+              parts: [],
+              effect: (state, outcome) =>
+                deathSaveRolled(state, naturalOf(outcome), derived.maxHp, outcome.total),
+            })
+          }
+        >
+          Roll death save
+        </Button>
+      )}
       {STATE_TEXT[derived.deathState] && (
         <strong className="sheet-hp__state">{STATE_TEXT[derived.deathState]}</strong>
       )}

@@ -11,6 +11,7 @@ import {
   type AbilityKey,
   type RollConfig,
 } from '../dice/dice'
+import type { RollOutcome } from '../dice/roll'
 import type { AbilityIncreases } from '../data/abilityOptions'
 import type { ItemKind } from '../data/itemTypes'
 import type { GrantPicks, PickKind, PickMap } from './picks'
@@ -27,7 +28,7 @@ export const DEFAULT_BOOKS = ['PHB', 'MM', 'DMG']
  * background's story tables a third, the gold rolled for starting equipment a fourth. New roll types add a new stream string
  * without reshaping the history.
  */
-export type RollStream = 'ability' | 'hitDie' | 'story' | 'startingGold'
+export type RollStream = 'ability' | 'hitDie' | 'story' | 'startingGold' | 'check'
 
 /** The picked line of a saved matrix roll (mirrors MatrixState.line). */
 export type MatrixLineRef = { kind: 'row' | 'col' | 'diag'; index: number }
@@ -121,6 +122,28 @@ export interface StartingGoldRollRecord extends RollRecordBase {
   gold: number
 }
 
+/**
+ * A roll made on the sheet in play: an ability check, a saving throw, an attack, a damage
+ * roll, a death save or a free roll. Each roll is its own record, so the log of the
+ * sheet is these records, newest first.
+ */
+export interface CheckRollRecord extends RollRecordBase, RollOutcome {
+  kind: 'check'
+  /** What was rolled, as the log names it: "Stealth check", "Longsword attack". */
+  label: string
+  /**
+   * The parts of the modifier, as "how it adds up" lists them ("Dexterity +3"), so the log
+   * can show where the number came from. Absent for a free roll.
+   */
+  parts?: RollPart[]
+}
+
+/** One line of what a roll's modifier adds up from. */
+export interface RollPart {
+  label: string
+  amount: number
+}
+
 /** Any recorded roll. Discriminated by `kind`. */
 export type RollRecord =
   | StatPoolRollRecord
@@ -130,6 +153,7 @@ export type RollRecord =
   | PoolRollRecord
   | TableRollRecord
   | StartingGoldRollRecord
+  | CheckRollRecord
 
 /** The roll currently applied in each stream, by record id (the browse cursor). */
 export type RollCursors = Partial<Record<RollStream, string | null>>

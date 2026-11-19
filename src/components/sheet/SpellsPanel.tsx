@@ -8,12 +8,14 @@ import { formatMod } from '../../dice/dice'
 import type { DerivedSheet } from '../../derived'
 import type { ClassCaster } from '../../rules/spellcasting'
 import { Abbr } from '../Abbr'
-import { DerivedNumber } from '../derived/DerivedNumber'
+import { DerivedNumber, type BreakdownSpec } from '../derived/DerivedNumber'
 import { SpellLines } from '../editor/SpellLines'
 import { useSpellLines } from '../editor/useSpellLines'
 import { useCharacter } from '../../character/useCharacterDoc'
 import { concentrationAction } from './concentrationAction'
 import { PinButton } from './PinButton'
+import { RollCover } from './RollCover'
+import { testRoll } from './rollSpec'
 import { useSheetRowDetail } from './SheetDetail'
 import { SlotPips } from './SheetPips'
 import { useApplyPlay } from './usePlay'
@@ -56,6 +58,13 @@ export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
           {sheet.spellStats.map((row) => {
             const caster = casters.find((c) => c.name === row.from)
             const flag = row.dc.lines.find((l) => l.status === 'flag')
+            const attackSpec: BreakdownSpec = {
+              id: `spell:${row.id}:attack`,
+              label: `${row.from} spell attack bonus`,
+              amountHeader: 'Spell attack bonus',
+              quantity: row.attack,
+              format: formatMod,
+            }
             return (
               <tr key={row.id}>
                 <td>
@@ -70,14 +79,9 @@ export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
                     quantity={row.dc}
                   />
                 </td>
-                <td className="text-end">
-                  <DerivedNumber
-                    id={`spell:${row.id}:attack`}
-                    label={`${row.from} spell attack bonus`}
-                    amountHeader="Spell attack bonus"
-                    quantity={row.attack}
-                    format={formatMod}
-                  />
+                <td className="text-end roll-host">
+                  <RollCover spec={testRoll(`${row.from} spell attack`, attackSpec)} />
+                  <DerivedNumber {...attackSpec} rolls />
                 </td>
                 <td>{caster ? allowance(caster, character) : ''}</td>
               </tr>

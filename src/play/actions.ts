@@ -77,6 +77,30 @@ export function toggleDeathSave(
   return { ...play, deathSaves: { ...play.deathSaves, [kind]: count } }
 }
 
+/**
+ * A death saving throw rolled: a 10 or more is a success, less a failure, a natural 1 is
+ * two failures, and a natural 20 brings the character back to 1 hit point (both editions).
+ * `natural` is the number the d20 showed; `total` is that number with any bonus added (a
+ * feature that adds to death saves), which is what the 10 is measured against.
+ */
+export function deathSaveRolled(
+  play: PlayState,
+  natural: number,
+  max: number,
+  total = natural,
+): PlayState {
+  if (natural === 20) return heal(play, 1, max)
+  const failed = natural === 1 ? 2 : total < 10 ? 1 : 0
+  const { successes, failures } = play.deathSaves
+  return {
+    ...play,
+    deathSaves: {
+      successes: failed > 0 ? successes : Math.min(DEATH_SAVE_LIMIT, successes + 1),
+      failures: Math.min(DEATH_SAVE_LIMIT, failures + failed),
+    },
+  }
+}
+
 /** One spell slot of this level (1 to 9) spent; `total` is what the build gives. */
 export function spendSlot(play: PlayState, level: number, total: number): PlayState {
   return setSlotsSpent(play, level, spentOf(play, level, total) + 1, total)

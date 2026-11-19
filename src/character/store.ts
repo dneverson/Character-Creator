@@ -316,7 +316,10 @@ export function selectCanUndoLevelUp(
 function isPlayEntry(entry: HistoryEntry): boolean {
   const carried = entry.action?.type === 'inventory'
   const earned = entry.action?.type === 'experience'
-  if (entry.action && entry.action.type !== 'rest' && !carried && !earned) return false
+  const rolled = entry.action?.type === 'roll' && entry.action.roll.kind === 'check'
+  if (entry.action && entry.action.type !== 'rest' && !carried && !earned && !rolled) {
+    return false
+  }
   return entry.changes.every(
     (change) => change.path[0] === 'play' || (carried && change.path[0] === 'equipment'),
   )

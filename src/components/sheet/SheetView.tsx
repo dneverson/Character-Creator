@@ -7,13 +7,20 @@ import Spinner from 'react-bootstrap/Spinner'
 import { selectCanUndoLevelUp, useCharacterStore } from '../../character/store'
 import type { Character } from '../../character/model'
 import { useCharacterPart } from '../../character/useCharacterDoc'
-import { ABILITIES, ABILITY_NAMES, formatMod, abilityMod } from '../../dice/dice'
+import {
+  ABILITIES,
+  ABILITY_NAMES,
+  formatMod,
+  abilityMod,
+  type AbilityKey,
+} from '../../dice/dice'
 import { editionYear } from '../../data/labels'
 import type { DerivedSheet } from '../../derived'
 import type { SpeedRow } from '../../derived/speed'
 import { useContentNames } from '../../hooks/useContentNames'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { applyPlayEffects } from '../../play/playEffects'
+import type { BreakdownSpec } from '../derived/DerivedNumber'
 import { useDerivedSheet } from '../editor/useDerivedSheet'
 import { CharacterHeader } from './CharacterHeader'
 import { SheetDetailProvider } from './SheetDetail'
@@ -21,6 +28,8 @@ import { NO_VALUE } from '../table/facts'
 import { StatBox } from './FixedPanel'
 import { HpBox } from './HpBox'
 import { PlayStrip } from './PlayStrip'
+import { RollerProvider } from './Roller'
+import { testRoll } from './rollSpec'
 import { SheetRoot } from './SheetRoot'
 import { SheetTabs } from './SheetTabs'
 import {
@@ -45,6 +54,32 @@ const speedSub = (speeds: readonly SpeedRow[]) =>
     .join(', ') || 'feet'
 
 const feet = (n: number) => `${n} ft.`
+
+/** How an ability score adds up: the box's info icon opens it, the roll window shows it. */
+const abilityBreakdown = (sheet: DerivedSheet, key: AbilityKey): BreakdownSpec => ({
+  id: `ability:${key}`,
+  label: ABILITY_NAMES[key],
+  quantity: sheet.abilities[key],
+  amountHeader: 'Score',
+  totalLabel: `${ABILITY_NAMES[key]} score`,
+  title: `${ABILITY_NAMES[key]} ${sheet.totals[key]} (${formatMod(abilityMod(sheet.totals[key]))})`,
+})
+
+/** The check of an ability: its modifier, with the score's lines as how it adds up. */
+const abilityRoll = (sheet: DerivedSheet, key: AbilityKey) => ({
+  ...testRoll(`${ABILITY_NAMES[key]} check`, abilityBreakdown(sheet, key)),
+  modifier: abilityMod(sheet.totals[key]),
+  parts: [
+    { label: `${ABILITY_NAMES[key]} modifier`, amount: abilityMod(sheet.totals[key]) },
+  ],
+})
+
+const initiativeBreakdown = (sheet: DerivedSheet): BreakdownSpec => ({
+  id: 'initiative',
+  label: 'Initiative',
+  quantity: sheet.combat.initiative,
+  format: formatMod,
+})
 
 const selectId = (character: Character) => character.id
 const selectExhaustion = (character: Character) => character.play.exhaustion
@@ -94,24 +129,26 @@ export function SheetView() {
   return (
     <SheetRoot template={template}>
       <SheetDetailProvider>
-        <Container as="main" fluid className="sheet py-3">
-          <CharacterHeader
-            mode="sheet"
-            edition={sheet?.edition}
-            ruleset={sheet ? `${editionYear(sheet.edition)} rules` : undefined}
-            actions={actions}
-          />
-          {loading && (
-            <div className="text-body-secondary mb-2">
-              <Spinner size="sm" animation="border" className="me-2" />
-              Loading the sheet...
-            </div>
-          )}
-          {error && (
-            <Alert variant="danger">Could not load the data: {error.message}</Alert>
-          )}
-          {sheet && !error && <SheetBody sheet={sheet} phone={phone} />}
-        </Container>
+        <RollerProvider>
+          <Container as="main" fluid className="sheet py-3">
+            <CharacterHeader
+              mode="sheet"
+              edition={sheet?.edition}
+              ruleset={sheet ? `${editionYear(sheet.edition)} rules` : undefined}
+              actions={actions}
+            />
+            {loading && (
+              <div className="text-body-secondary mb-2">
+                <Spinner size="sm" animation="border" className="me-2" />
+                Loading the sheet...
+              </div>
+            )}
+            {error && (
+              <Alert variant="danger">Could not load the data: {error.message}</Alert>
+            )}
+            {sheet && !error && <SheetBody sheet={sheet} phone={phone} />}
+          </Container>
+        </RollerProvider>
       </SheetDetailProvider>
     </SheetRoot>
   )
@@ -139,14 +176,8 @@ const SheetBody = memo(function SheetBody({
               label={ABILITY_NAMES[key]}
               value={formatMod(abilityMod(sheet.totals[key]))}
               sub={sheet.totals[key]}
-              breakdown={{
-                id: `ability:${key}`,
-                label: ABILITY_NAMES[key],
-                quantity: sheet.abilities[key],
-                amountHeader: 'Score',
-                totalLabel: `${ABILITY_NAMES[key]} score`,
-                title: `${ABILITY_NAMES[key]} ${sheet.totals[key]} (${formatMod(abilityMod(sheet.totals[key]))})`,
-              }}
+              roll={abilityRoll(sheet, key)}
+              breakdown={abilityBreakdown(sheet, key)}
             />
           ))}
         </div>
@@ -184,12 +215,8 @@ const SheetBody = memo(function SheetBody({
           <StatBox
             label="Initiative"
             value={formatMod(sheet.combat.initiative.value)}
-            breakdown={{
-              id: 'initiative',
-              label: 'Initiative',
-              quantity: sheet.combat.initiative,
-              format: formatMod,
-            }}
+            roll={testRoll('Initiative', initiativeBreakdown(sheet))}
+            breakdown={initiativeBreakdown(sheet)}
           />
           <StatBox
             label="Armor class"

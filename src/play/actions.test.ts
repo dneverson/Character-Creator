@@ -3,6 +3,7 @@ import { defaultPlayState, type PlayState } from '../character/model'
 import {
   addXp,
   damage,
+  deathSaveRolled,
   gainTemp,
   heal,
   restoreHitDie,
@@ -207,5 +208,47 @@ describe('experience points', () => {
     expect(addXp(tracked, 250.9).xp).toBe(350)
     expect(addXp(tracked, -50).xp).toBe(100)
     expect(addXp(defaultPlayState(), 50).xp).toBeUndefined()
+  })
+})
+
+describe('deathSaveRolled', () => {
+  const dying = (successes: number, failures: number): PlayState => ({
+    ...defaultPlayState(),
+    damage: 12,
+    deathSaves: { successes, failures },
+  })
+
+  it('marks a success on 10 or more and a failure below it', () => {
+    expect(deathSaveRolled(dying(1, 1), 10, 12).deathSaves).toEqual({
+      successes: 2,
+      failures: 1,
+    })
+    expect(deathSaveRolled(dying(1, 1), 9, 12).deathSaves).toEqual({
+      successes: 1,
+      failures: 2,
+    })
+  })
+
+  it('measures the 10 against the total, with a bonus to death saves added', () => {
+    expect(deathSaveRolled(dying(0, 0), 8, 12, 10).deathSaves).toEqual({
+      successes: 1,
+      failures: 0,
+    })
+    expect(deathSaveRolled(dying(0, 0), 11, 12, 9).deathSaves).toEqual({
+      successes: 0,
+      failures: 1,
+    })
+  })
+
+  it('marks two failures on a natural 1, never past three', () => {
+    expect(deathSaveRolled(dying(0, 0), 1, 12).deathSaves.failures).toBe(2)
+    expect(deathSaveRolled(dying(0, 2), 1, 12).deathSaves.failures).toBe(3)
+    expect(deathSaveRolled(dying(3, 0), 15, 12).deathSaves.successes).toBe(3)
+  })
+
+  it('brings the character back to 1 hit point on a natural 20', () => {
+    const back = deathSaveRolled(dying(1, 2), 20, 12)
+    expect(back.damage).toBe(11)
+    expect(back.deathSaves).toEqual({ successes: 0, failures: 0 })
   })
 })

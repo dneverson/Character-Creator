@@ -41,6 +41,7 @@ export const appConfig = {
   storageKeys: {
     theme: 'cc-theme',
     detailStyle: 'cc-detail-style',
+    diceLook: 'cc-dice-look',
     sheetTemplate: 'cc-sheet-template',
     characters: 'cc-characters',
     charactersMoved: 'cc-characters-moved',
@@ -104,6 +105,23 @@ export const appConfig = {
      * letter. Rolls are always recorded one by one.
      */
     mergeWindowMs: 60_000,
+  },
+  /** The dice roller of the sheet (see src/dice/roll.ts). */
+  dice: {
+    /** Most dice one term may roll ("100d6"). */
+    maxCount: 100,
+    /** Most sides a die may have; the random source draws one byte, so at most 255. */
+    maxSides: 100,
+    /** Most terms an expression may add up ("1d8+1d6+2" is three). */
+    maxTerms: 10,
+    /** The dice the free roller offers as one click. */
+    quickDice: [4, 6, 8, 10, 12, 20, 100],
+    /** How long the dice tumble in the roll window before they land, in milliseconds. */
+    animationMs: 1000,
+    /** How often a rolling die shows another face while it tumbles, in milliseconds. */
+    flickerMs: 80,
+    /** The least contrast a die's number must have against the die, to be readable. */
+    minNumberContrast: 4.5,
   },
   /** Rules of the game that the app measures against (and flags, never blocks). */
   rules: {

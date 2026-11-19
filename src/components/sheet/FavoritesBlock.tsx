@@ -34,6 +34,9 @@ import { FeatureUses } from './featureUses'
 import { useFeatureUses } from './useFeatureUses'
 import { ItemCharges } from './ItemCharges'
 import { IconButton } from './PlayStrip'
+import { RollCover } from './RollCover'
+import type { RollSpec } from './rollSpec'
+import { attackRoll } from './attackRoll'
 import { AttackDamage, AttackToHit } from './SheetAttacks'
 import { useSheetDetail, useSheetRowDetail } from './SheetDetail'
 import { concentrationAction } from './concentrationAction'
@@ -82,6 +85,8 @@ interface RowProps {
   open?: () => void
   selected?: boolean
   stale?: boolean
+  /** What a click on the row rolls; absent for a row that rolls nothing. */
+  roll?: RollSpec
 }
 
 function FavoriteRow({
@@ -94,6 +99,7 @@ function FavoriteRow({
   open,
   selected,
   stale,
+  roll,
 }: RowProps) {
   const { remove, move } = useFavorites()
   const shown = cells.filter((c): c is Cell => c !== undefined && c !== false)
@@ -101,7 +107,7 @@ function FavoriteRow({
     <li
       className={`sheet-favs__row${selected ? ' sheet-favs__row--open' : ''}${
         open ? ' sheet-favs__row--link' : ''
-      }`}
+      }${roll ? ' roll-host' : ''}`}
       aria-label={stale ? `${KIND_LABEL[favorite.kind]}: ${STALE_FAVORITE}` : name}
       onClick={(e) => {
         if (!open || (e.target instanceof Element && e.target.closest(INTERACTIVE)))
@@ -109,6 +115,7 @@ function FavoriteRow({
         open()
       }}
     >
+      {roll && <RollCover spec={roll} />}
       <div className="sheet-favs__main">
         <div className="sheet-favs__name">
           <span className="sheet-favs__kind">{KIND_LABEL[favorite.kind]}</span>
@@ -203,6 +210,7 @@ function FavoritesList({
                 key={id}
                 {...at}
                 name={attackName(attack)}
+                roll={attackRoll(attack)}
                 cells={[
                   { label: 'To hit', node: <AttackToHit attack={attack} /> },
                   { label: 'Damage', node: <AttackDamage attack={attack} /> },

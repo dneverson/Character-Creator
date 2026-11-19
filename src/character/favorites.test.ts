@@ -10,6 +10,7 @@ import {
 import { edited } from './history'
 import { parseImportedCharacter } from './io'
 import { createCharacter, ensureCharacterDefaults } from './model'
+import { newRoll, rollAction } from './rollHistory'
 import { selectCanUndoLevelUp, useCharacterStore } from './store'
 
 const a: Favorite = { kind: 'attack', key: 'attack|Longsword|PHB' }
@@ -134,6 +135,40 @@ describe('a character with favorites', () => {
     expect(selectCanUndoLevelUp(after)).toBe(true)
     expect(after.characters[levelled.id].history).toEqual(levelled.history)
     expect(after.characters[levelled.id].completedAt).toBe(levelled.completedAt)
+    useCharacterStore.setState({ levelUpUndo: null })
+  })
+
+  it('keeps the Level up undo when a roll is made on the sheet after it', () => {
+    const made = createCharacter('Tordek')
+    const levelled = edited(
+      made,
+      { name: 'Tordek the Bold' },
+      { type: 'level-up', class: 'Fighter', from: 1, to: 2 },
+      1000,
+    )
+    const entryId = levelled.history[levelled.history.length - 1].id
+    useCharacterStore.setState({
+      characters: { [levelled.id]: levelled },
+      order: [levelled.id],
+      activeId: levelled.id,
+      levelUpUndo: { id: levelled.id, entryId, restore: { name: 'Tordek' } },
+    })
+    useCharacterStore.getState().updateActive(
+      {},
+      rollAction(
+        newRoll({
+          stream: 'check',
+          kind: 'check',
+          label: 'Stealth check',
+          expression: '1d20',
+          mode: 'normal',
+          dice: [{ sign: 1, sides: 20, rolls: [9], dropped: [] }],
+          modifier: 0,
+          total: 9,
+        }),
+      ),
+    )
+    expect(selectCanUndoLevelUp(useCharacterStore.getState())).toBe(true)
     useCharacterStore.setState({ levelUpUndo: null })
   })
 })

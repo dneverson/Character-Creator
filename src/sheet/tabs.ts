@@ -3,6 +3,7 @@
 
 import type { ComponentType } from 'react'
 import type { DerivedSheet } from '../derived'
+import { DicePanel } from '../components/sheet/DicePanel'
 import { ExtrasPanel } from '../components/sheet/ExtrasPanel'
 import { FeaturesPanel } from '../components/sheet/FeaturesPanel'
 import { InventoryPanel } from '../components/sheet/InventoryPanel'
@@ -41,6 +42,7 @@ export const SHEET_TABS: readonly SheetTab[] = [
     shows: (sheet) => sheet.spellStats.length > 0,
     Panel: SpellsPanel,
   },
+  { id: 'dice', label: 'Dice', shows: () => true, Panel: DicePanel },
   { id: 'inventory', label: 'Inventory', shows: () => true, Panel: InventoryPanel },
   {
     id: 'features',

@@ -7,7 +7,9 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 import type { Quantity } from '../../derived/types'
 import { Icon } from '../Icon'
+import { useRoller } from '../sheet/rollerContext'
 import { useSheetDetail, type Breakdown } from '../sheet/SheetDetail'
+import { tablesOf } from './breakdownTables'
 
 /** A further table under the number's own in the pane (the two-handed damage). */
 export interface BreakdownExtra {
@@ -41,22 +43,7 @@ function breakdownOf(spec: BreakdownSpec): Breakdown {
   return {
     id: spec.id,
     title: spec.title ?? `${spec.label} ${textOf(spec)}`,
-    tables: [
-      {
-        quantity: spec.quantity,
-        ariaLabel: spec.label,
-        amountHeader: spec.amountHeader ?? spec.label,
-        totalLabel: spec.totalLabel ?? spec.label,
-        format: spec.format,
-      },
-      ...(spec.also ?? []).map((extra) => ({
-        quantity: extra.quantity,
-        ariaLabel: extra.label,
-        amountHeader: extra.amountHeader ?? extra.label,
-        totalLabel: extra.label,
-        format: extra.format,
-      })),
-    ],
+    tables: tablesOf(spec),
   }
 }
 
@@ -77,26 +64,38 @@ type Kind = 'mod' | 'score' | 'total'
 export function DerivedNumber({
   kind = 'total',
   children,
+  rolls = false,
   ...spec
 }: BreakdownSpec & {
   /** The width of the column: a modifier, a score, a total (a DC, a save). */
   kind?: Kind
   /** What the button reads, when it is not the number ("1d8 + 3"). */
   children?: ReactNode
+  /**
+   * The row around the number opens its roll (see `RollCover`), so the number is plain
+   * text and only the info button beside it opens how the number adds up.
+   */
+  rolls?: boolean
 }) {
   const { selected, toggle } = useBreakdown(spec)
+  const roller = useRoller()
   const text = children ?? textOf(spec)
+  const readAs = typeof text === 'string' ? text : textOf(spec)
   return (
     <span className={`derived-number derived-number--${kind}`}>
-      <button
-        type="button"
-        className="derived-number__value"
-        aria-pressed={selected}
-        aria-label={`${spec.label}: ${typeof text === 'string' ? text : textOf(spec)}`}
-        onClick={toggle}
-      >
-        {text}
-      </button>
+      {rolls && roller ? (
+        <span className="derived-number__value">{text}</span>
+      ) : (
+        <button
+          type="button"
+          className="derived-number__value"
+          aria-pressed={selected}
+          aria-label={`${spec.label}: ${readAs}`}
+          onClick={toggle}
+        >
+          {text}
+        </button>
+      )}
       <OverlayTrigger placement="top" overlay={<Tooltip>{howText(spec.label)}</Tooltip>}>
         <button
           type="button"
@@ -112,14 +111,21 @@ export function DerivedNumber({
   )
 }
 
-/** The button over a stat box: the whole box opens the breakdown, the info icon in its corner. */
-export function DerivedBox(spec: BreakdownSpec) {
+/**
+ * The button over a stat box: the whole box opens the breakdown, the info icon in its
+ * corner. With `corner` the box opens its roll instead (see `RollCover`) and this is only
+ * the info icon in the corner.
+ */
+export function DerivedBox({
+  corner = false,
+  ...spec
+}: BreakdownSpec & { corner?: boolean }) {
   const { selected, toggle } = useBreakdown(spec)
   return (
     <OverlayTrigger placement="top" overlay={<Tooltip>{howText(spec.label)}</Tooltip>}>
       <button
         type="button"
-        className="derived-box"
+        className={`derived-box${corner ? ' derived-box--corner' : ''}`}
         aria-pressed={selected}
         aria-label={howText(spec.label)}
         onClick={toggle}

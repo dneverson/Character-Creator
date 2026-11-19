@@ -3,14 +3,16 @@
 
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
-import { ABILITIES, ABILITY_NAMES, formatMod } from '../../dice/dice'
+import { ABILITIES, ABILITY_NAMES, formatMod, type AbilityKey } from '../../dice/dice'
 import type { DerivedSheet } from '../../derived'
 import type { DefenseRow } from '../../derived/defenses'
 import { Abbr } from '../Abbr'
 import { feet } from '../../data/labels'
-import { DerivedNumber } from '../derived/DerivedNumber'
+import { DerivedNumber, type BreakdownSpec } from '../derived/DerivedNumber'
 import { FixedPanel } from './FixedPanel'
 import { ProficiencyGroup } from './ProficiencyGroup'
+import { RollCover } from './RollCover'
+import { testRoll } from './rollSpec'
 
 const MARKS = {
   proficient: { letter: 'P', name: 'Proficient' },
@@ -30,25 +32,63 @@ function ProficiencyMark({ kind }: { kind?: keyof typeof MARKS }) {
   )
 }
 
+/** A saving throw: the row rolls it, the info icon opens how it adds up. */
+function SaveRow({ sheet, ability }: { sheet: DerivedSheet; ability: AbilityKey }) {
+  const spec: BreakdownSpec = {
+    id: `save:${ability}`,
+    label: `${ABILITY_NAMES[ability]} save`,
+    quantity: sheet.saves[ability].total,
+    format: formatMod,
+    amountHeader: 'Save',
+  }
+  return (
+    <li className="sheet-row roll-host">
+      <RollCover spec={testRoll(spec.label, spec)} />
+      <ProficiencyMark
+        kind={sheet.saves[ability].proficient ? 'proficient' : undefined}
+      />
+      <span className="sheet-row__name">{ABILITY_NAMES[ability]}</span>
+      <DerivedNumber {...spec} kind="mod" rolls />
+    </li>
+  )
+}
+
+/** A skill: the row rolls its check, the info icon opens how it adds up. */
+function SkillRow({ skill }: { skill: DerivedSheet['skills'][number] }) {
+  const spec: BreakdownSpec = {
+    id: `skill:${skill.key}`,
+    label: skill.label,
+    quantity: skill.total,
+    format: formatMod,
+    amountHeader: 'Mod',
+  }
+  return (
+    <li className="sheet-row roll-host">
+      <RollCover spec={testRoll(`${skill.label} check`, spec)} />
+      <ProficiencyMark
+        kind={
+          skill.expertise !== undefined
+            ? 'expertise'
+            : skill.proficient
+              ? 'proficient'
+              : undefined
+        }
+      />
+      <span className="sheet-row__name">{skill.label}</span>
+      <span className="sheet-row__ability">
+        <Abbr code={skill.ability.toUpperCase()} />
+      </span>
+      <DerivedNumber {...spec} kind="mod" rolls />
+    </li>
+  )
+}
+
 export function SavesPanel({ sheet }: { sheet: DerivedSheet }) {
   return (
     <FixedPanel title="Saving throws" area="saves">
       <ul className="sheet-rows" aria-label="Saving throws">
         {ABILITIES.map((key) => (
-          <li key={key} className="sheet-row">
-            <ProficiencyMark
-              kind={sheet.saves[key].proficient ? 'proficient' : undefined}
-            />
-            <span className="sheet-row__name">{ABILITY_NAMES[key]}</span>
-            <DerivedNumber
-              id={`save:${key}`}
-              label={`${ABILITY_NAMES[key]} save`}
-              quantity={sheet.saves[key].total}
-              kind="mod"
-              format={formatMod}
-              amountHeader="Save"
-            />
-          </li>
+          <SaveRow key={key} sheet={sheet} ability={key} />
         ))}
       </ul>
     </FixedPanel>
@@ -60,29 +100,7 @@ export function SkillsPanel({ sheet }: { sheet: DerivedSheet }) {
     <FixedPanel title="Skills" area="skills">
       <ul className="sheet-rows" aria-label="Skills">
         {sheet.skills.map((skill) => (
-          <li key={skill.key} className="sheet-row">
-            <ProficiencyMark
-              kind={
-                skill.expertise !== undefined
-                  ? 'expertise'
-                  : skill.proficient
-                    ? 'proficient'
-                    : undefined
-              }
-            />
-            <span className="sheet-row__name">{skill.label}</span>
-            <span className="sheet-row__ability">
-              <Abbr code={skill.ability.toUpperCase()} />
-            </span>
-            <DerivedNumber
-              id={`skill:${skill.key}`}
-              label={skill.label}
-              quantity={skill.total}
-              kind="mod"
-              format={formatMod}
-              amountHeader="Mod"
-            />
-          </li>
+          <SkillRow key={skill.key} skill={skill} />
         ))}
       </ul>
     </FixedPanel>

@@ -3,54 +3,26 @@
 
 import Table from 'react-bootstrap/Table'
 import type { AttackRow } from '../../derived/attacks'
-import { formatMod } from '../../dice/dice'
 import { DerivedNumber } from '../derived/DerivedNumber'
 import { attackName, damageText } from '../editor/attackText'
 import { AttackNotes } from '../editor/CombatSection'
 import { NO_VALUE } from '../table/facts'
 import { PinButton } from './PinButton'
+import { attackRoll, damageSpec, hitSpec } from './attackRoll'
+import { RollCover } from './RollCover'
 
 /** The attack bonus of an attack, as a number that opens how it adds up. */
 export function AttackToHit({ attack }: { attack: AttackRow }) {
-  return (
-    <DerivedNumber
-      id={`attack:${attack.id}:hit`}
-      label={`${attack.name} attack bonus`}
-      amountHeader="Attack bonus"
-      quantity={attack.toHit}
-      format={formatMod}
-    />
-  )
+  return <DerivedNumber {...hitSpec(attack)} rolls />
 }
 
 /** The damage of an attack (and of the two hands), as numbers that open how they add up. */
 export function AttackDamage({ attack }: { attack: AttackRow }) {
   const { dice, bonus } = attack.damage
-  const damage = damageText(dice, bonus.value)
   return (
     <>
-      <DerivedNumber
-        id={`attack:${attack.id}:damage`}
-        label={`${attack.name} damage`}
-        title={`${attack.name} damage ${damage}`}
-        amountHeader={dice === '' ? 'Damage' : 'Damage bonus'}
-        quantity={bonus}
-        format={dice === '' ? String : formatMod}
-        also={
-          attack.twoHanded
-            ? [
-                {
-                  label: `${attack.name} damage, two hands`,
-                  amountHeader: 'Damage bonus',
-                  quantity: attack.twoHanded.bonus,
-                  format: formatMod,
-                },
-              ]
-            : undefined
-        }
-        kind="total"
-      >
-        {damage}
+      <DerivedNumber {...damageSpec(attack)} rolls kind="total">
+        {damageText(dice, bonus.value)}
       </DerivedNumber>
       {attack.twoHanded && (
         <div className="small text-body-secondary">
@@ -78,11 +50,14 @@ export function SheetAttacks({ attacks }: { attacks: AttackRow[] }) {
         {attacks.map((attack) => {
           const flag = attack.toHit.lines.find((l) => l.status === 'flag')
           return (
-            <tr key={attack.id}>
+            <tr key={attack.id} className="roll-host">
               <td className="sheet-pin">
                 <PinButton kind="attack" id={attack.id} />
               </td>
-              <td>{attackName(attack)}</td>
+              <td>
+                <RollCover spec={attackRoll(attack)} />
+                {attackName(attack)}
+              </td>
               <td className="text-end">
                 <AttackToHit attack={attack} />
               </td>

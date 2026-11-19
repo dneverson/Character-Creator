@@ -10,6 +10,14 @@ export function damageText(dice: string, bonus: number): string {
   return `${dice}${amount}`
 }
 
+/**
+ * The damage of an attack as dice to roll ("1d8 + 3"): the die when it is one ("2d6"), else
+ * just the bonus, which is then the whole damage.
+ */
+export function damageExpression(dice: string, bonus: number): string {
+  return damageText(/^\d+d\d+$/i.test(dice) ? dice : '', bonus)
+}
+
 /** The name of an attack, with how many of the weapon the character has. */
 export const attackName = (attack: AttackRow) =>
   `${attack.name}${attack.count > 1 ? ` (x${attack.count})` : ''}`
