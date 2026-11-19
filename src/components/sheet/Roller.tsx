@@ -26,9 +26,9 @@ import { RollModal } from './RollModal'
 import { RollerContext } from './rollerContext'
 import type { PlayEffect, RollSpec } from './rollSpec'
 
-/** What a click on Roll asks for. */
+/** What a click on a roll button asks for. */
 export interface RollRequest {
-  /** The whole roll (an attack rolls its damage with it), or only the damage of an attack. */
+  /** The roll itself (an attack's to-hit), or the damage of an attack, plain or critical. */
   part: 'roll' | 'damage' | 'critical'
   mode: RollMode
   /** The situational bonus on the d20 or on the dice typed. */
@@ -37,7 +37,7 @@ export interface RollRequest {
   damageBonus: Term[]
 }
 
-/** Rolls what the window asked for and records each roll; returns the rolls as recorded. */
+/** Rolls what the window asked for and records it; returns the roll as recorded. */
 export type Perform = (spec: RollSpec, request: RollRequest) => CheckRollRecord[]
 
 const LOOK_KEY = appConfig.storageKeys.diceLook
@@ -84,28 +84,23 @@ export function RollerProvider({
 
   const perform = useCallback<Perform>(
     (spec, { part, mode, bonus, damageBonus }) => {
-      const made: CheckRollRecord[] = []
-      let critical = part === 'critical'
-      if (part === 'roll') {
+      const { damage } = spec
+      if (part === 'roll' || !damage) {
         const outcome =
           spec.kind === 'test' || spec.d20 !== undefined
             ? rollD20(spec.d20 ?? spec.modifier, mode, rng, bonus)
             : rollExpression(spec.expression ?? '', rng, false, bonus)
-        made.push(record(spec.label, outcome, spec.parts, spec.effect))
-        critical = outcome.natural === 20
+        return [record(spec.label, outcome, spec.parts, spec.effect)]
       }
-      const { damage } = spec
-      if (damage) {
-        const label = `${damage.name} ${critical ? 'critical damage' : 'damage'}`
-        made.push(
-          record(
-            label,
-            rollExpression(damage.expression, rng, critical, damageBonus),
-            damage.parts,
-          ),
-        )
-      }
-      return made
+      const critical = part === 'critical'
+      const label = `${damage.name} ${critical ? 'critical damage' : 'damage'}`
+      return [
+        record(
+          label,
+          rollExpression(damage.expression, rng, critical, damageBonus),
+          damage.parts,
+        ),
+      ]
     },
     [record, rng],
   )

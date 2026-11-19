@@ -94,7 +94,7 @@ function Breakdown({ record }: { record: CheckRollRecord }) {
         </div>
       )}
       {record.bonus && (
-        <div className="small text-body-secondary">Situational bonus: {record.bonus}</div>
+        <div className="small text-body-secondary">Added: {record.bonus}</div>
       )}
     </div>
   )

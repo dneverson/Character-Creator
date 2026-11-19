@@ -124,6 +124,50 @@ function BonusField({
   )
 }
 
+/** A roll shown in the result area: which half of an attack it is, and the record. */
+interface Shown {
+  kind: 'hit' | 'damage'
+  record: CheckRollRecord
+}
+
+function ModeField({
+  mode,
+  onChange,
+  small,
+}: {
+  mode: RollMode
+  onChange: (mode: RollMode) => void
+  small: boolean
+}) {
+  return (
+    <div>
+      <div className="form-label" id="roll-mode-label">
+        Mode
+      </div>
+      <ToggleButtonGroup
+        type="radio"
+        name="roll-mode"
+        value={mode}
+        onChange={onChange}
+        aria-labelledby="roll-mode-label"
+        className="w-100"
+        size={small ? 'sm' : undefined}
+      >
+        {MODES.map((entry) => (
+          <ToggleButton
+            key={entry.mode}
+            id={`roll-mode-${entry.mode}`}
+            value={entry.mode}
+            variant={mode === entry.mode ? 'primary' : 'secondary'}
+          >
+            {entry.label}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+    </div>
+  )
+}
+
 function RollSession({
   spec,
   perform,
@@ -135,16 +179,21 @@ function RollSession({
 }) {
   const reducedMotion = useMediaQuery(REDUCED_MOTION)
   const d20 = spec.kind === 'test' || spec.d20 !== undefined
+  const attack = spec.damage !== undefined
   const [mode, setMode] = useState<RollMode>('normal')
   const [bonusText, setBonusText] = useState('')
   const [damageText, setDamageText] = useState('')
-  const [records, setRecords] = useState<CheckRollRecord[]>([])
+  // The rolls of this window, the one rolled last first; an attack keeps its to-hit and
+  // its damage, each replaced when it is rolled again.
+  const [shown, setShown] = useState<Shown[]>([])
+  // The next damage roll is a critical: a natural 20 turns it on, rolling damage turns it off.
+  const [critical, setCritical] = useState(false)
   const [phase, setPhase] = useState<TrayPhase>('idle')
   const bonus = bonusOf(bonusText)
   const extra = bonusOf(damageText)
   const invalid = bonus.error !== null || extra.error !== null
 
-  // The dice and the result are lower in the window than the Roll button on a narrow screen.
+  // The dice and the result are lower in the window than the roll buttons on a narrow screen.
   const tray = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (phase !== 'idle') tray.current?.scrollIntoView({ block: 'nearest' })
@@ -154,26 +203,30 @@ function RollSession({
     if (phase !== 'rolling') return
     const timer = setTimeout(() => setPhase('landed'), appConfig.dice.animationMs)
     return () => clearTimeout(timer)
-  }, [phase, records])
+  }, [phase, shown])
 
   const roll = (part: 'roll' | 'damage' | 'critical') => {
-    setRecords(
-      perform(spec, {
-        part,
-        mode: d20 ? mode : 'normal',
-        bonus: bonus.terms,
-        damageBonus: extra.terms,
-      }),
-    )
+    const [record] = perform(spec, {
+      part,
+      mode: d20 ? mode : 'normal',
+      bonus: bonus.terms,
+      damageBonus: extra.terms,
+    })
+    const kind = part === 'roll' ? 'hit' : 'damage'
+    setShown((prev) => [{ kind, record }, ...prev.filter((entry) => entry.kind !== kind)])
+    setCritical(kind === 'hit' && record.natural === 20)
     setPhase(reducedMotion ? 'landed' : 'rolling')
   }
 
   const sections = useMemo<TraySection[]>(() => {
     if (phase !== 'idle') {
-      return records.map((record, at) => ({
-        title: spec.damage && record.label !== spec.label ? 'Damage' : 'To hit',
-        dice: landedOf(record, `r${at}`),
-      }))
+      const [last] = shown
+      return [
+        {
+          title: last.kind === 'damage' ? 'Damage' : 'To hit',
+          dice: landedOf(last.record, `r-${last.kind}`),
+        },
+      ]
     }
     const main: TrayDie[] = d20
       ? [
@@ -194,87 +247,83 @@ function RollSession({
       })
     }
     return planned
-  }, [phase, records, spec, d20, mode, bonus.terms, extra.terms])
+  }, [phase, shown, spec, d20, mode, bonus.terms, extra.terms])
 
   const rolling = phase === 'rolling'
   const tables = [...spec.tables, ...(spec.damage?.tables ?? [])]
+  const hitField = (
+    <BonusField
+      id="roll-bonus"
+      label="Situational bonus"
+      placeholder="+2, -1 or +1d4"
+      value={bonusText}
+      error={bonus.error}
+      onChange={setBonusText}
+    />
+  )
   return (
     <div
       className={`roll-modal__grid${tables.length > 0 ? ' roll-modal__grid--two' : ''}`}
     >
       <HowItAddsUp tables={tables} />
       <div className="d-flex flex-column gap-3">
-        {d20 && (
-          <div>
-            <div className="form-label" id="roll-mode-label">
-              Mode
-            </div>
-            <ToggleButtonGroup
-              type="radio"
-              name="roll-mode"
-              value={mode}
-              onChange={(next: RollMode) => setMode(next)}
-              aria-labelledby="roll-mode-label"
-              className="w-100"
-            >
-              {MODES.map((entry) => (
-                <ToggleButton
-                  key={entry.mode}
-                  id={`roll-mode-${entry.mode}`}
-                  value={entry.mode}
-                  variant={mode === entry.mode ? 'primary' : 'secondary'}
-                >
-                  {entry.label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
+        {attack ? (
+          <div className="d-flex flex-wrap gap-3">
+            <fieldset className="roll-modal__action d-flex flex-column gap-2">
+              <legend className="h6">To hit</legend>
+              {d20 && <ModeField mode={mode} onChange={setMode} small />}
+              {hitField}
+              <Button
+                variant="primary"
+                className="mt-auto"
+                disabled={invalid || rolling}
+                onClick={() => roll('roll')}
+                autoFocus
+              >
+                Roll to hit
+              </Button>
+            </fieldset>
+            <fieldset className="roll-modal__action d-flex flex-column gap-2">
+              <legend className="h6">Damage</legend>
+              <BonusField
+                id="roll-damage-bonus"
+                label="Extra damage"
+                placeholder="+1d6"
+                value={damageText}
+                error={extra.error}
+                onChange={setDamageText}
+              />
+              <Form.Check
+                type="switch"
+                role="switch"
+                id="roll-critical"
+                label="Critical"
+                checked={critical}
+                onChange={(event) => setCritical(event.target.checked)}
+              />
+              <Button
+                variant="primary"
+                className="mt-auto"
+                disabled={invalid || rolling}
+                onClick={() => roll(critical ? 'critical' : 'damage')}
+              >
+                {critical ? 'Roll critical damage' : 'Roll damage'}
+              </Button>
+            </fieldset>
           </div>
-        )}
-        <BonusField
-          id="roll-bonus"
-          label="Situational bonus"
-          placeholder="+2, -1 or +1d4"
-          value={bonusText}
-          error={bonus.error}
-          onChange={setBonusText}
-        />
-        {spec.damage && (
-          <BonusField
-            id="roll-damage-bonus"
-            label="Extra damage"
-            placeholder="+1d6"
-            value={damageText}
-            error={extra.error}
-            onChange={setDamageText}
-          />
-        )}
-        <Button
-          variant="primary"
-          disabled={invalid || rolling}
-          onClick={() => roll('roll')}
-          autoFocus
-        >
-          {phase === 'idle' ? 'Roll' : 'Roll again'}
-        </Button>
-        {spec.damage && (
-          <div className="d-flex gap-2">
+        ) : (
+          <>
+            {d20 && <ModeField mode={mode} onChange={setMode} small={false} />}
+            {hitField}
             <Button
-              variant="secondary"
-              className="flex-fill"
+              variant="primary"
               disabled={invalid || rolling}
-              onClick={() => roll('damage')}
+              onClick={() => roll('roll')}
+              autoFocus
             >
-              Roll damage
+              {phase === 'idle' ? 'Roll' : 'Roll again'}
             </Button>
-            <Button
-              variant="secondary"
-              className="flex-fill"
-              disabled={invalid || rolling}
-              onClick={() => roll('critical')}
-            >
-              Roll critical damage
-            </Button>
-          </div>
+          </>
         )}
         <div ref={tray}>
           <DiceTray
@@ -285,8 +334,12 @@ function RollSession({
           />
         </div>
         <div role="status" className="d-flex flex-column gap-2">
-          {phase === 'landed' &&
-            records.map((record) => <RollResult key={record.id} record={record} />)}
+          {shown.map(
+            (entry, at) =>
+              !(rolling && at === 0) && (
+                <RollResult key={entry.record.id} record={entry.record} />
+              ),
+          )}
         </div>
       </div>
     </div>

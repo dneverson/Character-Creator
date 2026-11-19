@@ -12,7 +12,7 @@ import type { BreakdownTable } from './SheetDetail'
 /** Changes the play state with what a roll came to (a death save marks itself). */
 export type PlayEffect = (play: PlayState, outcome: RollOutcome) => PlayState
 
-/** The damage an attack rolls with its to-hit. */
+/** The damage an attack rolls, apart from its to-hit. */
 export interface DamageSpec {
   name: string
   /** The dice and the flat bonus: "1d8+3". */

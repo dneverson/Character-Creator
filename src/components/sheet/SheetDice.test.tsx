@@ -333,7 +333,7 @@ describe('mode and the situational bonus', () => {
     expect(record.total).toBe(10 + 3 + modOf(button))
     expect(record.bonus).toBe('+1d4')
     expect(record.dice).toHaveLength(2)
-    expect(within(dialog()).getByText(/Situational bonus: \+1d4/)).toBeInTheDocument()
+    expect(within(dialog()).getByText(/Added: \+1d4/)).toBeInTheDocument()
   })
 
   it('says what is wrong with a bonus and will not roll it', async () => {
@@ -356,51 +356,103 @@ describe('mode and the situational bonus', () => {
 })
 
 describe('an attack', () => {
-  it('rolls the to-hit and the damage together, doubling the dice on a natural 20', async () => {
+  async function openAttack() {
     seed()
     renderSheet()
     const attacks = await screen.findByRole('table', { name: 'Attacks' })
     await user.click(
       await within(attacks).findByRole('button', { name: /^Roll Longsword attack, / }),
     )
-    const spy = showDice(20, 3, 6)
-    await rollIt(user)
+  }
+  const press = async (name: string) => {
+    await user.click(within(dialog()).getByRole('button', { name }))
+    await land()
+  }
+
+  it('has a roll to hit and a roll damage side by side, and no plain Roll', async () => {
+    await openAttack()
+    const win = within(dialog())
+    expect(win.getByRole('button', { name: 'Roll to hit' })).toBeEnabled()
+    expect(win.getByRole('button', { name: 'Roll damage' })).toBeEnabled()
+    expect(win.queryByRole('button', { name: 'Roll' })).not.toBeInTheDocument()
+    expect(win.getByRole('switch', { name: 'Critical' })).not.toBeChecked()
+  })
+
+  it('rolls only the to-hit, then only the damage, and shows both blocks, newest first', async () => {
+    await openAttack()
+    const spy = showDice(12, 5)
+    await press('Roll to hit')
+    expect(rolls()).toHaveLength(1)
+    expect(rolls()[0]).toMatchObject({
+      label: 'Longsword attack',
+      dice: [{ sides: 20, rolls: [12] }],
+    })
+    expect(within(dialog()).getByRole('switch', { name: 'Critical' })).not.toBeChecked()
+    await press('Roll damage')
     spy.mockRestore()
-    expect(within(dialog()).getByText('Natural 20')).toBeInTheDocument()
-    const [attack, damage] = rolls()
-    expect(attack).toMatchObject({ label: 'Longsword attack', natural: 20 })
+    const [hit, damage] = rolls()
+    expect(hit.label).toBe('Longsword attack')
     expect(damage).toMatchObject({
+      label: 'Longsword damage',
+      dice: [{ sides: 8, rolls: [5] }],
+    })
+    expect(damage.critical).toBeUndefined()
+    const blocks = within(within(dialog()).getByRole('status')).getAllByRole('group')
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0].getAttribute('aria-label')).toMatch(/^Longsword damage/)
+    expect(blocks[1].getAttribute('aria-label')).toMatch(/^Longsword attack/)
+  })
+
+  it('turns critical on after a natural 20, rolls it, and turns it off again', async () => {
+    await openAttack()
+    const spy = showDice(20, 3, 6, 4)
+    await press('Roll to hit')
+    expect(within(dialog()).getByText('Natural 20')).toBeInTheDocument()
+    expect(within(dialog()).getByRole('switch', { name: 'Critical' })).toBeChecked()
+    await press('Roll critical damage')
+    expect(within(dialog()).getByRole('switch', { name: 'Critical' })).not.toBeChecked()
+    expect(within(dialog()).getByRole('button', { name: 'Roll damage' })).toBeVisible()
+    await press('Roll damage')
+    spy.mockRestore()
+    const [attack, critical, plain] = rolls()
+    expect(attack).toMatchObject({ natural: 20 })
+    expect(critical).toMatchObject({
       label: 'Longsword critical damage',
       critical: true,
       dice: [{ sides: 8, rolls: [3, 6] }],
     })
-    expect(damage.total).toBe(9 + damage.modifier)
+    expect(critical.total).toBe(9 + critical.modifier)
+    expect(plain).toMatchObject({ label: 'Longsword damage', dice: [{ rolls: [4] }] })
+    expect(within(dialog()).getAllByText(/Natural 20/).length).toBeGreaterThan(0)
+  })
+
+  it('rolls critical damage on demand with the switch, with extra damage only on damage', async () => {
+    await openAttack()
+    await user.type(screen.getByLabelText('Extra damage'), '+1d6')
+    await user.click(within(dialog()).getByRole('switch', { name: 'Critical' }))
+    const spy = showDice(3, 6, 1, 5)
+    await press('Roll critical damage')
+    spy.mockRestore()
+    expect(rolls()).toHaveLength(1)
+    expect(rolls()[0]).toMatchObject({
+      label: 'Longsword critical damage',
+      critical: true,
+      bonus: '+1d6',
+    })
+    expect(rolls()[0].dice[0].rolls).toEqual([3, 6])
     expect(within(dialog()).getAllByText(/extra \(critical\)/).length).toBeGreaterThan(0)
   })
 
-  it('rolls damage and critical damage on their own, with extra damage', async () => {
-    seed()
-    renderSheet()
-    const attacks = await screen.findByRole('table', { name: 'Attacks' })
-    await user.click(
-      await within(attacks).findByRole('button', { name: /^Roll Longsword attack, / }),
-    )
-    await user.type(screen.getByLabelText('Extra damage'), '+1d6')
-    const plain = showDice(4, 2)
-    await user.click(within(dialog()).getByRole('button', { name: 'Roll damage' }))
-    await land()
-    plain.mockRestore()
-    const crit = showDice(3, 6, 1, 5)
-    await user.click(
-      within(dialog()).getByRole('button', { name: 'Roll critical damage' }),
-    )
-    await land()
-    crit.mockRestore()
-    const [damage, critical] = rolls()
-    expect(damage).toMatchObject({ label: 'Longsword damage', bonus: '+1d6' })
-    expect(damage.critical).toBeUndefined()
-    expect(critical).toMatchObject({ label: 'Longsword critical damage', critical: true })
-    expect(critical.dice[0].rolls).toEqual([3, 6])
+  it('keeps the damage block when the to-hit is rolled again, and puts the new one on top', async () => {
+    await openAttack()
+    await press('Roll damage')
+    await press('Roll to hit')
+    await press('Roll to hit')
+    expect(rolls()).toHaveLength(3)
+    const blocks = within(within(dialog()).getByRole('status')).getAllByRole('group')
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0].getAttribute('aria-label')).toMatch(/^Longsword attack/)
+    expect(blocks[1].getAttribute('aria-label')).toMatch(/^Longsword damage/)
   })
 })
 

@@ -866,6 +866,17 @@ tr.roll-host {
   }
 }
 
+/* The two actions of an attack, side by side: each with the fields it uses. */
+.roll-modal__action {
+  flex: 1 1 13rem;
+  min-width: 0;
+  margin: 0;
+}
+.roll-modal__action legend {
+  float: none;
+  margin-bottom: 0;
+}
+
 /* The dice of a roll. */
 .die {
   display: block;

@@ -1,5 +1,5 @@
 // What an attack of the sheet shows and rolls: how its attack bonus and its damage add up,
-// and the roll a click on its row opens (the to-hit d20 and the damage with it).
+// and the roll a click on its row opens (the to-hit d20 and, apart, the damage).
 
 import type { AttackRow } from '../../derived/attacks'
 import { formatMod } from '../../dice/dice'
@@ -40,7 +40,7 @@ export const damageSpec = (attack: AttackRow): BreakdownSpec => {
   }
 }
 
-/** What a click on the row of an attack rolls: the to-hit d20 and the damage with it. */
+/** What a click on the row of an attack rolls: the to-hit d20 and the damage, rolled apart. */
 export function attackRoll(attack: AttackRow): RollSpec {
   return testRoll(`${attack.name} attack`, hitSpec(attack), {
     damage: {
