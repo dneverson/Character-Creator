@@ -33,6 +33,7 @@ import {
   rememberPlace,
   rememberSidebarWidth,
 } from '../../books/memory'
+import { contentsAnchor, contentsOf } from '../../books/outline'
 import { searchWords } from '../../books/searchIndex'
 import { openBook } from '../../books/state'
 import type { BookDoc, BookPlace } from '../../books/types'
@@ -147,6 +148,7 @@ export function BookReader({ doc, place, request, results }: Props) {
 
   const text = loaded.status === 'ready' ? loaded.text : null
   const chapters = text?.sections.length ?? 0
+  const contents = useMemo(() => (text ? contentsOf(text.scan.headings) : []), [text])
   // A place without a chapter is where the book was left, or its start.
   const at = useMemo(() => {
     if (place.chapter !== null) return place
@@ -259,9 +261,14 @@ export function BookReader({ doc, place, request, results }: Props) {
           <div className="book-contents-body">
             <BookOutline
               doc={doc}
-              headings={text.scan.headings}
+              headings={contents}
               chapter={current.chapter}
-              current={current.anchor}
+              current={contentsAnchor(
+                text.scan.headings,
+                current.chapter,
+                current.anchor,
+              )}
+              following={!phone || listOpen}
               onGo={goTo}
               onPick={() => setListOpen(false)}
             />

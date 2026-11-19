@@ -19,6 +19,8 @@ export interface Heading {
   box: boolean
   /** The page it starts on, when the text says. */
   page?: number
+  /** A place a link can go to that the contents do not list (see `contentsOf`). */
+  anchorOnly?: true
 }
 
 /** A piece of running text, with the heading it sits under. */
@@ -81,6 +83,13 @@ const CHILDREN = [
 /** The stat blocks whose name is a heading of the book: the entries a chapter is made of. */
 const NAMED_STATBLOCKS = new Set(['class', 'subclass', 'race', 'spell'])
 
+/**
+ * The stat blocks that are places of the book without being entries of its contents: the
+ * conditions, which the printed book sets as blocks with no heading. They get an anchor, so
+ * a link finds them by name, but the contents list them only when the book's own contents do.
+ */
+const ANCHORED_STATBLOCKS = new Set(['condition'])
+
 /** Parts that are not text of the book: a picture, a reference to an entry. */
 const NOT_TEXT = new Set(['image', 'statblock', 'gallery'])
 
@@ -105,6 +114,28 @@ export function slugOf(name: string): string {
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, '-')
     .replace(/^-+|-+$/g, '')
+}
+
+/** The headings the contents list: every place of the text but those that are only anchors. */
+export const contentsOf = (headings: readonly Heading[]): Heading[] =>
+  headings.filter((heading) => !heading.anchorOnly)
+
+/**
+ * The anchor the contents show for the place the reader is at: the place's own, or when it
+ * is not in the contents the heading they list just above it (null: the chapter's top).
+ */
+export function contentsAnchor(
+  headings: readonly Heading[],
+  chapter: number,
+  anchor: string | null,
+): string | null {
+  const at = headings.findIndex((h) => h.chapter === chapter && h.anchor === anchor)
+  if (anchor === null || at < 0) return anchor
+  for (let i = at; i >= 0 && headings[i].chapter === chapter; i--) {
+    if (!headings[i].anchorOnly)
+      return headings[i].depth === 0 ? null : headings[i].anchor
+  }
+  return null
 }
 
 const isObject = (value: unknown): value is Node =>
@@ -213,7 +244,9 @@ export function scan(sections: Entry[], listed: Listed = new Map()): Scan {
     if (!label) return
     const slug = slugOf(label)
     const isListed = wantedIn(chapter).delete(slug)
-    if (!isListed && !(NAMED_STATBLOCKS.has(String(tag)) || prop === 'subclass')) return
+    const isNamed = NAMED_STATBLOCKS.has(String(tag)) || prop === 'subclass'
+    const anchorOnly = !isListed && !isNamed
+    if (anchorOnly && !ANCHORED_STATBLOCKS.has(String(tag))) return
     const above = headings[heading]
     if (above && slugOf(above.name) === slug) return
     const page = startPageOf(node)
@@ -224,6 +257,7 @@ export function scan(sections: Entry[], listed: Listed = new Map()): Scan {
       depth,
       box: false,
       ...(page !== undefined && { page }),
+      ...(anchorOnly && { anchorOnly: true as const }),
     }
     headings.push(entry)
     anchors.set(node, entry.anchor)

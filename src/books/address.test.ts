@@ -118,6 +118,19 @@ describe('where an entry lives in its book', () => {
     )
   })
 
+  it('takes a condition block by its name, though the contents do not list it', () => {
+    const conditions = scan([
+      {
+        type: 'section',
+        name: 'Conditions',
+        entries: ['Intro.', { type: 'statblock', tag: 'condition', name: 'prone' }],
+      },
+    ])
+    expect(placeInBook(fixtureDoc, conditions.headings, { name: 'Prone' })).toEqual(
+      at({ chapter: 0, anchor: 'prone' }),
+    )
+  })
+
   it('is the start of the book when nothing matches', () => {
     expect(placeInBook(fixtureDoc, headings, { name: 'Nowhere', page: 1 })).toEqual(
       at({ chapter: 0 }),

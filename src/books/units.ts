@@ -226,8 +226,9 @@ export function buildFlow(sections: Entry[], scan: Scan): Flow {
           part(child, inner)
           return
         }
-        // A part that starts a page starts a piece, so a page break is never mid-piece.
-        if (startPageOf(child) !== undefined) flush()
+        // A part that starts a page starts a piece, so a page break is never mid-piece; so
+        // does a part that is a place of its own, so a jump to it lands on it.
+        if (startPageOf(child) !== undefined || scan.anchors.has(child as object)) flush()
         if (run.length === 0) runStart = index
         run.push(child)
         height += estimate(child)

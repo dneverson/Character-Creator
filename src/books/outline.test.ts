@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { fixtureSections } from '../test/bookFixture'
 import type { Entry } from '../text/Entries'
-import { cellTextOf, scan, slugOf, startPageOf } from './outline'
+import {
+  cellTextOf,
+  contentsAnchor,
+  contentsOf,
+  scan,
+  slugOf,
+  startPageOf,
+} from './outline'
 
 describe('slugOf', () => {
   it('joins the words of a name with hyphens, in lower case', () => {
@@ -212,5 +219,61 @@ describe('the stat blocks the contents list', () => {
       'Other',
       'Bat',
     ])
+  })
+})
+
+describe('the conditions, which are places and not entries of the contents', () => {
+  const condition = (name: string): Entry => ({
+    type: 'statblock',
+    tag: 'condition',
+    name,
+  })
+  const sections: Entry[] = [
+    {
+      type: 'section',
+      name: 'Appendix A: Conditions',
+      entries: [
+        { type: 'entries', name: 'Intro', entries: ['Text.'] },
+        condition('blinded'),
+        condition('prone'),
+        { type: 'entries', name: 'After', entries: ['More.'] },
+      ],
+    },
+  ]
+  const result = scan(sections)
+
+  it('have an anchor each, found by name, and a block of text for the search', () => {
+    const blinded = result.headings.find((h) => h.anchor === 'blinded')
+    expect(blinded).toMatchObject({ chapter: 0, depth: 1, box: false, anchorOnly: true })
+    expect(result.anchors.get(sections[0] as object)).toBeDefined()
+    expect(result.blocks.some((b) => b.text === 'prone')).toBe(true)
+  })
+
+  it('are left out of the contents', () => {
+    expect(contentsOf(result.headings).map((h) => h.name)).toEqual([
+      'Appendix A: Conditions',
+      'Intro',
+      'After',
+    ])
+  })
+
+  it('are headings of the contents when the printed contents list them', () => {
+    const listed = scan(sections, new Map([[0, new Set(['blinded'])]]))
+    expect(
+      listed.headings.find((h) => h.anchor === 'blinded')?.anchorOnly,
+    ).toBeUndefined()
+    expect(listed.headings.find((h) => h.anchor === 'prone')?.anchorOnly).toBe(true)
+  })
+
+  it('show as the heading the contents list above them, or the chapter', () => {
+    const { headings } = result
+    expect(contentsAnchor(headings, 0, 'prone')).toBe('intro')
+    expect(contentsAnchor(headings, 0, 'after')).toBe('after')
+    expect(contentsAnchor(headings, 0, null)).toBeNull()
+    expect(contentsAnchor(headings, 0, 'nowhere')).toBe('nowhere')
+    const bare = scan([
+      { type: 'section', name: 'Conditions', entries: [condition('x')] },
+    ])
+    expect(contentsAnchor(bare.headings, 0, 'x')).toBeNull()
   })
 })

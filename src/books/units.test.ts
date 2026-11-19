@@ -94,6 +94,17 @@ describe('the pieces of a book', () => {
     expect(made.marked).toEqual([12, 13])
   })
 
+  it('start a piece at a stat block that is a place of its own, so a jump lands on it', () => {
+    const block = { type: 'statblock', tag: 'condition', name: 'blinded' }
+    const sections: Entry[] = [
+      { type: 'section', name: 'Conditions', entries: ['A list.', block, 'After.'] },
+    ]
+    const pieces = buildFlow(sections, scan(sections))
+    const at = pieces.byKey.get('0:blinded') ?? -1
+    expect(pieces.units[at].entries).toEqual([block, 'After.'])
+    expect(pieces.units[at - 1].entries).toEqual(['A list.'])
+  })
+
   it('keep a styled part as one piece', () => {
     const odd: Entry[] = [
       {

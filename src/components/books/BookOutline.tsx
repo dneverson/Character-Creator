@@ -3,7 +3,7 @@
 // the words typed, and under it come the matches in the text (see BookTextHits). Every row is
 // a button or a link, so the list is reached with the keyboard in reading order.
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Form from 'react-bootstrap/Form'
 import { appConfig } from '../../config/app'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
@@ -11,6 +11,7 @@ import { Icon } from '../Icon'
 import type { Heading } from '../../books/outline'
 import type { BookDoc } from '../../books/types'
 import { BookTextHits } from './BookTextHits'
+import { keepInView } from './keepInView'
 
 /** The deepest indent a heading gets; deeper ones sit at this depth. */
 const MAX_INDENT = 4
@@ -33,10 +34,24 @@ interface Props {
   onGo: (chapter: number, anchor: string | null) => void
   /** Called when a match in the text is chosen. */
   onPick: () => void
+  /** Whether the list is on show and so follows the heading (a phone's drawer may not be). */
+  following?: boolean
 }
 
-export function BookOutline({ doc, headings, chapter, current, onGo, onPick }: Props) {
+export function BookOutline({
+  doc,
+  headings,
+  chapter,
+  current,
+  onGo,
+  onPick,
+  following = true,
+}: Props) {
   const [filter, setFilter] = useState('')
+  const nav = useRef<HTMLElement>(null)
+  // Set while the person has the list in hand (pointer over it, touching it, typing in its
+  // box): it does not move under them, and follows again from the next heading after.
+  const held = useRef(false)
   const typed = useDebouncedValue(filter, appConfig.books.searchDelayMs)
   // Chapters the reader opened or closed by hand; the open chapter is open until closed.
   const [toggled, setToggled] = useState<ReadonlyMap<number, boolean>>(new Map())
@@ -67,8 +82,36 @@ export function BookOutline({ doc, headings, chapter, current, onGo, onPick }: P
       : []
   })
 
+  // The list scrolls to keep the heading at the reading line in view.
+  useEffect(() => {
+    if (!following || held.current) return
+    const body = nav.current?.closest<HTMLElement>('.book-contents-body')
+    const row = nav.current?.querySelector('[aria-current="location"]')
+    if (body && row) keepInView(body, row)
+  }, [following, chapter, current])
+
+  const hold = (on: boolean) => () => {
+    held.current = on
+  }
+
   return (
-    <nav className="book-outline" aria-label="Chapters and headings">
+    <nav
+      ref={nav}
+      className="book-outline"
+      aria-label="Chapters and headings"
+      onPointerEnter={hold(true)}
+      onPointerLeave={hold(false)}
+      onTouchStart={hold(true)}
+      onTouchEnd={hold(false)}
+      onTouchCancel={hold(false)}
+      onWheel={hold(true)}
+      onFocus={(e) => {
+        if (e.target instanceof HTMLInputElement) held.current = true
+      }}
+      onBlur={(e) => {
+        if (e.target instanceof HTMLInputElement) held.current = false
+      }}
+    >
       <Form.Control
         type="search"
         size="sm"
