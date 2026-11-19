@@ -17,7 +17,7 @@ describe('loadConditions', () => {
       ],
     })
     expect(await loadConditions()).toEqual([
-      { name: 'Prone', source: 'PHB', entries: ['A prone creature...'] },
+      { name: 'Prone', source: 'PHB', page: 292, entries: ['A prone creature...'] },
     ])
   })
 })

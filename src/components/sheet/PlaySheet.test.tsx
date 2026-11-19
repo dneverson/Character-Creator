@@ -14,8 +14,10 @@ import { loadSpells } from '../../data/spells'
 import { loadBeasts } from '../../data/beasts'
 import { loadConditions } from '../../data/conditions'
 import { loadBookDocs } from '../../books/catalog'
+import { loadBookText } from '../../books/load'
+import { scan } from '../../books/outline'
 import { useBookStore } from '../../books/state'
-import { fixtureDoc } from '../../test/bookFixture'
+import { fixtureDoc, fixtureSections } from '../../test/bookFixture'
 import { loadClassOptions } from '../../data/classOptions'
 import { loadLanguages } from '../../data/languages'
 import { FIGHTER, ITEMS, loadedClass } from '../../test/derivedFixtures'
@@ -58,6 +60,7 @@ vi.mock('../../data/beasts', async (importOriginal) => ({
   loadBeasts: vi.fn(),
 }))
 vi.mock('../../books/catalog', () => ({ loadBookDocs: vi.fn() }))
+vi.mock('../../books/load', () => ({ loadBookText: vi.fn() }))
 vi.mock('../../data/conditions', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/conditions')>()),
   loadConditions: vi.fn(),
@@ -86,12 +89,18 @@ const bless = makeSpell({
 })
 
 const CONDITIONS = [
-  { name: 'Prone', source: 'PHB', entries: ['A prone creature crawls (2014).'] },
+  {
+    name: 'Prone',
+    source: 'PHB',
+    page: 10,
+    entries: ['A prone creature crawls (2014).'],
+  },
   { name: 'Prone', source: 'XPHB', entries: ['A prone creature crawls (2024).'] },
   { name: 'Poisoned', source: 'PHB', entries: ['A poisoned creature rolls badly.'] },
   {
     name: 'Exhaustion',
     source: 'PHB',
+    page: 10,
     entries: ['Exhaustion is measured in six levels.'],
   },
   { name: 'Exhaustion', source: 'XPHB', entries: ['This condition is cumulative.'] },
@@ -165,6 +174,10 @@ beforeEach(() => {
   vi.mocked(loadSpells).mockResolvedValue([bless])
   vi.mocked(loadBeasts).mockResolvedValue([])
   vi.mocked(loadConditions).mockResolvedValue(CONDITIONS)
+  vi.mocked(loadBookText).mockResolvedValue({
+    sections: fixtureSections,
+    scan: scan(fixtureSections),
+  })
   vi.mocked(loadBookDocs).mockResolvedValue([
     { ...fixtureDoc, id: 'PHB', name: "Player's Handbook" },
   ])
@@ -351,7 +364,13 @@ describe('the play strip', () => {
       }),
     )
     await waitFor(() => expect(useBookStore.getState().open).toBe(true))
-    expect(useBookStore.getState().place).toMatchObject({ id: 'PHB', find: 'Exhaustion' })
+    // The entry's own page (10) decides which copy of a name is meant.
+    expect(useBookStore.getState().place).toMatchObject({
+      id: 'PHB',
+      chapter: 1,
+      anchor: 'packing',
+      find: 'Exhaustion',
+    })
     useBookStore.setState({ open: false, place: null, request: 0 })
 
     await user.click(await screen.findByRole('button', { name: /Condition$/ }))
@@ -361,7 +380,12 @@ describe('the play strip', () => {
       await screen.findByRole('button', { name: "Open Prone in the Player's Handbook" }),
     )
     await waitFor(() => expect(useBookStore.getState().open).toBe(true))
-    expect(useBookStore.getState().place).toMatchObject({ id: 'PHB', find: 'Prone' })
+    expect(useBookStore.getState().place).toMatchObject({
+      id: 'PHB',
+      chapter: 1,
+      anchor: 'packing',
+      find: 'Prone',
+    })
   })
 
   it('picks conditions with their text, shows them as tags and removes them', async () => {

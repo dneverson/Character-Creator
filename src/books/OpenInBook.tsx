@@ -6,11 +6,13 @@
 // (`placeInBook`: the heading of that name, else the heading on or before the page), so
 // nothing reads a book's text until someone asks to go there. A book whose text is not
 // stored still opens: the reader says what it needs. A source that is no book or
-// adventure of the catalog shows nothing.
+// adventure of the catalog shows nothing, and neither does the book the reader is in
+// (the link would lead to where the reader already is).
 
-import { useState, type ReactNode } from 'react'
+import { useContext, useState, type ReactNode } from 'react'
 import Button from 'react-bootstrap/Button'
 import { useAsyncData } from '../hooks/useAsyncData'
+import { EntryContext } from '../text/entryContext'
 import { docOfSource, placeInBook } from './address'
 import { loadBookDocs } from './catalog'
 import { openBook } from './state'
@@ -49,8 +51,9 @@ export function OpenInBook(props: Props) {
   const { source, name, kind, children = 'Open in book', className = '' } = props
   const { data: docs } = useAsyncData(loadBookDocs)
   const [busy, setBusy] = useState(false)
+  const reading = useContext(EntryContext)?.doc
   const doc = docs && docOfSource(docs, source, kind)
-  if (!doc) return null
+  if (!doc || (reading?.kind === doc.kind && reading.id === doc.id)) return null
   return (
     <Button
       variant="link"

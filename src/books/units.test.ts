@@ -105,6 +105,37 @@ describe('the pieces of a book', () => {
     expect(pieces.units[at - 1].entries).toEqual(['A list.'])
   })
 
+  it('mark the pieces of a part printed elsewhere, and only those', () => {
+    const bear = { type: 'statblock', tag: 'creature', name: 'Cave Bear', printedOn: 334 }
+    const sections: Entry[] = [
+      {
+        type: 'section',
+        name: 'Beasts',
+        page: 30,
+        entries: [
+          'Before.',
+          { type: 'entries', name: 'Wolf', printedOn: 335, entries: ['Howls.', bear] },
+          { type: 'entries', name: 'Fox', entries: ['Sly.', bear, 'Quick.'] },
+          'After.',
+        ],
+      },
+    ]
+    const printed = buildFlow(sections, scan(sections)).units.map((u) => u.printed)
+    // Beasts, Before., Wolf and what it holds, then Fox with its stat block alone in a piece, and the text after.
+    expect(printed).toEqual([
+      undefined,
+      undefined,
+      335,
+      335,
+      334,
+      undefined,
+      undefined,
+      334,
+      undefined,
+      undefined,
+    ])
+  })
+
   it('keep a styled part as one piece', () => {
     const odd: Entry[] = [
       {

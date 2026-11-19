@@ -197,6 +197,61 @@ describe('reading a book', () => {
     }
   })
 
+  it('reads the page a block is printed on while the reading line is on it', async () => {
+    // jsdom has no layout: each part stands 150px below the one before it, 150px high, and the pane has
+    // scrolled so that the stat block is at the reading line.
+    let scrolled = 300
+    const parts = '.book-unit, [data-anchor], [data-page]'
+    const rect = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: Element) {
+        const root = this.closest('.book-pane')
+        const at = root ? [...root.querySelectorAll(parts)].indexOf(this) : -1
+        const top = at < 0 ? 0 : at * 150 - scrolled
+        return {
+          top,
+          bottom: top + 150,
+          left: 0,
+          right: 0,
+          width: 0,
+          height: 150,
+        } as DOMRect
+      })
+    const sections = [
+      {
+        type: 'section',
+        name: 'Chapter 1: Beasts',
+        page: 30,
+        entries: [
+          {
+            type: 'statblock',
+            tag: 'creature',
+            name: 'Cave Bear',
+            source: 'MM',
+            printedOn: 334,
+          },
+          'Text after the block.',
+        ],
+      },
+    ]
+    vi.mocked(loadBookText).mockResolvedValue({ sections, scan: scan(sections) })
+    try {
+      render(<BooksView />)
+      act(() => openBook(place(0)))
+      await screen.findByRole('article', { name: 'Chapter 1: Beasts' })
+      await waitFor(() =>
+        expect(screen.getByRole('textbox', { name: 'Page' })).toHaveValue('334'),
+      )
+      scrolled = 1000
+      fireEvent.scroll(document.querySelector('.book-pane')!)
+      await waitFor(() =>
+        expect(screen.getByRole('textbox', { name: 'Page' })).toHaveValue('30'),
+      )
+    } finally {
+      rect.mockRestore()
+    }
+  })
+
   it('changes the width of the text column and remembers it', async () => {
     await open()
     const { width, min, max } = appConfig.books.column

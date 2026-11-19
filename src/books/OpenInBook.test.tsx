@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { EntryContext } from '../text/entryContext'
 import { fixtureDoc, fixtureSections } from '../test/bookFixture'
 import { loadBookDocs } from './catalog'
 import { loadBookText } from './load'
@@ -92,5 +93,28 @@ describe('OpenInBook', () => {
     )
     await waitFor(() => expect(loadBookDocs).toHaveBeenCalled())
     expect(container).toBeEmptyDOMElement()
+  })
+
+  it('shows nothing inside the book the reader is in, whatever it is asked to open', async () => {
+    const { container } = render(
+      <EntryContext.Provider
+        value={{ book: true, words: [], doc: { kind: 'book', id: 'TST' } }}
+      >
+        <OpenInBook source="TST" name="Packing" />
+      </EntryContext.Provider>,
+    )
+    await waitFor(() => expect(loadBookDocs).toHaveBeenCalled())
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('still shows for an entry of another book than the one being read', async () => {
+    render(
+      <EntryContext.Provider
+        value={{ book: true, words: [], doc: { kind: 'adventure', id: 'ADV' } }}
+      >
+        <OpenInBook source="TST" name="Packing" />
+      </EntryContext.Provider>,
+    )
+    expect(await screen.findByRole('button')).toHaveTextContent('Open in book')
   })
 })

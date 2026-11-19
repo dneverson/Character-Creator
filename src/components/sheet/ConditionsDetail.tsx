@@ -70,6 +70,7 @@ function ConditionRow({
         <div className="small ps-4 pt-1">
           <OpenInBook
             source={condition.source}
+            page={condition.page}
             name={condition.name}
             className="d-block mb-1"
           />
@@ -122,6 +123,7 @@ export function ExhaustionDetail({ edition }: { edition: Edition }) {
       {exhaustion && (
         <OpenInBook
           source={exhaustion.source}
+          page={exhaustion.page}
           name={exhaustion.name}
           className="d-block mb-2"
         />

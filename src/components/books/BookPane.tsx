@@ -475,7 +475,8 @@ export function BookPane({
         key = el.dataset.anchor ?? key
         if (el.dataset.page !== undefined) at = Number(el.dataset.page)
       }
-      setPage(at)
+      // What the book prints elsewhere than the text has it reads as the page it says.
+      setPage(unit.printed ?? at)
       if (key === reading.current || !key) return
       reading.current = key
       const c = flow.units[low].chapter

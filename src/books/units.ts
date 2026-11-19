@@ -30,6 +30,11 @@ export interface Unit {
   page?: number
   /** The page in force where the piece starts: the last one marked before it. */
   from?: number
+  /**
+   * The page the book prints the piece on, when it is not where the text has it (the part it
+   * is in, or the stat block it is, says "Printed on page N"): the page box reads this one.
+   */
+  printed?: number
 }
 
 /** The pieces of a book, and where its headings and chapters are among them. */
@@ -55,6 +60,10 @@ interface Obj {
 
 const isObj = (entry: unknown): entry is Obj =>
   typeof entry === 'object' && entry !== null
+
+/** The page a part says it is printed on, when it says one (see src/books/printOrder.ts). */
+const printedOn = (entry: unknown): number | undefined =>
+  isObj(entry) && typeof entry.printedOn === 'number' ? entry.printedOn : undefined
 
 /** What a piece is worth in pixels before it is drawn: lines of text, a table, a picture. */
 const SIZE = {
@@ -167,7 +176,7 @@ export function buildFlow(sections: Entry[], scan: Scan): Flow {
     let last = first ? headingKey(chapter, first.anchor) : ''
 
     const emit = (
-      piece: Pick<Unit, 'title' | 'entries' | 'depth' | 'under'>,
+      piece: Pick<Unit, 'title' | 'entries' | 'depth' | 'under' | 'printed'>,
       keys: string[],
     ) => {
       const index = units.length
@@ -194,18 +203,21 @@ export function buildFlow(sections: Entry[], scan: Scan): Flow {
       if (keys.length > 0) last = keys[keys.length - 1]
     }
 
-    const part = (node: Obj, depth: number) => {
+    // `within`: the page the part drawn says it is printed on, which holds for all it has.
+    const part = (node: Obj, depth: number, within?: number) => {
+      const here = printedOn(node) ?? within
       const named = typeof node.name === 'string' && node.name !== ''
       if (named) {
         const anchor = scan.anchors.get(node)
         emit(
-          { title: node, entries: [], depth },
+          { title: node, entries: [], depth, printed: here },
           anchor ? [headingKey(chapter, anchor)] : [],
         )
       }
       const inner = named ? depth + 1 : depth
       let run: Entry[] = []
       let runStart = 0
+      let runPrinted: number | undefined
       let height = 0
       const flush = () => {
         if (run.length === 0) return
@@ -214,25 +226,35 @@ export function buildFlow(sections: Entry[], scan: Scan): Flow {
             entries: run,
             depth: inner,
             under: runStart === 0 && named ? node.name : undefined,
+            printed: runPrinted ?? here,
           },
           keysIn(run, chapter, scan),
         )
         run = []
+        runPrinted = undefined
         height = 0
       }
       node.entries?.forEach((child, index) => {
         if (cuts(child, inner)) {
           flush()
-          part(child, inner)
+          part(child, inner, here)
           return
         }
         // A part that starts a page starts a piece, so a page break is never mid-piece; so
         // does a part that is a place of its own, so a jump to it lands on it.
-        if (startPageOf(child) !== undefined || scan.anchors.has(child as object)) flush()
+        // A part that says where it is printed is a piece of its own, for the page box.
+        const printed = printedOn(child)
+        if (
+          startPageOf(child) !== undefined ||
+          scan.anchors.has(child as object) ||
+          printed !== undefined
+        )
+          flush()
         if (run.length === 0) runStart = index
         run.push(child)
+        runPrinted = printed
         height += estimate(child)
-        if (height >= appConfig.books.pieceHeight) flush()
+        if (printed !== undefined || height >= appConfig.books.pieceHeight) flush()
       })
       flush()
     }
