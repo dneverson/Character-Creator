@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { _clearBookSources, registerBookSources } from '../../data/glossary'
 import { ThemeProvider } from '../../theme/ThemeProvider'
@@ -204,6 +204,25 @@ describe('the footer without a known book or page', () => {
     )
     expect(document.querySelector('.entry-book__footer')).toHaveTextContent(
       /^Source: XPHB\.$/,
+    )
+  })
+})
+
+describe('the footer when the books load after the entry is drawn', () => {
+  it('shows the full book name once the names are registered', () => {
+    _clearBookSources()
+    localStorage.setItem('cc-detail-style', 'book')
+    render(
+      <ThemeProvider>
+        <EntryDetail entry={sword} describe={describeWeapons} name="Longsword" />
+      </ThemeProvider>,
+    )
+    expect(document.querySelector('.entry-book__footer')).toHaveTextContent(
+      /^Source: XPHB, page 215\./,
+    )
+    act(() => registerBookSources([{ source: 'XPHB', name: "Player's Handbook (2024)" }]))
+    expect(document.querySelector('.entry-book__footer')).toHaveTextContent(
+      "Source: Player's Handbook (2024), page 215.",
     )
   })
 })

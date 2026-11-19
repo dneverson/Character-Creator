@@ -198,11 +198,30 @@ const SOURCE_NAME_OVERRIDES: Record<string, string> = {
 export function registerBookSources(books: { source: string; name: string }[]): void {
   for (const b of books)
     bookSources.set(b.source, SOURCE_NAME_OVERRIDES[b.source] ?? b.name)
+  bookSourcesVersion++
+  for (const listener of listeners) listener()
+}
+
+// Bumped on every registration so a screen drawn before the books loaded can redraw.
+let bookSourcesVersion = 0
+const listeners = new Set<() => void>()
+
+/** Call `listener` after each registration; returns the way to stop (useSyncExternalStore). */
+export function subscribeBookSources(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
+/** Changes whenever the book-source names change (useSyncExternalStore snapshot). */
+export function bookSourcesSnapshot(): number {
+  return bookSourcesVersion
 }
 
 /** Reset the book-source map (tests). */
 export function _clearBookSources(): void {
   bookSources.clear()
+  bookSourcesVersion++
+  for (const listener of listeners) listener()
 }
 
 /**

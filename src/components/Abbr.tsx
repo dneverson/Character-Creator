@@ -12,6 +12,7 @@ import { Fragment } from 'react'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 import { lookup, matchAcronym, type AbbrKind } from '../data/glossary'
+import { useBookSources } from './useBookSources'
 
 interface Props {
   /** The acronym/code to expand, e.g. "PHB", "STR", "gp". */
@@ -38,6 +39,7 @@ function ExpandedName({ code, full }: { code: string; full: string }) {
 }
 
 export function Abbr({ code, kind, className }: Props) {
+  useBookSources()
   const hit = lookup(code, kind)
   if (!hit) return <>{code}</>
   return (

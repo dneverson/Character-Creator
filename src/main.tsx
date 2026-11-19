@@ -8,6 +8,7 @@ import { connectCharacterStorage } from './character/persistence.ts'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { appConfig } from './config/app.ts'
 import { contentLibrary } from './content/index.ts'
+import { loadBooks } from './data/loaders.ts'
 import { characterStorage } from './storage/index.ts'
 import { connectLocation } from './app/location.ts'
 import { ThemeProvider } from './theme/ThemeProvider.tsx'
@@ -16,6 +17,11 @@ import { ThemeProvider } from './theme/ThemeProvider.tsx'
 // Started here rather than in a component so it runs once per page load. If it
 // fails the app carries on with the content it already has.
 contentLibrary.start().catch(() => undefined)
+
+// Learn the book names (PHB -> Player's Handbook) once per page load, so every screen
+// can spell a source out, not only the one that lists the books. Screens drawn before
+// it finishes redraw when it does.
+loadBooks().catch(() => undefined)
 
 // Read the stored characters before the first render, so the list never shows as
 // empty and then fills. Reading takes a few milliseconds; a browser whose storage

@@ -8,6 +8,7 @@ import Badge from 'react-bootstrap/Badge'
 import Table from 'react-bootstrap/Table'
 import { OpenInBook } from '../../books/OpenInBook'
 import { lookup } from '../../data/glossary'
+import { useBookSources } from '../useBookSources'
 import { useDetailStyle } from '../../theme/theme-context'
 import { bookLayout } from './bookLayout'
 import { factValue, groupTitle, type Describe } from './facts'
@@ -176,6 +177,7 @@ function EntryBook<T>({
   const printed = [...tags.map((tag) => <span key={tag}>{tag}</span>)]
   if (book.source) printed.push(<span key="source">{book.source}</span>)
   if (book.page) printed.push(<span key="page">{book.page}</span>)
+  useBookSources()
   const bookName = lookup(book.sourceCode, 'source')?.full ?? book.sourceCode
   return (
     <div className="entry-book p-3">
