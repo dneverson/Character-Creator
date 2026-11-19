@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import Form from 'react-bootstrap/Form'
 import { useCharacter } from '../../character/useCharacterDoc'
+import { OpenInBook } from '../../books/OpenInBook'
 import { EXHAUSTION, loadConditions, type Condition } from '../../data/conditions'
 import type { Edition } from '../../data/edition'
 import { useAsyncData } from '../../hooks/useAsyncData'
@@ -67,6 +68,11 @@ function ConditionRow({
       </div>
       {open && (
         <div className="small ps-4 pt-1">
+          <OpenInBook
+            source={condition.source}
+            name={condition.name}
+            className="d-block mb-1"
+          />
           <Entries entries={condition.entries} />
         </div>
       )}
@@ -113,6 +119,13 @@ export function ExhaustionDetail({ edition }: { edition: Edition }) {
   const effects = exhaustionEffects(edition, level)
   return (
     <PaneFrame title={`Exhaustion ${level}`}>
+      {exhaustion && (
+        <OpenInBook
+          source={exhaustion.source}
+          name={exhaustion.name}
+          className="d-block mb-2"
+        />
+      )}
       <div className="mb-2">
         {effects.length === 0 ? (
           'Not exhausted.'

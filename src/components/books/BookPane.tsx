@@ -34,7 +34,7 @@ import {
   type StatblockEntry,
 } from '../../text/entryContext'
 import { Icon } from '../Icon'
-import { landingOffset, readingLine } from './readingLine'
+import { landingOffset, lineAt, readingLine } from './readingLine'
 import { BookPageBox } from './BookPageBox'
 import { BookWidthControl } from './BookWidthControl'
 
@@ -45,6 +45,9 @@ const NO_MARK = () => null
 const SETTLE_FRAMES = 300
 /** Frames the place has to hold still before a jump is done. */
 const STILL_FRAMES = 45
+
+/** What the reader does to take the scroll from the pane. */
+const TAKE_OVER = ['wheel', 'touchstart', 'keydown', 'pointerdown']
 
 /** What the pieces share: who is near enough to draw, and how tall each piece was. */
 class View {
@@ -230,6 +233,10 @@ export function BookPane({
   const shownColumn = useRef(column)
   const [page, setPage] = useState<number | undefined>(undefined)
   const stopLanding = useRef<(() => void) | null>(null)
+  /** What the pane last went to, until the reader scrolls on: the reading line passes it. */
+  const target = useRef<Element | null>(null)
+  /** Has the bars read where the text is; set by the effect that does (see `read`). */
+  const report = useRef<() => void>(() => {})
   const flow = useMemo(() => flowOf(text.sections, text.scan), [text])
   const found = useMemo(() => matchesOf(flow, words), [flow, words])
   const foundUnits = useMemo(() => [...found.keys()], [found])
@@ -305,16 +312,16 @@ export function BookPane({
       let frames = 0
       let still = 0
       const stop = () => {
+        report.current()
         cancelAnimationFrame(frame)
-        for (const kind of ['wheel', 'touchstart', 'keydown', 'pointerdown'])
-          root.removeEventListener(kind, stop)
+        for (const kind of TAKE_OVER) root.removeEventListener(kind, stop)
         stopLanding.current = null
       }
-      for (const kind of ['wheel', 'touchstart', 'keydown', 'pointerdown'])
-        root.addEventListener(kind, stop, { passive: true })
+      for (const kind of TAKE_OVER) root.addEventListener(kind, stop, { passive: true })
       stopLanding.current = stop
       const step = () => {
         const at = locate()
+        target.current = at?.el ?? null
         if (at) {
           const delta =
             at.el.getBoundingClientRect().top -
@@ -322,6 +329,7 @@ export function BookPane({
             offset(at.el)
           if (Math.abs(delta) > 1) {
             root.scrollTop += delta
+            report.current()
             still = 0
           } else if (at.exact) still++
         }
@@ -436,8 +444,13 @@ export function BookPane({
     const read = () => {
       frame = 0
       const rootTop = root.getBoundingClientRect().top
-      const line = readingLine(bars.current?.offsetHeight ?? 0)
       const topOf = (el: Element) => el.getBoundingClientRect().top - rootTop
+      // Where the pane has gone to counts as read even when it stands below the line (a
+      // match is centered, not put at the top), until the reader scrolls on.
+      const bar = bars.current?.offsetHeight ?? 0
+      const line = target.current?.isConnected
+        ? lineAt(bar, topOf(target.current))
+        : readingLine(bar)
       // The last piece that starts at or above the line, by halving.
       let low = 0
       let high = flow.units.length - 1
@@ -468,12 +481,22 @@ export function BookPane({
       const c = flow.units[low].chapter
       onHeading(c, key === tops[c] ? null : key.slice(key.indexOf(':') + 1))
     }
-    const onScroll = () => {
+    const schedule = () => {
       if (!frame) frame = requestAnimationFrame(read)
     }
-    root.addEventListener('scroll', onScroll, { passive: true })
+    // The reader taking over (wheel, touch, keys, a drag of the bar) ends what the pane went to.
+    const takeOver = () => {
+      target.current = null
+      schedule()
+    }
+    report.current = schedule
+    root.addEventListener('scroll', schedule, { passive: true })
+    for (const kind of TAKE_OVER) root.addEventListener(kind, takeOver, { passive: true })
+    schedule()
     return () => {
-      root.removeEventListener('scroll', onScroll)
+      report.current = () => {}
+      root.removeEventListener('scroll', schedule)
+      for (const kind of TAKE_OVER) root.removeEventListener(kind, takeOver)
       if (frame) cancelAnimationFrame(frame)
     }
   }, [root, view, flow, tops, onHeading, atBar])

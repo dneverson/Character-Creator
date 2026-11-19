@@ -7,10 +7,16 @@ import { useCharacterStore } from '../../character/store'
 import { createCharacter } from '../../character/model'
 import { loadBooks } from '../../data/loaders'
 import { loadBookContents } from '../../data/bookPages'
+import { loadBookDocs } from '../../books/catalog'
+import { loadBookText } from '../../books/load'
+import { scan } from '../../books/outline'
+import { useBookStore } from '../../books/state'
 import type { Book } from '../../data/types'
 
 vi.mock('../../data/loaders', () => ({ loadBooks: vi.fn() }))
 vi.mock('../../data/bookPages', () => ({ loadBookContents: vi.fn() }))
+vi.mock('../../books/catalog', () => ({ loadBookDocs: vi.fn() }))
+vi.mock('../../books/load', () => ({ loadBookText: vi.fn() }))
 // Cover thumbnails come from browser storage or the content source; here each one
 // is ready at once, under a URL that names its cover.
 vi.mock('../../content', () => ({
@@ -55,6 +61,7 @@ beforeEach(() => {
   localStorage.clear()
   vi.clearAllMocks()
   mockBooks.mockResolvedValue(books)
+  vi.mocked(loadBookDocs).mockResolvedValue([])
   // Unless a test says otherwise, the book text adds no page numbers.
   mockContents.mockImplementation((book) => Promise.resolve(book.contents ?? []))
   useCharacterStore.setState({ characters: {}, order: [], activeId: null, view: 'list' })
@@ -227,6 +234,53 @@ describe('BookSelection detail pane', () => {
     expect(screen.getByText('How to Play')).toBeInTheDocument()
     // The sub-heading's own derived page number renders too.
     expect(screen.getByText('p. 6')).toBeInTheDocument()
+  })
+
+  it('jumps from the book and from each contents line into the reader', async () => {
+    const user = userEvent.setup()
+    const sections = [
+      { type: 'section', name: 'Introduction', page: 4, entries: ['Hello.'] },
+      {
+        type: 'section',
+        name: 'Races',
+        page: 8,
+        entries: [{ type: 'entries', name: 'How to Play', page: 6, entries: ['Roll.'] }],
+      },
+    ]
+    vi.mocked(loadBookDocs).mockResolvedValue([
+      { kind: 'book', id: 'PHB', name: "Player's Handbook", cover: null },
+    ])
+    vi.mocked(loadBookText).mockResolvedValue({ sections, scan: scan(sections) })
+    useBookStore.setState({ open: false, place: null, request: 0 })
+    seedActive([])
+    renderSection()
+    await user.click(await screen.findByText("Player's Handbook"))
+
+    await user.click(
+      await screen.findByRole('button', { name: "Open the Player's Handbook" }),
+    )
+    await waitFor(() => expect(useBookStore.getState().open).toBe(true))
+    expect(useBookStore.getState().place).toMatchObject({ id: 'PHB', find: null })
+
+    await user.click(
+      screen.getByRole('button', { name: "Open Introduction in the Player's Handbook" }),
+    )
+    await waitFor(() =>
+      expect(useBookStore.getState().place).toMatchObject({ chapter: 0, anchor: null }),
+    )
+    await user.click(screen.getByRole('button', { name: /^Introduction/ }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: "Open How to Play in the Player's Handbook",
+      }),
+    )
+    await waitFor(() =>
+      expect(useBookStore.getState().place).toMatchObject({
+        chapter: 1,
+        anchor: 'how-to-play',
+        find: null,
+      }),
+    )
   })
 
   it('shows the contents at once and fills in the page numbers when they are ready', async () => {

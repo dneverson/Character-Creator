@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SheetView } from './SheetView'
@@ -13,6 +13,9 @@ import { loadItems } from '../../data/items'
 import { loadSpells } from '../../data/spells'
 import { loadBeasts } from '../../data/beasts'
 import { loadConditions } from '../../data/conditions'
+import { loadBookDocs } from '../../books/catalog'
+import { useBookStore } from '../../books/state'
+import { fixtureDoc } from '../../test/bookFixture'
 import { loadClassOptions } from '../../data/classOptions'
 import { loadLanguages } from '../../data/languages'
 import { FIGHTER, ITEMS, loadedClass } from '../../test/derivedFixtures'
@@ -54,6 +57,7 @@ vi.mock('../../data/beasts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/beasts')>()),
   loadBeasts: vi.fn(),
 }))
+vi.mock('../../books/catalog', () => ({ loadBookDocs: vi.fn() }))
 vi.mock('../../data/conditions', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/conditions')>()),
   loadConditions: vi.fn(),
@@ -161,6 +165,10 @@ beforeEach(() => {
   vi.mocked(loadSpells).mockResolvedValue([bless])
   vi.mocked(loadBeasts).mockResolvedValue([])
   vi.mocked(loadConditions).mockResolvedValue(CONDITIONS)
+  vi.mocked(loadBookDocs).mockResolvedValue([
+    { ...fixtureDoc, id: 'PHB', name: "Player's Handbook" },
+  ])
+  useBookStore.setState({ open: false, place: null, request: 0 })
   useCharacterStore.setState({ characters: {}, order: [], activeId: null, view: 'list' })
 })
 
@@ -329,6 +337,31 @@ describe('the play strip', () => {
     renderSheet()
     await user.click(await screen.findByRole('button', { name: 'What exhaustion does' }))
     expect(await screen.findByText('Not exhausted.')).toBeInTheDocument()
+  })
+
+  it('opens a condition and what exhaustion does in the book they are printed in', async () => {
+    const user = userEvent.setup()
+    setWide()
+    seed()
+    renderSheet()
+    await user.click(await screen.findByRole('button', { name: 'What exhaustion does' }))
+    await user.click(
+      await screen.findByRole('button', {
+        name: "Open Exhaustion in the Player's Handbook",
+      }),
+    )
+    await waitFor(() => expect(useBookStore.getState().open).toBe(true))
+    expect(useBookStore.getState().place).toMatchObject({ id: 'PHB', find: 'Exhaustion' })
+    useBookStore.setState({ open: false, place: null, request: 0 })
+
+    await user.click(await screen.findByRole('button', { name: /Condition$/ }))
+    const list = await screen.findByRole('list', { name: 'Conditions' })
+    await user.click(within(list).getByRole('button', { name: 'Prone' }))
+    await user.click(
+      await screen.findByRole('button', { name: "Open Prone in the Player's Handbook" }),
+    )
+    await waitFor(() => expect(useBookStore.getState().open).toBe(true))
+    expect(useBookStore.getState().place).toMatchObject({ id: 'PHB', find: 'Prone' })
   })
 
   it('picks conditions with their text, shows them as tags and removes them', async () => {

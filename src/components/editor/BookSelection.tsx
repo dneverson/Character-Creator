@@ -4,6 +4,7 @@ import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
 import Form from 'react-bootstrap/Form'
 import Spinner from 'react-bootstrap/Spinner'
+import { OpenInBook } from '../../books/OpenInBook'
 import { loadBooks } from '../../data/loaders'
 import { loadBookContents } from '../../data/bookPages'
 import { coverPath } from '../../data/covers'
@@ -133,12 +134,15 @@ const rowMeta = (b: Book) => ({ id: b.source, standard: true })
 // collapse toggle (collapsed by default so the list stays scannable); chapters
 // without are a plain static row. Page numbers, where derived, sit at the right.
 function ChapterRow({
+  source,
   entry,
   headers,
   query,
   open,
   onToggle,
 }: {
+  /** The code of the book the contents are of, for the jump into it. */
+  source: string
   entry: BookContentEntry
   headers: BookHeader[]
   query: string
@@ -170,18 +174,29 @@ function ChapterRow({
   )
   return (
     <li className="border-bottom">
-      {hasHeaders ? (
-        <button
-          type="button"
-          className="btn btn-link w-100 text-start text-decoration-none text-body px-0 py-2"
-          aria-expanded={open}
-          onClick={onToggle}
+      <div className="d-flex align-items-baseline gap-2">
+        {hasHeaders ? (
+          <button
+            type="button"
+            className="btn btn-link w-100 text-start text-decoration-none text-body px-0 py-2"
+            aria-expanded={open}
+            onClick={onToggle}
+          >
+            {heading}
+          </button>
+        ) : (
+          <div className="w-100 px-0 py-2">{heading}</div>
+        )}
+        <OpenInBook
+          source={source}
+          kind="book"
+          page={entry.page}
+          name={entry.name}
+          mark={false}
         >
-          {heading}
-        </button>
-      ) : (
-        <div className="px-0 py-2">{heading}</div>
-      )}
+          Open
+        </OpenInBook>
+      </div>
       {hasHeaders && open && (
         <ul className="list-unstyled mb-2 small">
           {headers.map((header, j) => (
@@ -193,11 +208,22 @@ function ChapterRow({
               <span className="text-body-secondary">
                 {highlight(headerText(header), query)}
               </span>
-              {headerPage(header) !== undefined && (
-                <span className="text-body-secondary small text-nowrap">
-                  p. {headerPage(header)}
-                </span>
-              )}
+              <span className="d-flex gap-2">
+                {headerPage(header) !== undefined && (
+                  <span className="text-body-secondary small text-nowrap">
+                    p. {headerPage(header)}
+                  </span>
+                )}
+                <OpenInBook
+                  source={source}
+                  kind="book"
+                  page={headerPage(header)}
+                  name={headerText(header)}
+                  mark={false}
+                >
+                  Open
+                </OpenInBook>
+              </span>
             </li>
           ))}
         </ul>
@@ -209,7 +235,13 @@ function ChapterRow({
 // The table of contents with a live title search. Typing filters to chapters and
 // sub-headings whose title matches (matches are highlighted and force-expanded);
 // otherwise chapters collapse and expand on click.
-function BookContents({ contents }: { contents: BookContentEntry[] }) {
+function BookContents({
+  source,
+  contents,
+}: {
+  source: string
+  contents: BookContentEntry[]
+}) {
   const [query, setQuery] = useState('')
   const [openIdx, setOpenIdx] = useState<Set<number>>(new Set())
   const q = query.trim().toLowerCase()
@@ -289,6 +321,7 @@ function BookContents({ contents }: { contents: BookContentEntry[] }) {
           {view.map((v) => (
             <ChapterRow
               key={v.i}
+              source={source}
               entry={v.entry}
               headers={v.headers}
               query={query}
@@ -335,6 +368,15 @@ function BookDetail({ book }: { book: Book }) {
           <Badge bg="light" text="dark" className="border">
             <Abbr code={book.source} kind="source" />
           </Badge>
+          <OpenInBook
+            source={book.source}
+            kind="book"
+            name={book.name}
+            mark={false}
+            className="d-block mt-1"
+          >
+            Open book
+          </OpenInBook>
         </div>
       </div>
 
@@ -369,7 +411,7 @@ function BookDetail({ book }: { book: Book }) {
         )}
       </dl>
 
-      {contents.length > 0 && <BookContents contents={contents} />}
+      {contents.length > 0 && <BookContents source={book.source} contents={contents} />}
     </div>
   )
 }

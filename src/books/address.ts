@@ -73,7 +73,7 @@ export interface PlaceQuery {
 
 /**
  * The place in a book that an entry printed there lives at: the heading of that name
- * when the book has one, else the last heading that starts on or before the page.
+ * when the book has one (the one on the page, when several have it), else the last heading that starts on or before the page.
  * With neither it is the start of the book.
  */
 export function placeInBook(
@@ -90,10 +90,16 @@ export function placeInBook(
   })
   if (name) {
     const slug = slugOf(name)
-    const named =
-      headings.find((h) => h.anchor === slug && !h.box) ??
-      headings.find((h) => h.anchor === slug)
-    if (named) return place(named)
+    const same = headings.filter((h) => h.anchor === slug)
+    const headed = same.filter((h) => !h.box)
+    const named = headed.length > 0 ? headed : same
+    // Several headings may share a name ("Spellcasting" in each class): the last one on
+    // or before the page, else the first.
+    const onPage =
+      page === undefined
+        ? undefined
+        : named.findLast((h) => h.page !== undefined && h.page <= page)
+    if (named.length > 0) return place(onPage ?? named[0])
   }
   if (page !== undefined) {
     let found: Heading | undefined

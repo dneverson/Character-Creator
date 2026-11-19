@@ -101,6 +101,17 @@ describe('where an entry lives in its book', () => {
     )
   })
 
+  it('takes the heading of that name that is on the page when several have it', () => {
+    const twice = [
+      ...headings,
+      { chapter: 2, anchor: 'packing', name: 'Packing', depth: 1, box: false, page: 20 },
+    ]
+    expect(placeInBook(fixtureDoc, twice, { name: 'Packing', page: 21 }).chapter).toBe(2)
+    expect(placeInBook(fixtureDoc, twice, { name: 'Packing', page: 11 }).chapter).toBe(1)
+    expect(placeInBook(fixtureDoc, twice, { name: 'Packing', page: 1 }).chapter).toBe(0)
+    expect(placeInBook(fixtureDoc, twice, { name: 'Packing' }).chapter).toBe(0)
+  })
+
   it('takes a sidebar of that name when no heading has it', () => {
     expect(placeInBook(fixtureDoc, headings, { name: 'Read aloud' }).anchor).toBe(
       'read-aloud',

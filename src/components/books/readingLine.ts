@@ -16,3 +16,11 @@ export const landingOffset = (barHeight: number): number => barHeight + GAP
 /** Where the reading line is: a heading whose top is at or above it is the one being read. */
 export const readingLine = (barHeight: number): number =>
   landingOffset(barHeight) + TOLERANCE
+
+/**
+ * Where the reading line is once the pane has gone to something whose top stands `top` from
+ * the pane's top: past it by the slack a landed heading has, so the heading or the part
+ * drawn at it is the one read, and never above the line the bar gives.
+ */
+export const lineAt = (barHeight: number, top: number): number =>
+  Math.max(readingLine(barHeight), top + GAP + TOLERANCE)

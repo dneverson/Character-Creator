@@ -145,6 +145,58 @@ describe('reading a book', () => {
     fireEvent.submit(screen.getByRole('textbox', { name: 'Page' }))
   })
 
+  it('follows the place the text was taken to: the bar, the page box and the list', async () => {
+    // jsdom has no layout: every part of the text stands 150px below the one before it
+    // (in reading order, less how far the pane has scrolled), and the pane is 900px high,
+    // so a match is brought to a third of the way down, well below the reading line.
+    let scrolled = 0
+    const pane = (el: Element) => el.classList.contains('book-pane')
+    const parts = 'mark.book-hit, .book-unit, [data-anchor], [data-page]'
+    const rect = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: Element) {
+        const root = this.closest('.book-pane')
+        const at = root ? [...root.querySelectorAll(parts)].indexOf(this) : -1
+        const top = at < 0 ? 0 : at * 150 - scrolled
+        return { top, bottom: top, left: 0, right: 0, width: 0, height: 0 } as DOMRect
+      })
+    const height = vi
+      .spyOn(HTMLElement.prototype, 'clientHeight', 'get')
+      .mockImplementation(function (this: HTMLElement) {
+        return pane(this) ? 900 : 0
+      })
+    const top = vi
+      .spyOn(HTMLElement.prototype, 'scrollTop', 'set')
+      .mockImplementation((value) => {
+        scrolled = value
+      })
+    try {
+      render(<BooksView />)
+      act(() =>
+        openBook({ kind: 'book', id: 'TST', chapter: 0, anchor: null, find: 'packing' }),
+      )
+      await screen.findByText('Match 1 of 3 in this book', undefined, { timeout: 3000 })
+      fireEvent.click(screen.getByRole('button', { name: 'Next match' }))
+      await screen.findByText('Match 2 of 3 in this book')
+      // The match is the second chapter's "Packing" heading, printed on page 10.
+      await waitFor(() =>
+        expect(screen.getByRole('textbox', { name: 'Page' })).toHaveValue('10'),
+      )
+      expect(
+        screen.getByRole('group', { name: 'Chapter' }).querySelector('.book-bar-title'),
+      ).toHaveTextContent('Chapter 2: Arrival')
+      const tree = screen.getByRole('navigation', { name: 'Chapters and headings' })
+      expect(within(tree).getByRole('button', { name: /Packing/ })).toHaveAttribute(
+        'aria-current',
+        'location',
+      )
+    } finally {
+      rect.mockRestore()
+      height.mockRestore()
+      top.mockRestore()
+    }
+  })
+
   it('changes the width of the text column and remembers it', async () => {
     await open()
     const { width, min, max } = appConfig.books.column

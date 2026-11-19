@@ -6,6 +6,7 @@
 import { Fragment, useMemo, type ReactNode } from 'react'
 import Badge from 'react-bootstrap/Badge'
 import Table from 'react-bootstrap/Table'
+import { OpenInBook } from '../../books/OpenInBook'
 import { lookup } from '../../data/glossary'
 import { useDetailStyle } from '../../theme/theme-context'
 import { bookLayout } from './bookLayout'
@@ -103,6 +104,50 @@ export function EntryFacts<T>({ entry, describe }: EntryFactsProps<T>) {
   )
 }
 
+/** The page printed as "p. 215" or "215", as a number; none when it is not one. */
+function pageOf(text: string): number | undefined {
+  const page = Number.parseInt(text.replace(/^p\.\s*/, ''), 10)
+  return Number.isNaN(page) ? undefined : page
+}
+
+/** Where the entry is printed, as a way to open that place in the reader. */
+function OpenEntryInBook({
+  source,
+  page,
+  name,
+  className,
+}: {
+  source: string
+  page: string
+  name: ReactNode
+  className?: string
+}) {
+  // A name that is not plain text (a drawn heading) has no words to look for.
+  if (!source || typeof name !== 'string') return null
+  return (
+    <OpenInBook source={source} page={pageOf(page)} name={name} className={className} />
+  )
+}
+
+/** The detail of one entry in the standard style: the way to the entry's printing, under its name. */
+function StandardPrinting<T>({
+  entry,
+  describe,
+  name,
+  tags,
+}: EntryFactsProps<T> & { name: ReactNode; tags: string[] }) {
+  const groups = useMemo(() => describe([entry]), [describe, entry])
+  const book = bookLayout(groups, entry, tags)
+  return (
+    <OpenEntryInBook
+      source={book.sourceCode}
+      page={book.pageNumber}
+      name={name}
+      className="d-block mb-3"
+    />
+  )
+}
+
 interface EntryDetailProps<T> extends EntryFactsProps<T> {
   name: ReactNode
   tags?: string[]
@@ -175,7 +220,8 @@ function EntryBook<T>({
         <footer className="entry-book__footer">
           Source: {bookName}
           {book.pageNumber && `, page ${book.pageNumber}`}.
-          {book.free && ' In the free rules.'}
+          {book.free && ' In the free rules.'}{' '}
+          <OpenEntryInBook source={book.sourceCode} page={book.pageNumber} name={name} />
         </footer>
       )}
     </div>
@@ -189,6 +235,7 @@ export function EntryDetail<T>(props: EntryDetailProps<T>) {
   const detail = (
     <div className="p-3">
       <EntryHeading name={name} tags={tags} className="mb-3" />
+      <StandardPrinting entry={entry} describe={describe} name={name} tags={tags} />
       {/* Unlike the compare window (which needs a fixed layout and explicit widths
           to stop its columns collapsing), each group here sizes its label column
           to its own content. */}
