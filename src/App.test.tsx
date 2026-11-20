@@ -1,9 +1,10 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { ThemeProvider } from './theme/ThemeProvider'
 import { useCharacterStore } from './character/store'
+import { useLegalStore } from './legal/state'
 import type { Book } from './data/types'
 
 // Mock the data loader so the test doesn't hit the network/filesystem.
@@ -105,5 +106,14 @@ describe('App flow', () => {
     expect(screen.getByRole('heading', { name: 'My Characters' })).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     consoleError.mockRestore()
+  })
+
+  it('shows a legal page in place of the view, and the characters again after it', () => {
+    renderApp()
+    act(() => useLegalStore.getState().openLegal('terms'))
+    expect(screen.getByRole('heading', { name: 'Terms of use' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'My Characters' })).toBeNull()
+    act(() => useLegalStore.getState().closeLegal())
+    expect(screen.getByRole('heading', { name: 'My Characters' })).toBeInTheDocument()
   })
 })

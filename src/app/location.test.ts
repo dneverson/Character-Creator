@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createCharacter } from '../character/model'
 import { selectSheetTab, useCharacterStore } from '../character/store'
 import { openBook, useBookStore } from '../books/state'
+import { useLegalStore } from '../legal/state'
 import { useLookupStore } from '../lookup/state'
 import { connectLocation, formatHash, parseHash } from './location'
 
@@ -25,6 +26,7 @@ function loadPage() {
   })
   useLookupStore.setState({ open: false, entryId: null })
   useBookStore.setState({ open: false, place: null })
+  useLegalStore.setState({ page: null })
   disconnect = connectLocation()
 }
 
@@ -320,5 +322,39 @@ describe('keeping the address and the app in step', () => {
     disconnect?.()
     useCharacterStore.getState().openCharacter(tom.id)
     expect(window.location.hash).toBe('')
+  })
+})
+
+describe('the legal pages', () => {
+  it('writes and reads back each page, and no other address under it', () => {
+    for (const legal of ['privacy', 'terms', 'account'] as const) {
+      expect(formatHash({ view: 'list', legal })).toBe(`#/${legal}`)
+      expect(parseHash(`#/${legal}`)).toEqual({ view: 'list', legal })
+    }
+    expect(parseHash('#/privacy/more')).toEqual({ view: 'list' })
+  })
+
+  it('opens a page from an address, and closes it on Back to the view under it', () => {
+    window.history.replaceState(null, '', '#/terms')
+    loadPage()
+    expect(useLegalStore.getState().page).toBe('terms')
+    useLegalStore.getState().closeLegal()
+    expect(window.location.hash).toBe('#/')
+    useLegalStore.getState().openLegal('privacy')
+    expect(window.location.hash).toBe('#/privacy')
+  })
+
+  it('follows a change of the address, and leaves the book reader to it', async () => {
+    loadPage()
+    useBookStore.setState({ open: true, place: null })
+    const changed = nextEvent('hashchange')
+    window.location.hash = '#/account'
+    await changed
+    expect(useLegalStore.getState().page).toBe('account')
+    expect(useBookStore.getState().open).toBe(false)
+    const back = nextEvent('hashchange')
+    window.location.hash = '#/'
+    await back
+    expect(useLegalStore.getState().page).toBeNull()
   })
 })

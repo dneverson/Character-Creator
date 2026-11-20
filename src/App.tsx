@@ -9,14 +9,17 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { CharacterEditor } from './components/editor/CharacterEditor'
 import { LevelUpView } from './components/levelup/LevelUpView'
 import { BooksView } from './components/books/BooksView'
+import { LegalPage } from './components/legal/LegalPage'
 import { LookupView } from './components/lookup/LookupView'
 import { SheetView } from './components/sheet/SheetView'
 import { StorageNotice } from './components/StorageNotice'
 import { useCharacterStore } from './character/store'
 import { appConfig } from './config/app'
+import { useLegalStore } from './legal/state'
 
 export default function App() {
   const view = useCharacterStore((s) => s.view)
+  const legal = useLegalStore((s) => s.page)
   const backToList = useCharacterStore((s) => s.backToList)
   // Keep the document title in sync with the configured app name.
   useEffect(() => {
@@ -42,10 +45,11 @@ export default function App() {
           )
         }
       >
-        {view === 'editor' && <CharacterEditor />}
-        {view === 'sheet' && <SheetView />}
-        {view === 'levelUp' && <LevelUpView />}
-        {view === 'list' && <CharacterList />}
+        {legal && <LegalPage page={legal} />}
+        {!legal && view === 'editor' && <CharacterEditor />}
+        {!legal && view === 'sheet' && <SheetView />}
+        {!legal && view === 'levelUp' && <LevelUpView />}
+        {!legal && view === 'list' && <CharacterList />}
       </ErrorBoundary>
       <BooksView />
       <LookupView />

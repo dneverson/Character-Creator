@@ -15,4 +15,17 @@ describe('AppFooter', () => {
       'https://github.com/dneverson/Character-Creator',
     )
   })
+
+  it('links the privacy policy, the terms and the account page', () => {
+    render(<AppFooter />)
+    expect(screen.getByRole('link', { name: 'Privacy' })).toHaveAttribute(
+      'href',
+      '#/privacy',
+    )
+    expect(screen.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '#/terms')
+    expect(screen.getByRole('link', { name: 'Account' })).toHaveAttribute(
+      'href',
+      '#/account',
+    )
+  })
 })
