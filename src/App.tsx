@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import Button from 'react-bootstrap/Button'
 import { AppFooter } from './components/AppFooter'
+import { AccountPanel } from './components/account/AccountPanel'
+import { SignInModal } from './components/account/SignInModal'
 import { AppNavbar } from './components/AppNavbar'
 import { CharacterList } from './components/CharacterList'
 import { ContentNotice } from './components/content/ContentNotice'
@@ -13,7 +15,9 @@ import { LegalPage } from './components/legal/LegalPage'
 import { LookupView } from './components/lookup/LookupView'
 import { SheetView } from './components/sheet/SheetView'
 import { StorageNotice } from './components/StorageNotice'
+import { ToastHost } from './components/ToastHost'
 import { useCharacterStore } from './character/store'
+import { account } from './cloud'
 import { appConfig } from './config/app'
 import { useLegalStore } from './legal/state'
 
@@ -45,7 +49,8 @@ export default function App() {
           )
         }
       >
-        {legal && <LegalPage page={legal} />}
+        {legal === 'account' && <AccountPanel account={account} />}
+        {legal && legal !== 'account' && <LegalPage page={legal} />}
         {!legal && view === 'editor' && <CharacterEditor />}
         {!legal && view === 'sheet' && <SheetView />}
         {!legal && view === 'levelUp' && <LevelUpView />}
@@ -54,6 +59,8 @@ export default function App() {
       <BooksView />
       <LookupView />
       <AppFooter />
+      <SignInModal account={account} />
+      <ToastHost />
     </>
   )
 }

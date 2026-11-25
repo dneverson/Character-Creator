@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { formatDateParts, formatTimestamp } from './date'
+import {
+  formatDateParts,
+  formatLongDate,
+  formatMediumDateTime,
+  formatTimestamp,
+} from './date'
 
 describe('formatDateParts', () => {
   it('formats a full date as YYYY/MM/DD', () => {
@@ -43,5 +48,17 @@ describe('formatTimestamp', () => {
     expect(formatTimestamp(new Date(2020, 0, 1, 12, 30).getTime())).toBe(
       '2020/01/01 12:30 PM',
     )
+  })
+})
+
+describe('the locale dates', () => {
+  const at = new Date(2026, 10, 9, 13, 46).getTime()
+  it('writes a long date and a medium date with the time', () => {
+    expect(formatLongDate(at)).toBe(
+      new Intl.DateTimeFormat(undefined, { dateStyle: 'long' }).format(at),
+    )
+    expect(formatLongDate(at)).toMatch(/2026/)
+    expect(formatMediumDateTime(at)).toMatch(/2026/)
+    expect(formatMediumDateTime(at)).not.toBe(formatLongDate(at))
   })
 })

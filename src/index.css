@@ -964,3 +964,27 @@ body {
   --bs-tooltip-max-width: 22rem;
   text-align: left;
 }
+
+/* A sign-in code digit that was wrong is marked by its red border alone; the small icon
+   Bootstrap adds would not fit in a box this narrow. */
+.code-digit.form-control.is-invalid {
+  background-image: none;
+  padding-right: 0;
+}
+
+/* Toasts sit below the navbar (never over its controls): top-right on a wide screen,
+   the full width with a gutter on a phone. Above open windows (z-index 1055). */
+.toast-container.toast-host {
+  position: fixed;
+  top: var(--app-navbar-height, 3.5rem);
+  right: 0;
+  z-index: 2000;
+}
+@media (max-width: 575.98px) {
+  .toast-container.toast-host {
+    left: 0;
+  }
+  .toast-host .toast {
+    width: 100%;
+  }
+}

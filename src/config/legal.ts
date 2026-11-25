@@ -2,21 +2,23 @@
  * The text of the Privacy, Terms and Account pages (drawn by src/components/legal).
  *
  * Single source of truth: change a statement here and every page that shows it follows.
- * Each section says whether it describes how the app works today, or what the planned
- * account feature will do once it exists; the page labels them so a reader can tell. Keep
+ * Each section says whether it describes how the app works without an account ("today"),
+ * what an account does, or a feature that is planned and does not exist yet ("coming");
+ * the page labels them so a reader can tell. Keep
  * this file true to the code: when storage, network use or the cloud plan changes, update
  * the text in the same commit. It is plain-language information, not legal advice, and the
- * owner should have it reviewed before accounts go live.
+ * owner should have it reviewed.
  */
 import { appConfig } from './app'
 
 /** Which part of the app a section describes. */
-export type LegalScope = 'today' | 'account'
+export type LegalScope = 'today' | 'account' | 'coming'
 
 /** The words shown on a section's label, by scope. */
 export const legalScopeLabel: Record<LegalScope, string> = {
   today: 'Today',
-  account: 'With an account (coming)',
+  account: 'With an account',
+  coming: 'Coming',
 }
 
 export interface LegalSection {
@@ -56,19 +58,19 @@ const contact: LegalSection = {
 
 export const legalConfig = {
   /** The date the three pages were last changed. Update it with every change of text. */
-  lastUpdated: '2026-11-19',
+  lastUpdated: '2026-11-20',
   cloud: { provider, region },
   minimumAge,
   pages: {
     privacy: {
       title: 'Privacy policy',
-      intro: `${appConfig.name} is a free fan tool. This page says what it keeps about you, where, and who can see it. It is written for players, in plain English, and it is not legal advice. Parts marked "Today" describe how the app works right now. Parts marked "With an account (coming)" describe a feature that does not exist yet and will only apply once it does.`,
+      intro: `${appConfig.name} is a free fan tool. This page says what it keeps about you, where, and who can see it. It is written for players, in plain English, and it is not legal advice. Parts marked "Today" describe how the app works without an account. Parts marked "With an account" apply once you make one, which is optional. Parts marked "Coming" describe features that do not exist yet.`,
       sections: [
         {
           id: 'short-version',
           heading: 'The short version',
           paragraphs: [
-            'Today the app keeps everything on your own device and sends nothing about you to anyone. It has no accounts, no analytics, no advertising and no cookies. Your characters never leave your browser unless you export them yourself.',
+            'Without an account the app keeps everything on your own device and sends nothing about you to anyone. An account is optional. The app has no analytics, no advertising and no cookies. Your characters never leave your browser unless you export them yourself or sign in to an account, which keeps a copy in the cloud.',
           ],
         },
         {
@@ -76,13 +78,14 @@ export const legalConfig = {
           heading: 'What is stored on your device',
           scope: 'today',
           paragraphs: [
-            "The app saves your work in your browser's own storage, on your device only. It is not sent to this site or to anyone else. Clearing the site's data in your browser, or using a private window, removes it.",
+            "The app saves your work in your browser's own storage, on your device only. Unless you sign in to an account, it is not sent to this site or to anyone else. Clearing the site's data in your browser, or using a private window, removes it.",
           ],
           bullets: [
             'Your characters: everything you enter, including a portrait picture if you add one.',
             "Each character's history log: a record, with times, of what was done to the character, such as edits, rolls and level ups. It stays with the character, and it is included in the file when you export the character, so anyone you give that file to can read it.",
             'Settings: the theme, table layouts, window sizes, dice look, sheet template and your content choices.',
             'Downloaded book content: the full rules and book text your browser fetched (see the next section).',
+            'Your sign-in, if you have an account: a token that keeps you signed in on this device until you sign out.',
           ],
         },
         {
@@ -115,21 +118,19 @@ export const legalConfig = {
           heading: 'Who handles your data with an account',
           scope: 'account',
           paragraphs: [
-            `An account will be optional. The app will keep working fully without one. If you make an account, your data will be stored with ${provider}, a hosted database service, in its ${region} data centre in the United States. ${provider} stores and serves the data on behalf of this project. Sign-in will be by email link, Google or Discord.`,
+            `An account is optional. The app keeps working fully without one. If you make an account, your data is stored with ${provider}, a hosted database service, in its ${region} data centre in the United States. ${provider} stores and serves the data on behalf of this project. Sign-in is by a link or a 6-digit code sent to your email address. There is no password and no other sign-in service.`,
           ],
         },
         {
           id: 'cloud-data',
-          heading: 'What an account will store, and why',
+          heading: 'What an account stores, and why',
           scope: 'account',
           paragraphs: [
             'Only what is needed to run the account and the features you switch on:',
           ],
           bullets: [
-            "Your email address, and the sign-in provider and its id for your account, to let you sign in and to tell your data apart from everyone else's.",
-            'The characters you choose to keep in the cloud, with their history logs, so they follow you between devices and can be recovered.',
-            'For each character, whether it is private or shared, and if shared, the link or public listing that makes it visible. A shared build holds names and source codes only, never book text.',
-            'Comments or votes you post, once those features exist, with your display name.',
+            "Your email address, and the sign-in method and id of your account, to let you sign in and to tell your data apart from everyone else's.",
+            'Your characters, with their history logs, once you sign in, so they follow you between devices and can be recovered. A character you delete is kept only as a bare deletion record, an id and a time with none of its content, so that your other devices delete it too.',
           ],
         },
         {
@@ -137,7 +138,15 @@ export const legalConfig = {
           heading: 'Who can see it',
           scope: 'account',
           paragraphs: [
-            'Cloud characters will be private to you by default. A character you mark as shared or public can be read, not changed, by other people, and its history may be visible to a Dungeon Master you give it to. Making it private again hides it from then on, but cannot take back copies someone already saved or exported. The people who run this project will use the data only to operate the service and to deal with abuse reports.',
+            'Your cloud characters are private to you: only your signed-in account can read or change them. The people who run this project will use the data only to operate the service and to deal with abuse reports.',
+          ],
+        },
+        {
+          id: 'cloud-sharing-coming',
+          heading: 'Sharing, comments and Dungeon Master views',
+          scope: 'coming',
+          paragraphs: [
+            'These do not exist yet. When they do, a character you mark as shared or public will be readable, not changeable, by other people, and its history may be visible to a Dungeon Master you give it to. Making it private again will hide it from then on, but cannot take back copies someone already saved or exported. A shared build will hold names and source codes only, never book text. Comments or votes you post will show your display name.',
           ],
         },
         {
@@ -154,21 +163,21 @@ export const legalConfig = {
           heading: 'Deleting your account and your data',
           scope: 'account',
           paragraphs: [
-            'You will be able to delete your account yourself, at any time, from the Account page, which lists the steps. You can export your characters first.',
+            'You can delete your account yourself, at any time, from the Account page. You can export your characters first.',
           ],
         },
         {
           id: 'children',
           heading: 'Children',
           paragraphs: [
-            `This app is not directed at children under ${minimumAge}, and accounts, when they exist, are for people ${minimumAge} or older. We do not knowingly collect personal data from children under ${minimumAge}. If you think a child has made an account, tell us (see Contact) and it will be deleted.`,
+            `This app is not directed at children under ${minimumAge}, and accounts are for people ${minimumAge} or older. We do not knowingly collect personal data from children under ${minimumAge}. If you think a child has made an account, tell us (see Contact) and it will be deleted.`,
           ],
         },
         {
           id: 'changes',
           heading: 'Changes to this policy',
           paragraphs: [
-            'When this policy changes, the "Last updated" date at the top changes with it. A change that affects what is collected about you, such as the start of accounts, will be shown in the app before it applies to you.',
+            'When this policy changes, the "Last updated" date at the top changes with it. A change that affects what is collected about you, such as a new account feature, will be shown in the app before it applies to you.',
           ],
         },
         contact,
@@ -176,7 +185,7 @@ export const legalConfig = {
     },
     terms: {
       title: 'Terms of use',
-      intro: `By using ${appConfig.name} you agree to these terms. They are short on purpose. Parts marked "Today" apply now. Parts marked "With an account (coming)" apply once accounts exist.`,
+      intro: `By using ${appConfig.name} you agree to these terms. They are short on purpose. Parts marked "Today" apply to the app without an account. Parts marked "With an account" apply once you make one. Parts marked "Coming" apply once the features they describe exist.`,
       sections: [
         {
           id: 'what-this-is',
@@ -215,15 +224,15 @@ export const legalConfig = {
         {
           id: 'use',
           heading: 'Acceptable use',
-          scope: 'account',
+          scope: 'coming',
           paragraphs: [
-            "Once accounts and shared builds exist, you agree not to post, share or link anything that is illegal, abusive, hateful, harassing, sexually explicit, or that infringes someone else's rights, and not to post other people's personal information, copied book text or art, or spam. You are responsible for what you post. You also agree not to attack, overload, scrape in bulk or try to break into the service.",
+            "Once shared builds and comments exist, you agree not to post, share or link anything that is illegal, abusive, hateful, harassing, sexually explicit, or that infringes someone else's rights, and not to post other people's personal information, copied book text or art, or spam. You are responsible for what you post. You also agree not to attack, overload, scrape in bulk or try to break into the service.",
           ],
         },
         {
           id: 'moderation',
           heading: 'Moderation and removal',
-          scope: 'account',
+          scope: 'coming',
           paragraphs: [
             'Shared builds and comments may be reviewed, hidden or removed, and a repeat offender can lose the account, at the discretion of the project owner and without notice when the content is harmful. To report something, use the contact link below.',
           ],
@@ -249,40 +258,48 @@ export const legalConfig = {
     account: {
       title: 'Your account',
       intro:
-        'Accounts are coming. Today there is nothing to sign in to: the app works fully on your own device, with no account. This page says what accounts will do and, in particular, how deleting one will work.',
+        'An account is optional. The app works fully on your own device with no account. This page lets you sign in or out, and says what an account does and how deleting one works.',
       sections: [
         {
           id: 'status',
-          heading: 'Where this stands',
+          heading: 'Without an account',
           scope: 'today',
           paragraphs: [
-            'There are no accounts yet, so there is no account data to delete. Your characters are stored on your device only, and you can remove them there at any time.',
+            'Without an account there is no account data to delete. Your characters are stored on your device only, and you can remove them there at any time.',
           ],
         },
         {
           id: 'optional',
-          heading: 'What an account will be for',
+          heading: 'What an account is for',
           scope: 'account',
           paragraphs: [
-            'An optional account will keep your characters in the cloud so they follow you between devices, and will allow sharing them privately or publicly. The app will keep working fully without one.',
+            'An optional account keeps your characters in the cloud so they follow you between devices. The app keeps working fully without one.',
+          ],
+        },
+        {
+          id: 'sharing-coming',
+          heading: 'Sharing and comments',
+          scope: 'coming',
+          paragraphs: [
+            'Sharing your characters privately or publicly, comments and Dungeon Master views are planned. They do not exist yet.',
           ],
         },
         {
           id: 'delete',
-          heading: 'How deleting an account will work',
+          heading: 'How deleting an account works',
           scope: 'account',
           paragraphs: [
-            'This page will have a "Delete account" button, after you sign in. It will ask you to confirm once, and then delete straight away, with no waiting period:',
+            'After you sign in, this page has a "Delete account" button. It asks you to confirm once, and then deletes straight away, with no waiting period:',
           ],
           bullets: [
             'Your account, and the email address and sign-in details stored with it.',
             'Every copy of your characters in the cloud, with their history, and any sharing links or public listings they had.',
-            'Your comments and votes, or, where they must stay so a discussion makes sense, they will be shown with no name on them.',
+            'Your comments and votes, once those exist, or, where they must stay so a discussion makes sense, they will be shown with no name on them.',
           ],
         },
         {
           id: 'local-stays',
-          heading: 'What deleting will not touch',
+          heading: 'What deleting does not touch',
           scope: 'account',
           paragraphs: [
             'The characters stored on your own device are not touched. They stay in your browser, and keep working, exactly as before. Copies other people already saved or exported from a shared character are theirs and cannot be taken back. Backups are overwritten on their normal schedule (see the privacy policy).',
@@ -293,7 +310,7 @@ export const legalConfig = {
           heading: 'Cannot sign in, or want it done for you',
           scope: 'account',
           paragraphs: [
-            'If you cannot sign in, ask for the account to be deleted through the contact link below, and say which sign-in it uses. It will be deleted once it is confirmed to be yours.',
+            'If you cannot sign in, ask for the account to be deleted through the contact link below, and say which email address it uses. It will be deleted once it is confirmed to be yours.',
           ],
           link: issues,
         },
@@ -302,7 +319,7 @@ export const legalConfig = {
           heading: 'Keeping a copy first',
           scope: 'today',
           paragraphs: [
-            'Every character can be exported to a file from the app, with its history, before you delete anything. That works today and will keep working with an account.',
+            'Every character can be exported to a file from the app, with its history, before you delete anything. That works with or without an account.',
           ],
         },
       ],

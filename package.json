@@ -24,6 +24,7 @@
     "verify:content": "node scripts/verify-content.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.119.2",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.13.1",
     "pdf-lib": "^1.17.1",

@@ -46,6 +46,11 @@ export default defineConfig(({ command }) => ({
         'src/storage/idb.ts',
         'src/content/thumbnail.ts',
         'src/portrait/imageFile.ts',
+        // The one real cloud backend (it needs the network and an account, so it is not run
+        // in unit tests; its parsing and error handling are in backend.ts, which is) and the
+        // wiring of the app's own account (it reads the address bar and loads the backend).
+        'src/cloud/supabaseBackend.ts',
+        'src/cloud/index.ts',
         // Start the book search's worker, and its three-line entry: a worker is a browser
         // feature jsdom does not have. The logic they call is tested (`docReader`).
         'src/books/spawnDocWorker.ts',

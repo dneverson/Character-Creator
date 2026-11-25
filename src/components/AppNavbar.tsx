@@ -1,11 +1,13 @@
 import { useLayoutEffect, useRef } from 'react'
 import Container from 'react-bootstrap/Container'
 import Navbar from 'react-bootstrap/Navbar'
+import { AccountButton } from './account/AccountButton'
 import { ContentButton } from './content/ContentButton'
 import { BooksButton } from './books/BooksButton'
 import { LookupButton } from './lookup/LookupButton'
 import { ThemeToggle } from './ThemeToggle'
 import { BrandEmblem } from './BrandEmblem'
+import { account } from '../cloud'
 import { appConfig } from '../config/app'
 
 /** Top navigation bar with the app title, the book content status and the theme switcher. */
@@ -40,6 +42,7 @@ export function AppNavbar() {
           <BooksButton />
           <LookupButton />
           <ContentButton />
+          <AccountButton account={account} />
           <ThemeToggle />
         </div>
       </Container>

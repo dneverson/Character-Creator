@@ -37,3 +37,16 @@ export function formatTimestamp(ms: number): string {
     `${pad(hour12)}:${pad(d.getMinutes())} ${meridiem}`
   )
 }
+
+/** A date in the reader's own language, written out: "November 9, 2026". */
+export function formatLongDate(ms: number): string {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'long' }).format(ms)
+}
+
+/** A date and time in the reader's own language: "Nov 25, 2026, 1:46 AM". */
+export function formatMediumDateTime(ms: number): string {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(ms)
+}

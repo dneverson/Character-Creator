@@ -45,6 +45,29 @@ export const appConfig = {
     sheetTemplate: 'cc-sheet-template',
     characters: 'cc-characters',
     charactersMoved: 'cc-characters-moved',
+    /** Deletions made while signed in that the cloud has not heard of yet. */
+    cloudRemovals: 'cc-cloud-removals',
+    /** The account last signed in on this device, which a deletion made signed out is for. */
+    cloudLastUser: 'cc-cloud-last-user',
+  },
+  /**
+   * The optional account and the cloud copy of the characters (src/cloud). Both values are
+   * public by design: the publishable key only lets a visitor ask the database for what
+   * its row level security rules allow, which for characters is nothing but their own.
+   */
+  cloud: {
+    url: 'https://anjxwbzsjioxxrfdrhaw.supabase.co',
+    publishableKey: 'sb_publishable_rxbzsmBprNgPJkJpMYVy1w_PPa8DDQi',
+    /** How long saves wait for further saves before they are sent, in milliseconds. */
+    syncDebounceMs: 2000,
+    /** How long after a failed sync the next try is made, in milliseconds. */
+    retryMs: 30_000,
+    /** How many digits the sign-in code from the email has. */
+    codeLength: 6,
+    /** How long, in seconds, before another sign-in code can be asked for. */
+    resendSeconds: 60,
+    /** How often, in milliseconds, "saved 2 minutes ago" is brought up to date. */
+    statusRefreshMs: 30_000,
   },
   /**
    * How long the first render waits for the stored characters, in milliseconds.
@@ -52,6 +75,8 @@ export const appConfig = {
    * does not answer, and the characters still appear once it does.
    */
   characterLoadWaitMs: 1500,
+  /** How long a toast (a short confirmation in the corner) stays, in milliseconds. */
+  toastMs: 5000,
   /** Quick lookup: the search across everything the loaded content holds. */
   lookup: {
     /** The key that opens it from any page, when no field has the focus. */

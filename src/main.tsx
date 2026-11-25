@@ -10,6 +10,7 @@ import { appConfig } from './config/app.ts'
 import { contentLibrary } from './content/index.ts'
 import { loadBookDocs } from './books/catalog.ts'
 import { loadBooks } from './data/loaders.ts'
+import { account } from './cloud/index.ts'
 import { characterStorage } from './storage/index.ts'
 import { connectLocation } from './app/location.ts'
 import { ThemeProvider } from './theme/ThemeProvider.tsx'
@@ -24,6 +25,10 @@ contentLibrary.start().catch(() => undefined)
 // it finishes redraw when it does. The adventures are named the same way.
 loadBooks().catch(() => undefined)
 loadBookDocs().catch(() => undefined)
+
+// Pick up a session this browser holds, or a sign-in link that has just brought the user
+// back (taking its code out of the address). A visitor with no account does nothing here.
+void account.start()
 
 // Read the stored characters before the first render, so the list never shows as
 // empty and then fills. Reading takes a few milliseconds; a browser whose storage

@@ -26,6 +26,17 @@ describe('the legal pages', () => {
     expect(within(onDevice).getByText(legalScopeLabel.today)).toBeInTheDocument()
     const processor = screen.getByRole('heading', { name: /Who handles your data/ })
     expect(within(processor).getByText(legalScopeLabel.account)).toBeInTheDocument()
+    const sharing = screen.getByRole('heading', { name: /Sharing, comments and Dungeon/ })
+    expect(within(sharing).getByText(legalScopeLabel.coming)).toBeInTheDocument()
+  })
+
+  it('says sign-in is by email link or code only, and that sharing is not built', () => {
+    render(<LegalPage page="privacy" />)
+    expect(screen.getByText(/link or a 6-digit code/)).toHaveTextContent(
+      'no other sign-in service',
+    )
+    expect(document.body).not.toHaveTextContent(/Google|Discord/)
+    expect(screen.getByText(/These do not exist yet/)).toBeInTheDocument()
   })
 
   it('states the truth about trackers, the host, the children rule and the contact', () => {
@@ -50,18 +61,6 @@ describe('the legal pages', () => {
     expect(screen.getByText(/is your responsibility/)).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: /Moderation and removal/ }),
-    ).toBeInTheDocument()
-  })
-
-  it('has an account page that says what deleting an account removes and keeps', () => {
-    render(<LegalPage page="account" />)
-    expect(screen.getByText(/Accounts are coming/)).toBeInTheDocument()
-    expect(screen.getByText(/"Delete account" button/)).toBeInTheDocument()
-    expect(
-      screen.getByText(/Every copy of your characters in the cloud/),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(/stored on your own device are not touched/),
     ).toBeInTheDocument()
   })
 
