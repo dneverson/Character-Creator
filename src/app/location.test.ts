@@ -3,6 +3,7 @@ import { createCharacter } from '../character/model'
 import { selectSheetTab, useCharacterStore } from '../character/store'
 import { openBook, useBookStore } from '../books/state'
 import { useLegalStore } from '../legal/state'
+import { useSharedStore } from '../share/state'
 import { useLookupStore } from '../lookup/state'
 import { connectLocation, formatHash, parseHash } from './location'
 
@@ -27,6 +28,7 @@ function loadPage() {
   useLookupStore.setState({ open: false, entryId: null })
   useBookStore.setState({ open: false, place: null })
   useLegalStore.setState({ page: null })
+  useSharedStore.setState({ token: null })
   disconnect = connectLocation()
 }
 
@@ -356,5 +358,47 @@ describe('the legal pages', () => {
     window.location.hash = '#/'
     await back
     expect(useLegalStore.getState().page).toBeNull()
+  })
+})
+
+describe('a shared character', () => {
+  const token = '0123456789abcdef0123456789abcdef'
+
+  it('writes and reads back its address, and no address that is not a token', () => {
+    expect(formatHash({ view: 'list', shared: token })).toBe(`#/shared/${token}`)
+    expect(parseHash(`#/shared/${token}`)).toEqual({ view: 'list', shared: token })
+    expect(parseHash('#/shared/not-a-token')).toEqual({ view: 'list' })
+    expect(parseHash(`#/shared/${token}/more`)).toEqual({ view: 'list' })
+    expect(parseHash('#/shared')).toEqual({ view: 'list' })
+  })
+
+  it('opens from an address, and leaves with the next address', async () => {
+    window.history.replaceState(null, '', `#/shared/${token}`)
+    loadPage()
+    expect(useSharedStore.getState().token).toBe(token)
+    const changed = nextEvent('hashchange')
+    window.location.hash = '#/privacy'
+    await changed
+    expect(useSharedStore.getState().token).toBeNull()
+    expect(useLegalStore.getState().page).toBe('privacy')
+    useLegalStore.getState().closeLegal()
+    useSharedStore.getState().openShared(token)
+    expect(window.location.hash).toBe(`#/shared/${token}`)
+    useSharedStore.getState().closeShared()
+    expect(window.location.hash).toBe('#/')
+  })
+
+  it('closes for a character address and for the book reader', async () => {
+    window.history.replaceState(null, '', `#/shared/${token}`)
+    loadPage()
+    const toBooks = nextEvent('hashchange')
+    window.location.hash = '#/books'
+    await toBooks
+    expect(useSharedStore.getState().token).toBeNull()
+    useSharedStore.getState().openShared(token)
+    const toSheet = nextEvent('hashchange')
+    window.location.hash = `#/c/${tom.id}/sheet`
+    await toSheet
+    expect(useSharedStore.getState().token).toBeNull()
   })
 })

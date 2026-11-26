@@ -14,6 +14,7 @@ import { addXp, trackXp } from '../../play/actions'
 import { xpForLevel, xpStanding } from '../../rules/experience'
 import { AbbrText } from '../Abbr'
 import { Icon } from '../Icon'
+import { useReadOnly } from './readOnly'
 import { useApplyPlay } from './usePlay'
 
 const selectLevel = (character: Character) => totalLevel(character)
@@ -23,6 +24,7 @@ const points = (n: number) => n.toLocaleString('en-US')
 
 export function ExperienceRow({ edition }: { edition: Edition }) {
   const applyPlay = useApplyPlay()
+  const readOnly = useReadOnly()
   const level = useCharacterPart(selectLevel) ?? 1
   const xp = useCharacterPart(selectXp)
   const [amount, setAmount] = useState('')
@@ -40,6 +42,7 @@ export function ExperienceRow({ edition }: { edition: Edition }) {
           </>
         }
         checked={xp !== undefined}
+        disabled={readOnly}
         onChange={() =>
           applyPlay((p) =>
             trackXp(p, xp === undefined ? xpForLevel(edition, level) : null),
@@ -59,29 +62,34 @@ export function ExperienceRow({ edition }: { edition: Edition }) {
                 : `next level at ${points(standing.next)}`}
             </span>
           </span>
-          <span className="sheet-play__group">
-            <Form.Control
-              type="number"
-              size="sm"
-              min={0}
-              aria-label="Experience points to add"
-              style={{ width: 110 }}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-            <Button
-              size="sm"
-              variant="primary"
-              disabled={gained === 0}
-              onClick={() => {
-                applyPlay((p) => addXp(p, gained), { type: 'experience', amount: gained })
-                setAmount('')
-              }}
-            >
-              <Icon name="add" className="me-1" />
-              Add <AbbrText text="XP" kind="stat" />
-            </Button>
-          </span>
+          {!readOnly && (
+            <span className="sheet-play__group">
+              <Form.Control
+                type="number"
+                size="sm"
+                min={0}
+                aria-label="Experience points to add"
+                style={{ width: 110 }}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              <Button
+                size="sm"
+                variant="primary"
+                disabled={gained === 0}
+                onClick={() => {
+                  applyPlay((p) => addXp(p, gained), {
+                    type: 'experience',
+                    amount: gained,
+                  })
+                  setAmount('')
+                }}
+              >
+                <Icon name="add" className="me-1" />
+                Add <AbbrText text="XP" kind="stat" />
+              </Button>
+            </span>
+          )}
         </>
       )}
     </div>

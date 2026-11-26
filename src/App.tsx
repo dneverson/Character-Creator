@@ -13,6 +13,8 @@ import { LevelUpView } from './components/levelup/LevelUpView'
 import { BooksView } from './components/books/BooksView'
 import { LegalPage } from './components/legal/LegalPage'
 import { LookupView } from './components/lookup/LookupView'
+import { SharedView } from './components/share/SharedView'
+import { ShareModal } from './components/share/ShareModal'
 import { SheetView } from './components/sheet/SheetView'
 import { StorageNotice } from './components/StorageNotice'
 import { ToastHost } from './components/ToastHost'
@@ -20,10 +22,12 @@ import { useCharacterStore } from './character/store'
 import { account } from './cloud'
 import { appConfig } from './config/app'
 import { useLegalStore } from './legal/state'
+import { useSharedStore } from './share/state'
 
 export default function App() {
   const view = useCharacterStore((s) => s.view)
   const legal = useLegalStore((s) => s.page)
+  const shared = useSharedStore((s) => s.token)
   const backToList = useCharacterStore((s) => s.backToList)
   // Keep the document title in sync with the configured app name.
   useEffect(() => {
@@ -49,17 +53,19 @@ export default function App() {
           )
         }
       >
+        {shared && !legal && <SharedView key={shared} account={account} token={shared} />}
         {legal === 'account' && <AccountPanel account={account} />}
         {legal && legal !== 'account' && <LegalPage page={legal} />}
-        {!legal && view === 'editor' && <CharacterEditor />}
-        {!legal && view === 'sheet' && <SheetView />}
-        {!legal && view === 'levelUp' && <LevelUpView />}
-        {!legal && view === 'list' && <CharacterList />}
+        {!legal && !shared && view === 'editor' && <CharacterEditor />}
+        {!legal && !shared && view === 'sheet' && <SheetView />}
+        {!legal && !shared && view === 'levelUp' && <LevelUpView />}
+        {!legal && !shared && view === 'list' && <CharacterList />}
       </ErrorBoundary>
       <BooksView />
       <LookupView />
       <AppFooter />
       <SignInModal account={account} />
+      <ShareModal account={account} />
       <ToastHost />
     </>
   )

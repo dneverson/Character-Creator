@@ -9,6 +9,7 @@ import { damage, gainTemp, heal, setTempHp } from '../../play/actions'
 import { DerivedNumber } from '../derived/DerivedNumber'
 import { DraftInput } from '../editor/DraftInput'
 import { DeathSaves } from './SheetPips'
+import { useReadOnly } from './readOnly'
 import { useApplyPlay, usePlay } from './usePlay'
 
 const whole = (text: string) => {
@@ -18,6 +19,7 @@ const whole = (text: string) => {
 
 export function HpBox({ sheet }: { sheet: DerivedSheet }) {
   const applyPlay = useApplyPlay()
+  const readOnly = useReadOnly()
   const [amount, setAmount] = useState('')
   const current = usePlay(sheet)
   if (!current) return null
@@ -34,17 +36,24 @@ export function HpBox({ sheet }: { sheet: DerivedSheet }) {
     <section className="sheet-stat sheet-hp" role="group" aria-label="Hit points">
       <div className="sheet-hp__head">
         <span className="sheet-stat__label">Hit points</span>
-        <label className="sheet-hp__temp">
-          <span className="sheet-stat__label">Temp</span>
-          <DraftInput
-            type="number"
-            min={0}
-            size="sm"
-            aria-label="Temporary hit points"
-            value={String(play.tempHp)}
-            onCommit={(text) => applyPlay((p) => setTempHp(p, whole(text)))}
-          />
-        </label>
+        {readOnly ? (
+          <span className="sheet-hp__temp">
+            <span className="sheet-stat__label">Temp</span>
+            <strong>{play.tempHp}</strong>
+          </span>
+        ) : (
+          <label className="sheet-hp__temp">
+            <span className="sheet-stat__label">Temp</span>
+            <DraftInput
+              type="number"
+              min={0}
+              size="sm"
+              aria-label="Temporary hit points"
+              value={String(play.tempHp)}
+              onCommit={(text) => applyPlay((p) => setTempHp(p, whole(text)))}
+            />
+          </label>
+        )}
       </div>
       <div className="sheet-hp__numbers">
         <DerivedNumber
@@ -65,39 +74,41 @@ export function HpBox({ sheet }: { sheet: DerivedSheet }) {
           quantity={sheet.hp}
         />
       </div>
-      <div className="sheet-hp__controls">
-        <DraftInput
-          type="number"
-          min={0}
-          size="sm"
-          aria-label="Hit points amount"
-          placeholder="Amount"
-          value={amount}
-          onCommit={setAmount}
-        />
-        <Button
-          size="sm"
-          variant="success"
-          onClick={use((hp) => applyPlay((p) => heal(p, hp, derived.maxHp)))}
-        >
-          Heal
-        </Button>
-        <Button
-          size="sm"
-          variant="danger"
-          onClick={use((hp) => applyPlay((p) => damage(p, hp, derived.maxHp)))}
-        >
-          Damage
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          title="Gain temporary hit points; they do not add up, the higher is kept"
-          onClick={use((hp) => applyPlay((p) => gainTemp(p, hp)))}
-        >
-          Temp
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="sheet-hp__controls">
+          <DraftInput
+            type="number"
+            min={0}
+            size="sm"
+            aria-label="Hit points amount"
+            placeholder="Amount"
+            value={amount}
+            onCommit={setAmount}
+          />
+          <Button
+            size="sm"
+            variant="success"
+            onClick={use((hp) => applyPlay((p) => heal(p, hp, derived.maxHp)))}
+          >
+            Heal
+          </Button>
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={use((hp) => applyPlay((p) => damage(p, hp, derived.maxHp)))}
+          >
+            Damage
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            title="Gain temporary hit points; they do not add up, the higher is kept"
+            onClick={use((hp) => applyPlay((p) => gainTemp(p, hp)))}
+          >
+            Temp
+          </Button>
+        </div>
+      )}
       <DeathSaves sheet={sheet} />
     </section>
   )

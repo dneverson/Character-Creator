@@ -8,12 +8,19 @@
 import { createClient, type Session } from '@supabase/supabase-js'
 import { appConfig } from '../config/app'
 import {
+  CharacterNotInCloudError,
   CloudOfflineError,
   parseRows,
+  parseShared,
+  parseToken,
   toRecord,
   type CloudBackend,
   type CloudSession,
 } from './backend'
+
+/** The database's codes for a missing referenced row and for a value that must be unique. */
+const FOREIGN_KEY_VIOLATION = '23503'
+const UNIQUE_VIOLATION = '23505'
 
 /** Rows sent in one request: a character with a portrait is large. */
 const ROWS_PER_REQUEST = 20
@@ -45,6 +52,17 @@ export function createSupabaseBackend(): CloudBackend {
       autoRefreshToken: true,
     },
   })
+
+  /** The token a character is shared under, or null. */
+  async function shareOf(characterId: string): Promise<string | null> {
+    const { data, error } = await client
+      .from('character_shares')
+      .select('token')
+      .eq('character_id', characterId)
+      .maybeSingle()
+    if (error) fail(error)
+    return parseToken(data)
+  }
 
   return {
     async getSession() {
@@ -99,6 +117,38 @@ export function createSupabaseBackend(): CloudBackend {
           .upsert(records, { onConflict: 'user_id,id' })
         if (error) fail(error)
       }
+    },
+    async createShare(characterId) {
+      const { data, error } = await client
+        .from('character_shares')
+        .insert({ character_id: characterId })
+        .select('token')
+        .single()
+      if (error?.code === FOREIGN_KEY_VIOLATION) throw new CharacterNotInCloudError()
+      if (error?.code === UNIQUE_VIOLATION) {
+        // Shared already (from another tab or device): that link is the one to show.
+        const existing = await shareOf(characterId)
+        if (existing !== null) return existing
+      }
+      if (error) fail(error)
+      const token = parseToken(data)
+      if (token === null) throw new Error('The cloud refused the request.')
+      return token
+    },
+    async stopShare(characterId) {
+      const { error } = await client
+        .from('character_shares')
+        .delete()
+        .eq('character_id', characterId)
+      if (error) fail(error)
+    },
+    getShare: shareOf,
+    async readShared(token) {
+      const { data, error } = await client.rpc('get_shared_character', {
+        p_token: token,
+      })
+      if (error) fail(error)
+      return parseShared(data)
     },
   }
 }

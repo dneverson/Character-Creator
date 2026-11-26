@@ -241,3 +241,53 @@ describe('syncing by hand', () => {
     expect(sync.syncNow).toHaveBeenCalled()
   })
 })
+
+describe('sharing', () => {
+  const owned = (id: string) => ({ id, data: {}, updatedAt: 1, deletedAt: null })
+
+  it('brings the cloud copy up to date, then makes the link, and finds it again', async () => {
+    const { account, cloud, sync } = setup({ session: alice })
+    cloud.rows.set('c1', owned('c1'))
+    expect(await account.getShare('c1')).toBeNull()
+    const token = await account.createShare('c1')
+    expect(sync.syncNow).toHaveBeenCalledTimes(1)
+    expect(token).toMatch(/^[0-9a-f]{32}$/)
+    expect(await account.getShare('c1')).toBe(token)
+    expect(await account.readShared(token)).toEqual({})
+  })
+
+  it('stops a link at once, and a new one is a different link', async () => {
+    const { account, cloud } = setup({ session: alice })
+    cloud.rows.set('c1', owned('c1'))
+    const first = await account.createShare('c1')
+    await account.stopShare('c1')
+    expect(await account.readShared(first)).toBeNull()
+    expect(await account.getShare('c1')).toBeNull()
+    expect(await account.createShare('c1')).not.toBe(first)
+  })
+
+  it('shows nothing of a deleted character', async () => {
+    const { account, cloud } = setup({ session: alice })
+    cloud.rows.set('c1', owned('c1'))
+    const token = await account.createShare('c1')
+    cloud.rows.set('c1', { ...owned('c1'), deletedAt: 2 })
+    expect(await account.readShared(token)).toBeNull()
+  })
+
+  it('leaves the history log out of what a link shows', async () => {
+    const { account, cloud } = setup({ session: alice })
+    cloud.rows.set('c1', {
+      ...owned('c1'),
+      data: { name: 'Tom', history: [{ id: 'x', at: 1, by: 'device', changes: [] }] },
+    })
+    const token = await account.createShare('c1')
+    expect(await account.readShared(token)).toEqual({ name: 'Tom' })
+  })
+
+  it('refuses a character that is not in the cloud, and a cloud that cannot be reached', async () => {
+    const { account, cloud } = setup({ session: alice })
+    await expect(account.createShare('missing')).rejects.toThrow(/not in the cloud/)
+    cloud.state.offline = true
+    await expect(account.getShare('c1')).rejects.toThrow(/could not be reached/)
+  })
+})

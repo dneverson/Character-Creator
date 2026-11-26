@@ -23,6 +23,7 @@ import { testRoll } from './rollSpec'
 import { spellAttackSpec, spellRoll } from './spellRoll'
 import { useSheetRowDetail } from './SheetDetail'
 import { SlotPips } from './SheetPips'
+import { useReadOnly } from './readOnly'
 import { useApplyPlay } from './usePlay'
 
 /** "Cantrips 3 of 4, prepared 5 of 8": what a class has chosen of what it may. */
@@ -41,6 +42,7 @@ function allowance(caster: ClassCaster, character: Character): string {
 
 export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
   const applyPlay = useApplyPlay()
+  const readOnly = useReadOnly()
   const character = useCharacter()
   const { casters, lines, granted, loading } = useSpellLines(sheet.spellEffects)
   const detailTarget = useSheetRowDetail('spells')
@@ -132,12 +134,20 @@ export function SpellsPanel({ sheet }: { sheet: DerivedSheet }) {
               detailTarget={detailTarget}
               cover={cover}
               pin={(line) => <PinButton kind="spell" id={line.id} />}
-              action={{
-                key: 'concentrate',
-                header: 'Concentrate',
-                of: (line) =>
-                  concentrationAction(applyPlay, line, character.play.concentration),
-              }}
+              action={
+                readOnly
+                  ? undefined
+                  : {
+                      key: 'concentrate',
+                      header: 'Concentrate',
+                      of: (line) =>
+                        concentrationAction(
+                          applyPlay,
+                          line,
+                          character.play.concentration,
+                        ),
+                    }
+              }
             />
           </section>
         )

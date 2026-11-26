@@ -58,7 +58,7 @@ const contact: LegalSection = {
 
 export const legalConfig = {
   /** The date the three pages were last changed. Update it with every change of text. */
-  lastUpdated: '2026-11-20',
+  lastUpdated: '2026-11-26',
   cloud: { provider, region },
   minimumAge,
   pages: {
@@ -70,7 +70,7 @@ export const legalConfig = {
           id: 'short-version',
           heading: 'The short version',
           paragraphs: [
-            'Without an account the app keeps everything on your own device and sends nothing about you to anyone. An account is optional. The app has no analytics, no advertising and no cookies. Your characters never leave your browser unless you export them yourself or sign in to an account, which keeps a copy in the cloud.',
+            'Without an account the app keeps everything on your own device and sends nothing about you to anyone. An account is optional. The app has no analytics, no advertising and no cookies. Your characters never leave your browser unless you export them yourself or sign in to an account, which keeps a copy in the cloud. With an account you can also share a character by link, which you can stop at any time.',
           ],
         },
         {
@@ -131,6 +131,7 @@ export const legalConfig = {
           bullets: [
             "Your email address, and the sign-in method and id of your account, to let you sign in and to tell your data apart from everyone else's.",
             'Your characters, with their history logs, once you sign in, so they follow you between devices and can be recovered. A character you delete is kept only as a bare deletion record, an id and a time with none of its content, so that your other devices delete it too.',
+            'A share link, if you make one: a random code that names one of your characters, kept until you stop sharing it or delete the character or your account.',
           ],
         },
         {
@@ -138,15 +139,24 @@ export const legalConfig = {
           heading: 'Who can see it',
           scope: 'account',
           paragraphs: [
-            'Your cloud characters are private to you: only your signed-in account can read or change them. The people who run this project will use the data only to operate the service and to deal with abuse reports.',
+            'Your cloud characters are private to you: only your signed-in account can read or change them, except a character you share by link (see the next section), which anyone with the link can read but not change. The people who run this project will use the data only to operate the service and to deal with abuse reports.',
+          ],
+        },
+        {
+          id: 'cloud-share-links',
+          heading: 'Sharing a character by link',
+          scope: 'account',
+          paragraphs: [
+            "You can share one of your cloud characters by link, from its Share button. A link is read-only: anyone who has it can open that character's sheet, with no account, but cannot change it. They see the copy in your cloud, as it was last saved there, with everything on the sheet, such as your notes and portrait. Your history log is not included in what they see.",
+            'You can stop sharing at any time: the link stops working at once, and sharing the character again makes a new link. Deleting the character or your account also ends its sharing. Someone who opened the link can save their own copy of the character. That copy is theirs, and it cannot be taken back. The link is a secret address, so anyone you give it to can pass it on: share it only with people you trust.',
           ],
         },
         {
           id: 'cloud-sharing-coming',
-          heading: 'Sharing, comments and Dungeon Master views',
+          heading: 'Public listings, comments and Dungeon Master views',
           scope: 'coming',
           paragraphs: [
-            'These do not exist yet. When they do, a character you mark as shared or public will be readable, not changeable, by other people, and its history may be visible to a Dungeon Master you give it to. Making it private again will hide it from then on, but cannot take back copies someone already saved or exported. A shared build will hold names and source codes only, never book text. Comments or votes you post will show your display name.',
+            'These do not exist yet. When they do, a character you list publicly will be readable, not changeable, by other people, and its history may be visible to a Dungeon Master you give it to. Making it private again will hide it from then on, but cannot take back copies someone already saved or exported. A public build will hold names and source codes only, never book text. Comments or votes you post will show your display name.',
           ],
         },
         {
@@ -277,11 +287,19 @@ export const legalConfig = {
           ],
         },
         {
+          id: 'sharing',
+          heading: 'Sharing by link',
+          scope: 'account',
+          paragraphs: [
+            'Once you are signed in, each character has a Share button. It makes a read-only link to the copy in your cloud: anyone with the link can view that character, without an account, and can save their own copy. They cannot change yours, and they do not see its history log. You can stop sharing at any time, and the link stops working at once.',
+          ],
+        },
+        {
           id: 'sharing-coming',
-          heading: 'Sharing and comments',
+          heading: 'Public listings, comments and Dungeon Master views',
           scope: 'coming',
           paragraphs: [
-            'Sharing your characters privately or publicly, comments and Dungeon Master views are planned. They do not exist yet.',
+            'Public listings of characters, comments and Dungeon Master views are planned. They do not exist yet.',
           ],
         },
         {

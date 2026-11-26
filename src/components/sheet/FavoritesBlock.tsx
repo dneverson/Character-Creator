@@ -43,6 +43,7 @@ import { concentrationAction } from './concentrationAction'
 import { UseCounter } from './UseCounter'
 import { useOpenUse } from './useOpenUse'
 import { useFavorites } from './useFavorites'
+import { useReadOnly } from './readOnly'
 import { useApplyPlay, usePlay } from './usePlay'
 import { rechargeShort } from './usesText'
 
@@ -177,6 +178,7 @@ function FavoritesList({
 }) {
   const stacks = useCharacterPart(selectStacks) ?? NO_STACKS
   const applyPlay = useApplyPlay()
+  const readOnly = useReadOnly()
   const current = usePlay(sheet)
   const detail = useSheetDetail()
   const openUse = useOpenUse()
@@ -223,11 +225,9 @@ function FavoritesList({
           case 'spell': {
             const line = lines.find((l) => l.id === favorite.key)
             if (!line) return spellsLoading ? loading : gone
-            const concentrate = concentrationAction(
-              applyPlay,
-              line,
-              current?.play.concentration ?? null,
-            )
+            const concentrate = readOnly
+              ? undefined
+              : concentrationAction(applyPlay, line, current?.play.concentration ?? null)
             const detailOf = (row: SpellLine) => (
               <EntryDetail
                 entry={row}

@@ -33,6 +33,7 @@ import { BrowseTable } from '../table/BrowseTable'
 import type { Column } from '../table/types'
 import type { SheetPanelProps } from './SheetPanels'
 import { PinButton } from './PinButton'
+import { useReadOnly } from './readOnly'
 import { useSheetRowDetail } from './SheetDetail'
 import { ItemCharges } from './ItemCharges'
 import { usePlay } from './usePlay'
@@ -61,6 +62,7 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
   )
   const rowMeta = useMemo(() => itemRowMeta(sheet.edition), [sheet.edition])
   const pools = usePlay(sheet)?.derived.uses
+  const readOnly = useReadOnly()
   const resources = sheet.resources
 
   const columns = useMemo<Column<Item>[]>(() => {
@@ -74,13 +76,16 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
       key: 'quantity',
       header: 'Qty',
       priority: 0,
-      render: (item) => (
-        <QuantityCell
-          name={item.name}
-          quantity={stackOf.get(item.key)?.quantity ?? 1}
-          onChange={(n) => editStack(item.key, { quantity: n })}
-        />
-      ),
+      render: (item) =>
+        readOnly ? (
+          <span>{stackOf.get(item.key)?.quantity ?? 1}</span>
+        ) : (
+          <QuantityCell
+            name={item.name}
+            quantity={stackOf.get(item.key)?.quantity ?? 1}
+            onChange={(n) => editStack(item.key, { quantity: n })}
+          />
+        ),
       sortValue: (item) => stackOf.get(item.key)?.quantity ?? 1,
       filterable: false,
     }
@@ -94,7 +99,7 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
       render: (item) => <ItemCharges item={item} resources={resources} pools={pools} />,
     }
     return [name, quantity, charges, ...rest]
-  }, [editStack, stackOf, strength, classNames, resources, pools])
+  }, [editStack, stackOf, strength, classNames, resources, pools, readOnly])
 
   if (!character) return null
   return (
@@ -106,13 +111,15 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
         strength={strength}
         size={raceSize(race)}
       />
-      <CoinsPanel currency={character.equipment.currency} />
-      <div className="mb-2">
-        <Button variant="primary" onClick={() => setAdding(true)}>
-          <Icon name="add" className="me-1" />
-          Add item
-        </Button>
-      </div>
+      {!readOnly && <CoinsPanel currency={character.equipment.currency} />}
+      {!readOnly && (
+        <div className="mb-2">
+          <Button variant="primary" onClick={() => setAdding(true)}>
+            <Icon name="add" className="me-1" />
+            Add item
+          </Button>
+        </div>
+      )}
       {loading ? (
         <div className="text-body-secondary">Loading items...</div>
       ) : (
@@ -128,16 +135,20 @@ export function InventoryPanel({ sheet }: SheetPanelProps) {
           rowMeta={rowMeta}
           compact
           detailTarget={detailTarget}
-          action={{
-            key: 'remove',
-            header: 'Remove',
-            of: (item) => ({
-              label: `Sell or drop ${item.name}`,
-              detailLabel: 'Sell or drop',
-              variant: 'danger',
-              run: () => setRemoving(item),
-            }),
-          }}
+          action={
+            readOnly
+              ? undefined
+              : {
+                  key: 'remove',
+                  header: 'Remove',
+                  of: (item) => ({
+                    label: `Sell or drop ${item.name}`,
+                    detailLabel: 'Sell or drop',
+                    variant: 'danger',
+                    run: () => setRemoving(item),
+                  }),
+                }
+          }
           pin={(item) => <PinButton kind="item" id={itemKey(item)} />}
           labels={{ compare: 'Compare items', search: 'Search items...', table: 'Items' }}
         />

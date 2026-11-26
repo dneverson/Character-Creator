@@ -1,10 +1,16 @@
 // Stand-ins for the cloud and the device, for the tests of everything that syncs.
 
 import { vi } from 'vitest'
-import { createCharacter, historyEntry, type Character } from '../character/model'
+import {
+  createCharacter,
+  historyEntry,
+  type Character,
+  type StoredCharacter,
+} from '../character/model'
 import type { CharacterStorage } from '../storage/characters'
 import {
   CloudOfflineError,
+  CharacterNotInCloudError,
   type CloudBackend,
   type CloudSession,
   type RemoteRow,
@@ -44,6 +50,9 @@ export function fakeBackend(
   session: CloudSession | null = null,
 ) {
   const rows = new Map(initial.map((row) => [row.id, row]))
+  /** token -> character id, for the links that work. */
+  const shares = new Map<string, string>()
+  let tokens = 0
   const state = { offline: false, session }
   const listeners = new Set<(session: CloudSession | null) => void>()
   const check = () => {
@@ -68,10 +77,38 @@ export function fakeBackend(
       check()
       for (const row of sent) rows.set(row.id, row)
     }),
+    createShare: vi.fn(async (characterId: string) => {
+      check()
+      const row = rows.get(characterId)
+      if (!row || row.deletedAt !== null) throw new CharacterNotInCloudError()
+      for (const [token, id] of shares) if (id === characterId) return token
+      const token = (tokens += 1).toString(16).padStart(32, '0')
+      shares.set(token, characterId)
+      return token
+    }),
+    stopShare: vi.fn(async (characterId: string) => {
+      check()
+      for (const [token, id] of shares) if (id === characterId) shares.delete(token)
+    }),
+    getShare: vi.fn(async (characterId: string) => {
+      check()
+      for (const [token, id] of shares) if (id === characterId) return token
+      return null
+    }),
+    readShared: vi.fn(async (token: string): Promise<StoredCharacter | null> => {
+      check()
+      const id = shares.get(token)
+      const row = id === undefined ? undefined : rows.get(id)
+      if (!row || row.deletedAt !== null) return null
+      const shared = { ...row.data }
+      delete shared.history
+      return shared
+    }),
   } satisfies CloudBackend
   return {
     backend,
     rows,
+    shares,
     state,
     emit: (next: CloudSession | null) => listeners.forEach((listener) => listener(next)),
   }

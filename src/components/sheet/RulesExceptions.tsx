@@ -7,9 +7,11 @@ import { useCharacterStore } from '../../character/store'
 import type { DerivedSheet } from '../../derived'
 import { SECTION_TITLES } from '../../derived/checklist'
 import { Icon } from '../Icon'
+import { useReadOnly } from './readOnly'
 
 export function RulesExceptions({ sheet }: { sheet: DerivedSheet }) {
   const openEditorAt = useCharacterStore((s) => s.openEditorAt)
+  const readOnly = useReadOnly()
   const { exceptions } = sheet
   return (
     <section className="sheet-panel mb-3" aria-label="Rules exceptions">
@@ -24,14 +26,17 @@ export function RulesExceptions({ sheet }: { sheet: DerivedSheet }) {
               <span>
                 <strong>{e.rule}.</strong> {e.detail}
               </span>
-              <Button
-                variant="link"
-                size="sm"
-                className="ms-auto py-0"
-                onClick={() => openEditorAt(e.section)}
-              >
-                Open in Edit: {e.section === 'name' ? 'Name' : SECTION_TITLES[e.section]}
-              </Button>
+              {!readOnly && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="ms-auto py-0"
+                  onClick={() => openEditorAt(e.section)}
+                >
+                  Open in Edit:{' '}
+                  {e.section === 'name' ? 'Name' : SECTION_TITLES[e.section]}
+                </Button>
+              )}
             </li>
           ))}
         </ul>

@@ -10,6 +10,7 @@ import { downloadCharacter, parseImportedCharacter } from '../character/io'
 import { classLine } from '../character/identity'
 import { useCharacterStore } from '../character/store'
 import { formatTimestamp } from '../ui/date'
+import { useShareModal } from './share/shareModalState'
 
 export function CharacterList() {
   const { characters, order } = useCharacterStore()
@@ -18,6 +19,7 @@ export function CharacterList() {
   const duplicateCharacter = useCharacterStore((s) => s.duplicateCharacter)
   const deleteCharacter = useCharacterStore((s) => s.deleteCharacter)
   const importCharacter = useCharacterStore((s) => s.importCharacter)
+  const openShare = useShareModal((s) => s.openShare)
   const fileInput = useRef<HTMLInputElement>(null)
 
   const list = order.map((id) => characters[id]).filter((c) => c != null)
@@ -109,6 +111,9 @@ export function CharacterList() {
                       onClick={() => downloadCharacter(c)}
                     >
                       Export
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => openShare(c.id)}>
+                      Share
                     </Button>
                     <Button
                       size="sm"

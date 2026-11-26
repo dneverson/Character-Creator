@@ -22,6 +22,7 @@ import { Icon } from '../Icon'
 import { ExperienceRow } from './ExperienceRow'
 import { ConditionsDetail, ExhaustionDetail } from './ConditionsDetail'
 import { useSheetDetail } from './SheetDetail'
+import { useReadOnly } from './readOnly'
 import { RestButtons } from './RestWindows'
 import { SlotPips } from './SheetPips'
 import { useApplyPlay, usePlay } from './usePlay'
@@ -38,6 +39,9 @@ export function IconButton({
   disabled?: boolean
   onClick: () => void
 }) {
+  const readOnly = useReadOnly()
+  // Only the info buttons read; the others change the character.
+  if (readOnly && icon !== 'info') return null
   return (
     <OverlayTrigger placement="top" overlay={<Tooltip>{label}</Tooltip>}>
       <Button
@@ -56,6 +60,7 @@ export function IconButton({
 
 export function PlayStrip({ sheet }: { sheet: DerivedSheet }) {
   const applyPlay = useApplyPlay()
+  const readOnly = useReadOnly()
   const detail = useSheetDetail()
   const current = usePlay(sheet)
   if (!current) return null
@@ -79,6 +84,7 @@ export function PlayStrip({ sheet }: { sheet: DerivedSheet }) {
           id="sheet-inspiration"
           label={inspiration}
           checked={play.inspiration}
+          disabled={readOnly}
           onChange={() => applyPlay(toggleInspiration)}
         />
         <span className="sheet-play__group" role="group" aria-label="Exhaustion">
@@ -111,7 +117,7 @@ export function PlayStrip({ sheet }: { sheet: DerivedSheet }) {
             }
           />
         </span>
-        <RestButtons sheet={sheet} />
+        {!readOnly && <RestButtons sheet={sheet} />}
         {play.concentration && (
           <span className="sheet-play__group" role="group" aria-label="Concentration">
             <span className="sheet-stat__label">Concentrating</span>
@@ -131,19 +137,24 @@ export function PlayStrip({ sheet }: { sheet: DerivedSheet }) {
             <Button variant="secondary" onClick={() => openConditions(name)}>
               {name}
             </Button>
-            <Button
-              variant="secondary"
-              aria-label={`Remove ${name}`}
-              onClick={() => applyPlay((p) => toggleCondition(p, name))}
-            >
-              <Icon name="remove" />
-            </Button>
+            {!readOnly && (
+              <Button
+                variant="secondary"
+                aria-label={`Remove ${name}`}
+                onClick={() => applyPlay((p) => toggleCondition(p, name))}
+              >
+                <Icon name="remove" />
+              </Button>
+            )}
           </ButtonGroup>
         ))}
-        <Button size="sm" variant="primary" onClick={() => openConditions()}>
-          <Icon name="add" className="me-1" />
-          Condition
-        </Button>
+        {!readOnly && (
+          <Button size="sm" variant="primary" onClick={() => openConditions()}>
+            <Icon name="add" className="me-1" />
+            Condition
+          </Button>
+        )}
+        {readOnly && play.conditions.length === 0 && <span>None</span>}
       </div>
       <div className="sheet-play__row">
         {derived.hitDice.map((pool) => (

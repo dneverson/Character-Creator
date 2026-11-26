@@ -12,6 +12,7 @@ import {
   portraitFileProblem,
 } from '../../character/portrait'
 import { decodeImage, decodeImageUrl, type PortraitImage } from '../../portrait/imageFile'
+import { useReadOnly } from '../sheet/readOnly'
 import { PortraitEditor } from './PortraitEditor'
 
 /** The picture types offered in the file picker; the browser decides which it can decode. */
@@ -20,12 +21,21 @@ const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,image/avif'
 export function PortraitFrame() {
   const character = useCharacter()
   const updateActive = useUpdateCharacter()
+  const readOnly = useReadOnly()
   const input = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
   const [image, setImage] = useState<PortraitImage | null>(null)
   const [error, setError] = useState<string | null>(null)
   if (!character) return null
   const { portrait } = character
+  // Someone else's character: its picture is shown, and nothing can add or change it.
+  if (readOnly) {
+    return portrait ? (
+      <span className="sheet-portrait">
+        <img src={portrait} alt="" className="sheet-portrait__image" />
+      </span>
+    ) : null
+  }
 
   function show(next: PortraitImage | null) {
     image?.close()

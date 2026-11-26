@@ -14,6 +14,7 @@ import { toggleCondition } from '../../play/actions'
 import { exhaustionEffects, PLAY_RULES } from '../../rules/playRules'
 import { Entries } from '../../text/Entries'
 import { PaneFrame } from './SheetDetail'
+import { useReadOnly } from './readOnly'
 import { useApplyPlay } from './usePlay'
 
 /** The conditions of one edition's printing, from the data. */
@@ -47,6 +48,7 @@ function ConditionRow({
   onOpen: () => void
 }) {
   const applyPlay = useApplyPlay()
+  const readOnly = useReadOnly()
   return (
     <li className="sheet-condition">
       <div className="d-flex align-items-center gap-2">
@@ -55,6 +57,7 @@ function ConditionRow({
           id={`condition-${condition.name}`}
           aria-label={`${condition.name} applies`}
           checked={active}
+          disabled={readOnly}
           onChange={() => applyPlay((p) => toggleCondition(p, condition.name))}
         />
         <button

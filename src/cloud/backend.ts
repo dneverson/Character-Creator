@@ -40,6 +40,17 @@ export interface CloudBackend {
   deleteAccount(): Promise<void>
   fetchRows(): Promise<RemoteRow[]>
   upsertRows(rows: RemoteRow[]): Promise<void>
+  /** Share a character read-only by link; returns the token of the new link. */
+  createShare(characterId: string): Promise<string>
+  /** Stop sharing a character: its link stops working at once. */
+  stopShare(characterId: string): Promise<void>
+  /** The token the character is shared under, or null while it is not shared. */
+  getShare(characterId: string): Promise<string | null>
+  /**
+   * The character a link shows, without its history log; null when the link does not
+   * work (never made, stopped, or the character was deleted). Needs no account.
+   */
+  readShared(token: string): Promise<StoredCharacter | null>
 }
 
 /** The cloud could not be reached: no connection, or the service is down. */
@@ -47,6 +58,14 @@ export class CloudOfflineError extends Error {
   constructor() {
     super('The cloud could not be reached.')
     this.name = 'CloudOfflineError'
+  }
+}
+
+/** The character to share is not in the cloud copy (it has not been saved there yet). */
+export class CharacterNotInCloudError extends Error {
+  constructor() {
+    super('The character is not in the cloud copy yet.')
+    this.name = 'CharacterNotInCloudError'
   }
 }
 
@@ -82,6 +101,16 @@ export function parseRows(answer: unknown): RemoteRow[] {
     if (item.deleted_at !== null && deletedAt === null) return []
     return [{ id: item.id, data: item.data, updatedAt, deletedAt }]
   })
+}
+
+/** The character an answer from the cloud holds; anything else is no character. */
+export function parseShared(answer: unknown): StoredCharacter | null {
+  return isObject(answer) ? answer : null
+}
+
+/** The token an answer from the cloud holds, if it holds one. */
+export function parseToken(answer: unknown): string | null {
+  return isObject(answer) && typeof answer.token === 'string' ? answer.token : null
 }
 
 /** A row as it is sent to the database. */

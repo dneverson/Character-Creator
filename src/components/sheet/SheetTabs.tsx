@@ -1,18 +1,26 @@
 import Nav from 'react-bootstrap/Nav'
+import { useContext } from 'react'
 import { selectSheetTab, useCharacterStore } from '../../character/store'
 import type { DerivedSheet } from '../../derived'
 import { visibleTabs } from '../../sheet/tabs'
 import { ResizableSplit } from '../table/ResizableSplit'
+import { useReadOnly } from './readOnly'
 import { SheetDetailPane, useSheetDetail, useWideSheet } from './SheetDetail'
+import { SheetTabContext } from './sheetTabContext'
 
 /** The switching box: a strip of tabs and the panel of the one that is open. */
 export function SheetTabs({ sheet, phone }: { sheet: DerivedSheet; phone: boolean }) {
   // Kept in the store, so the address can name the open tab.
-  const openId = useCharacterStore(selectSheetTab)
-  const setOpenId = useCharacterStore((s) => s.setSheetTab)
+  const storeTab = useCharacterStore(selectSheetTab)
+  const storeSetTab = useCharacterStore((s) => s.setSheetTab)
+  // A shared character is not in the store: its sheet keeps its tab itself.
+  const own = useContext(SheetTabContext)
+  const openId = own ? own.tab : storeTab
+  const setOpenId = own ? own.setTab : storeSetTab
+  const readOnly = useReadOnly()
   const wide = useWideSheet()
   const { current, dismissRow } = useSheetDetail()
-  const tabs = visibleTabs(sheet, phone)
+  const tabs = visibleTabs(sheet, phone, readOnly)
   // The open tab may have left (a phone turned wide, a caster who lost the spells).
   const open = tabs.find((t) => t.id === openId) ?? tabs[0]
   if (!open) return null

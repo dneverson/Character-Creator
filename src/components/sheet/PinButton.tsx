@@ -4,6 +4,7 @@
 
 import type { FavoriteKind } from '../../character/favorites'
 import { RowActionButton } from '../table/RowActionButton'
+import { useReadOnly } from './readOnly'
 import { useFavorites } from './useFavorites'
 
 export const ADD_FAVORITE = 'Add to Favorites'
@@ -11,6 +12,8 @@ export const REMOVE_FAVORITE = 'Remove from Favorites'
 
 export function PinButton({ kind, id }: { kind: FavoriteKind; id: string }) {
   const { has, add, remove } = useFavorites()
+  const readOnly = useReadOnly()
+  if (readOnly) return null
   const favorite = { kind, key: id }
   const pinned = has(favorite)
   return (

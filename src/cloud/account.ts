@@ -6,6 +6,7 @@
 // brought the user back. A visitor with no account never loads it.
 
 import { create } from 'zustand'
+import type { StoredCharacter } from '../character/model'
 import type { CloudBackend, CloudSession } from './backend'
 import type { SyncEngine } from './sync'
 
@@ -66,6 +67,20 @@ export interface Account {
   syncNow(): Promise<void>
   signOut(): Promise<void>
   deleteAccount(): Promise<void>
+  /** The token a character is shared under, or null while it is not shared. */
+  getShare(characterId: string): Promise<string | null>
+  /**
+   * Share a character read-only by link and return the token. The cloud copy is brought up
+   * to date first, because the link shows that copy.
+   */
+  createShare(characterId: string): Promise<string>
+  /** Stop sharing a character; its link stops working at once. */
+  stopShare(characterId: string): Promise<void>
+  /**
+   * The character a shared link shows (without its history log), or null when the link
+   * does not work. Needs no account; it loads the cloud library when it is first called.
+   */
+  readShared(token: string): Promise<StoredCharacter | null>
 }
 
 export function createAccount(options: AccountOptions): Account {
@@ -154,6 +169,20 @@ export function createAccount(options: AccountOptions): Account {
       }
     },
     syncNow: () => sync.syncNow(),
+    async getShare(characterId) {
+      return (await ensure()).getShare(characterId)
+    },
+    async createShare(characterId) {
+      const backend = await ensure()
+      await sync.syncNow()
+      return backend.createShare(characterId)
+    },
+    async stopShare(characterId) {
+      await (await ensure()).stopShare(characterId)
+    },
+    async readShared(token) {
+      return (await ensure()).readShared(token)
+    },
     async signOut() {
       patch({ busy: true, error: null })
       try {

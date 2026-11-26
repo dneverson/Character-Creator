@@ -66,6 +66,13 @@ export const appConfig = {
     codeLength: 6,
     /** How long, in seconds, before another sign-in code can be asked for. */
     resendSeconds: 60,
+    /** Sharing a character by link (see src/share). */
+    share: {
+      /** The hash segment of a shared character's address: `#/shared/<token>`. */
+      route: 'shared',
+      /** How long a token is: 128 random bits as hexadecimal digits. */
+      tokenLength: 32,
+    },
     /** How often, in milliseconds, "saved 2 minutes ago" is brought up to date. */
     statusRefreshMs: 30_000,
   },

@@ -19,9 +19,7 @@ import type { DerivedSheet } from '../../derived'
 import type { SpeedRow } from '../../derived/speed'
 import { useContentNames } from '../../hooks/useContentNames'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
-import { applyPlayEffects } from '../../play/playEffects'
 import type { BreakdownSpec } from '../derived/DerivedNumber'
-import { useDerivedSheet } from '../editor/useDerivedSheet'
 import { CharacterHeader } from './CharacterHeader'
 import { SheetDetailProvider } from './SheetDetail'
 import { NO_VALUE } from '../table/facts'
@@ -31,6 +29,7 @@ import { PlayStrip } from './PlayStrip'
 import { RollerProvider } from './Roller'
 import { testRoll } from './rollSpec'
 import { SheetRoot } from './SheetRoot'
+import { usePlayedSheet } from './usePlayedSheet'
 import { SheetTabs } from './SheetTabs'
 import {
   DefensesPanel,
@@ -41,6 +40,7 @@ import {
 } from './SidePanels'
 import { TemplateMenu } from './TemplateMenu'
 import { useSheetTemplate } from '../../sheet/useSheetTemplate'
+import { useShareModal } from '../share/shareModalState'
 import '../../sheet/sheet.css'
 
 /**
@@ -82,8 +82,6 @@ const initiativeBreakdown = (sheet: DerivedSheet): BreakdownSpec => ({
 })
 
 const selectId = (character: Character) => character.id
-const selectExhaustion = (character: Character) => character.play.exhaustion
-const selectConditions = (character: Character) => character.play.conditions
 
 /** Below this width the left column becomes two tabs (Bootstrap's md breakpoint). */
 const PHONE = '(max-width: 767.98px)'
@@ -95,25 +93,19 @@ const PHONE = '(max-width: 767.98px)'
  */
 export function SheetView() {
   const id = useCharacterPart(selectId)
-  const { sheet: built, loading, error } = useDerivedSheet()
+  const { sheet, loading, error } = usePlayedSheet()
   const phone = useMediaQuery(PHONE)
   const [template, setTemplate] = useSheetTemplate()
   const canUndoLevelUp = useCharacterStore(selectCanUndoLevelUp)
   const undoLevelUp = useCharacterStore((s) => s.undoLevelUp)
+  const openShare = useShareModal((s) => s.openShare)
   useContentNames()
-  const exhaustion = useCharacterPart(selectExhaustion)
-  const conditions = useCharacterPart(selectConditions)
-  // In play, the exhaustion level and the conditions change the numbers shown here only.
-  const sheet = useMemo(
-    () =>
-      built && exhaustion !== undefined && conditions
-        ? applyPlayEffects(built, { exhaustion, conditions })
-        : undefined,
-    [built, exhaustion, conditions],
-  )
   const actions = useMemo(
     () => (
       <>
+        <Button variant="secondary" onClick={() => id && openShare(id)}>
+          Share
+        </Button>
         {canUndoLevelUp && (
           <Button variant="secondary" onClick={undoLevelUp}>
             Undo level up
@@ -122,7 +114,7 @@ export function SheetView() {
         <TemplateMenu value={template} onChange={setTemplate} />
       </>
     ),
-    [canUndoLevelUp, undoLevelUp, template, setTemplate],
+    [id, openShare, canUndoLevelUp, undoLevelUp, template, setTemplate],
   )
   if (id === undefined) return null
 
@@ -159,7 +151,7 @@ export function SheetView() {
  * sheet changes (the build, the exhaustion, the conditions), and a part that shows the
  * play state (a counter, the hit points) draws again by itself when that changes.
  */
-const SheetBody = memo(function SheetBody({
+export const SheetBody = memo(function SheetBody({
   sheet,
   phone,
 }: {

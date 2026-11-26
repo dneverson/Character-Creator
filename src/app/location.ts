@@ -13,6 +13,7 @@
 //   #/books                 the book reader, on its shelf of books, open over the view
 //   #/book/<id>/...         the book reader, at a place in a book (src/books/address.ts)
 //   #/privacy, #/terms, #/account   a legal page, in place of the view (src/config/legal.ts)
+//   #/shared/<token>        a character shared by link, read-only, in place of the view
 //
 // The store is the source of truth. A change of view, character or tab writes the hash
 // (a new history entry when the view or character changed, so Back and Forward work; the
@@ -27,6 +28,8 @@ import type { BookPlace } from '../books/types'
 import { useLookupStore } from '../lookup/state'
 import { legalLinks, type LegalPageId } from '../config/legal'
 import { useLegalStore } from '../legal/state'
+import { isShareToken, sharedHash, SHARED_ROUTE } from '../share/link'
+import { useSharedStore } from '../share/state'
 
 export interface Place {
   view: View
@@ -38,6 +41,8 @@ export interface Place {
   books?: { place: BookPlace | null }
   /** A legal page is open in place of the view. */
   legal?: LegalPageId
+  /** A shared character is open in place of the view, by its token. */
+  shared?: string
 }
 
 const LEGAL_PAGES: readonly string[] = legalLinks.map((link) => link.id)
@@ -50,12 +55,21 @@ const SEGMENT_VIEW: Record<string, Exclude<View, 'list'>> = {
 }
 
 /** The hash for a place. */
-export function formatHash({ view, id, tab, lookup, books, legal }: Place): string {
+export function formatHash({
+  view,
+  id,
+  tab,
+  lookup,
+  books,
+  legal,
+  shared,
+}: Place): string {
   if (lookup) {
     return lookup.entryId ? `#/lookup/${encodeURIComponent(lookup.entryId)}` : '#/lookup'
   }
   if (books) return formatBookHash(books.place)
   if (legal) return `#/${legal}`
+  if (shared) return sharedHash(shared)
   if (view === 'list' || !id) return '#/'
   const base = `#/c/${encodeURIComponent(id)}/${VIEW_SEGMENT[view]}`
   return view === 'sheet' && tab ? `${base}/${encodeURIComponent(tab)}` : base
@@ -70,6 +84,11 @@ export function parseHash(hash: string): Place {
   if (LEGAL_PAGES.includes(head)) {
     return parts.length === 1
       ? { view: 'list', legal: head as LegalPageId }
+      : { view: 'list' }
+  }
+  if (head === SHARED_ROUTE) {
+    return parts.length === 2 && isShareToken(id)
+      ? { view: 'list', shared: id }
       : { view: 'list' }
   }
   if (head === 'lookup') {
@@ -101,7 +120,9 @@ function placeOf(): Place {
       : { view, id: activeId, tab: selectSheetTab(state) }
   const reader = useBookStore.getState()
   const { page } = useLegalStore.getState()
-  const shown: Place = page ? { ...place, legal: page } : place
+  const { token } = useSharedStore.getState()
+  const aside: Place = page ? { ...place, legal: page } : place
+  const shown: Place = token ? { ...aside, shared: token } : aside
   const withBooks: Place = reader.open
     ? { ...shown, books: { place: reader.place } }
     : shown
@@ -142,10 +163,16 @@ function follow(): () => void {
       else {
         useLookupStore.getState().closeLookup()
         const reader = useBookStore.getState()
-        if (place.legal) {
+        if (place.shared) {
           reader.closeBooks()
+          useLegalStore.getState().closeLegal()
+          useSharedStore.getState().openShared(place.shared)
+        } else if (place.legal) {
+          reader.closeBooks()
+          useSharedStore.getState().closeShared()
           useLegalStore.getState().openLegal(place.legal)
         } else if (place.books) {
+          useSharedStore.getState().closeShared()
           // The reader opens over the view that is open; one already there stays as is.
           const same =
             reader.open &&
@@ -154,6 +181,7 @@ function follow(): () => void {
         } else {
           reader.closeBooks()
           useLegalStore.getState().closeLegal()
+          useSharedStore.getState().closeShared()
           useCharacterStore.getState().restoreLocation(place)
         }
       }
@@ -178,6 +206,7 @@ function follow(): () => void {
         before.books === undefined &&
         place.books === undefined &&
         before.legal === place.legal &&
+        before.shared === place.shared &&
         before.view === place.view &&
         before.id === place.id
     if (sameEntry) window.history.replaceState(null, '', hash)
@@ -190,6 +219,7 @@ function follow(): () => void {
   const unsubscribeLookup = useLookupStore.subscribe(write)
   const unsubscribeBooks = useBookStore.subscribe(write)
   const unsubscribeLegal = useLegalStore.subscribe(write)
+  const unsubscribeShared = useSharedStore.subscribe(write)
   window.addEventListener('popstate', apply)
   window.addEventListener('hashchange', apply)
   return () => {
@@ -197,6 +227,7 @@ function follow(): () => void {
     unsubscribeLookup()
     unsubscribeBooks()
     unsubscribeLegal()
+    unsubscribeShared()
     window.removeEventListener('popstate', apply)
     window.removeEventListener('hashchange', apply)
   }

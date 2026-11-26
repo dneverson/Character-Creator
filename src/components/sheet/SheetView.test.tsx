@@ -15,6 +15,7 @@ import { loadClassOptions } from '../../data/classOptions'
 import { loadLanguages } from '../../data/languages'
 import { FIGHTER, ITEMS, stack } from '../../test/derivedFixtures'
 import { settle } from '../../test/settle'
+import { useShareModal } from '../share/shareModalState'
 
 vi.mock('../../data/class', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../data/class')>()),
@@ -146,7 +147,7 @@ describe('SheetView', () => {
     renderSheet()
     expect(screen.getByRole('heading', { name: 'Tordek', level: 1 })).toBeInTheDocument()
     expect(
-      screen.getByText('Dwarf, Fighter 3 (Champion) - 2014 rules'),
+      await screen.findByText('Dwarf, Fighter 3 (Champion) - 2014 rules'),
     ).toBeInTheDocument()
     await settle()
   })
@@ -624,6 +625,16 @@ describe('SheetView breakdowns', () => {
     const open = await screen.findByRole('button', { name: 'How Initiative adds up' })
     await user.hover(open)
     expect(await screen.findByRole('tooltip')).toHaveTextContent('How Initiative adds up')
+    await settle()
+  })
+
+  it('opens the Share window for the open character from the header', async () => {
+    const user = userEvent.setup()
+    const c = seed()
+    renderSheet()
+    await user.click(await screen.findByRole('button', { name: 'Share' }))
+    expect(useShareModal.getState().characterId).toBe(c.id)
+    useShareModal.setState({ characterId: null })
     await settle()
   })
 })

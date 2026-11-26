@@ -60,7 +60,17 @@ export const SHEET_TABS: readonly SheetTab[] = [
   },
 ]
 
-/** The tabs to offer: the phone-only ones only on a phone, the empty ones never. */
-export function visibleTabs(sheet: DerivedSheet, phone: boolean): SheetTab[] {
-  return SHEET_TABS.filter((tab) => (phone || !tab.phoneOnly) && tab.shows(sheet))
+/**
+ * The tabs to offer: the phone-only ones only on a phone, the empty ones never, and, on a
+ * sheet that is only looked at, the ones that exist to roll and write.
+ */
+export function visibleTabs(
+  sheet: DerivedSheet,
+  phone: boolean,
+  readOnly = false,
+): SheetTab[] {
+  return SHEET_TABS.filter(
+    (tab) =>
+      (phone || !tab.phoneOnly) && !(readOnly && tab.id === 'dice') && tab.shows(sheet),
+  )
 }

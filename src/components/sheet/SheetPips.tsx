@@ -17,6 +17,7 @@ import {
 } from '../../play/actions'
 import type { Pool } from '../../play/derivePlay'
 import { naturalOf } from '../../dice/roll'
+import { useReadOnly } from './readOnly'
 import { useRoller } from './rollerContext'
 import { useApplyPlay, usePlay } from './usePlay'
 
@@ -34,6 +35,18 @@ export function Pip({
   label: string
   onClick: () => void
 }) {
+  const readOnly = useReadOnly()
+  if (readOnly) {
+    // Shown as it stands, but not a control.
+    return (
+      <span
+        role="img"
+        className={`sheet-pip${filled ? ' sheet-pip--filled' : ''}`}
+        aria-label={label}
+        title={label}
+      />
+    )
+  }
   return (
     <button
       type="button"

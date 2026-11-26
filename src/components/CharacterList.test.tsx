@@ -5,6 +5,7 @@ import { CharacterList } from './CharacterList'
 import { useCharacterStore } from '../character/store'
 import { createCharacter } from '../character/model'
 import { downloadCharacter, parseImportedCharacter } from '../character/io'
+import { useShareModal } from './share/shareModalState'
 
 vi.mock('../character/io', () => ({
   downloadCharacter: vi.fn(),
@@ -162,5 +163,13 @@ describe('CharacterList', () => {
     await waitFor(() =>
       expect(alertSpy).toHaveBeenCalledWith('Import failed: plain string failure'),
     )
+  })
+
+  it('opens the Share window for the character of the card', async () => {
+    const [id] = seed('Tordek')
+    render(<CharacterList />)
+    await userEvent.click(screen.getByRole('button', { name: 'Share' }))
+    expect(useShareModal.getState().characterId).toBe(id)
+    useShareModal.setState({ characterId: null })
   })
 })

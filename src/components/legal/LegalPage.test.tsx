@@ -26,7 +26,9 @@ describe('the legal pages', () => {
     expect(within(onDevice).getByText(legalScopeLabel.today)).toBeInTheDocument()
     const processor = screen.getByRole('heading', { name: /Who handles your data/ })
     expect(within(processor).getByText(legalScopeLabel.account)).toBeInTheDocument()
-    const sharing = screen.getByRole('heading', { name: /Sharing, comments and Dungeon/ })
+    const sharing = screen.getByRole('heading', {
+      name: /Public listings, comments and Dungeon/,
+    })
     expect(within(sharing).getByText(legalScopeLabel.coming)).toBeInTheDocument()
   })
 
@@ -37,6 +39,21 @@ describe('the legal pages', () => {
     )
     expect(document.body).not.toHaveTextContent(/Google|Discord/)
     expect(screen.getByText(/These do not exist yet/)).toBeInTheDocument()
+  })
+
+  it('says sharing by link exists with an account, read-only, stoppable and without the history', () => {
+    render(<LegalPage page="privacy" />)
+    const links = screen.getByRole('heading', { name: /Sharing a character by link/ })
+    expect(within(links).getByText(legalScopeLabel.account)).toBeInTheDocument()
+    expect(
+      screen.getByText(/can open that character's sheet, with no account/),
+    ).toHaveTextContent('Your history log is not included in what they see.')
+    expect(screen.getByText(/stop sharing at any time/)).toHaveTextContent(
+      'the link stops working at once',
+    )
+    expect(screen.getByText(/stop sharing at any time/)).toHaveTextContent(
+      'That copy is theirs',
+    )
   })
 
   it('states the truth about trackers, the host, the children rule and the contact', () => {

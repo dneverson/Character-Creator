@@ -13,6 +13,10 @@ export function fakeAccount(): Account {
     syncNow: vi.fn(async () => {}),
     signOut: vi.fn(async () => {}),
     deleteAccount: vi.fn(async () => {}),
+    getShare: vi.fn(async () => null),
+    createShare: vi.fn(async () => 'a'.repeat(32)),
+    stopShare: vi.fn(async () => {}),
+    readShared: vi.fn(async () => null),
   }
 }
 
