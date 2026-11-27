@@ -64,7 +64,7 @@ beforeEach(() => {
 
 describe('RewardsSection', () => {
   it('lists the rewards of the selected books, and adds and removes them', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const id = seed(['DMG'])
     await renderSection()
     expect(screen.queryByText('Charm of Heroism')).not.toBeInTheDocument()

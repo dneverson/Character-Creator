@@ -140,7 +140,7 @@ describe('ClassBuildTray', () => {
   })
 
   it('picks then clears a subclass', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     c.classes = [{ name: 'Fighter', source: 'PHB', level: 3 }]
     useCharacterStore.setState({ characters: { [c.id]: c } })
@@ -157,7 +157,7 @@ describe('ClassBuildTray', () => {
   })
 
   it('keeps a planned subclass below its unlock level and flags the timing', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     // Fighter-like class whose subclass unlocks at level 3.
     mockUnlock.mockReturnValue(3)
     const c = seedActive()
@@ -213,7 +213,7 @@ describe('ClassBuildTray', () => {
   })
 
   it('removes a class from the build', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     c.classes = [{ name: 'Fighter', source: 'PHB', level: 3 }]
     useCharacterStore.setState({ characters: { [c.id]: c } })

@@ -51,7 +51,7 @@ describe('RollHistoryControls', () => {
   })
 
   it('steps back to the previous roll and forward again', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const a = statRecord([10])
     const b = statRecord([12])
     // Cursor on the newest (b): back goes to a, forward is disabled.
@@ -66,7 +66,7 @@ describe('RollHistoryControls', () => {
   })
 
   it('with the cursor on the oldest roll, back is disabled and forward works', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const a = statRecord([10])
     const b = statRecord([12])
     const { onSelect } = renderControls([a, b], a.id)
@@ -77,7 +77,7 @@ describe('RollHistoryControls', () => {
   })
 
   it('opens the modal and selects a past roll, newest first', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const a = statRecord([10, 11])
     const b = statRecord([12, 13])
     const { onSelect } = renderControls([a, b], b.id)

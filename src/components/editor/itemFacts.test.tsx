@@ -389,7 +389,7 @@ describe('the item table', () => {
   })
 
   it('gives each property its rule on hover, and the mastery too', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<>{column('properties').render(longsword)}</>)
     await user.hover(screen.getByText('Versatile (1d10)'))
     expect(await screen.findByText('Can be used with two hands.')).toBeInTheDocument()
@@ -400,7 +400,7 @@ describe('the item table', () => {
   })
 
   it('spells out the coin, the pound and the foot on hover', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <>
         {column('cost').render(longsword)}
@@ -417,7 +417,7 @@ describe('the item table', () => {
   })
 
   it('names the armor class column in words on hover', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<>{column('ac').header}</>)
     await user.hover(screen.getByText('AC'))
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Armor Class')

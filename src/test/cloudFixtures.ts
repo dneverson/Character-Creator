@@ -5,6 +5,7 @@ import {
   createCharacter,
   historyEntry,
   type Character,
+  type HistoryEntry,
   type StoredCharacter,
 } from '../character/model'
 import type { CharacterStorage } from '../storage/characters'
@@ -13,6 +14,7 @@ import {
   CharacterNotInCloudError,
   type CloudBackend,
   type CloudSession,
+  type RecordedEvent,
   type RemoteRow,
 } from '../cloud/backend'
 import { liveRow } from '../cloud/merge'
@@ -53,6 +55,9 @@ export function fakeBackend(
   /** token -> character id, for the links that work. */
   const shares = new Map<string, string>()
   let tokens = 0
+  /** character id -> the ledger, by event id, as the server keeps it. */
+  const events = new Map<string, Map<string, RecordedEvent>>()
+  let clock = 1_000_000
   const state = { offline: false, session }
   const listeners = new Set<(session: CloudSession | null) => void>()
   const check = () => {
@@ -75,7 +80,29 @@ export function fakeBackend(
     }),
     upsertRows: vi.fn(async (sent: RemoteRow[]) => {
       check()
-      for (const row of sent) rows.set(row.id, row)
+      for (const row of sent) {
+        rows.set(row.id, row)
+        // A deleted character takes its ledger with it.
+        if (row.deletedAt !== null) events.delete(row.id)
+      }
+    }),
+    recordEvents: vi.fn(async (characterId: string, entries: HistoryEntry[]) => {
+      check()
+      const row = rows.get(characterId)
+      // The ledger names a character row, as the database's foreign key demands.
+      if (!row || row.deletedAt !== null) throw new CharacterNotInCloudError()
+      const ledger = events.get(characterId) ?? new Map<string, RecordedEvent>()
+      events.set(characterId, ledger)
+      for (const entry of entries) {
+        // The server's own time, whatever the entry says; a known entry stays as it was.
+        if (!ledger.has(entry.id)) {
+          ledger.set(entry.id, { eventId: entry.id, recordedAt: (clock += 1), entry })
+        }
+      }
+    }),
+    readRecordedEvents: vi.fn(async (characterId: string) => {
+      check()
+      return [...(events.get(characterId)?.values() ?? [])]
     }),
     createShare: vi.fn(async (characterId: string) => {
       check()
@@ -109,6 +136,7 @@ export function fakeBackend(
     backend,
     rows,
     shares,
+    events,
     state,
     emit: (next: CloudSession | null) => listeners.forEach((listener) => listener(next)),
   }

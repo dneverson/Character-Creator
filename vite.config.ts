@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { availableParallelism } from 'node:os'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
@@ -24,6 +25,11 @@ export default defineConfig(({ command }) => ({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Vitest's default is one worker per logical core minus one. Each worker boots a jsdom
+    // and re-imports the app's module graph per file, which is disk- and memory-bound, so
+    // on a many-thread machine that many workers just starve each other: measured on 22
+    // threads, 21 workers took 159 s and timed tests out, 11 took 99 s and none did.
+    maxWorkers: Math.max(2, Math.floor(availableParallelism() / 2)),
     // `.local` holds the pulled data, screenshots and the deploy worktree: its copy of the
     // tests belongs to another branch and is not this checkout's.
     exclude: ['**/node_modules/**', '**/dist/**', '.local/**'],

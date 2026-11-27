@@ -98,7 +98,7 @@ describe('HitPoints', () => {
   })
 
   it('shows average HP, rolls hit dice, and edits per-level and flat bonuses', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Fighter', source: 'PHB', level: 3 }]
     })
@@ -138,7 +138,7 @@ describe('HitPoints', () => {
   })
 
   it('switches between average and rolled HP and restores a past hit-die roll', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Fighter', source: 'PHB', level: 3 }]
     })
@@ -218,7 +218,7 @@ describe('HitPoints', () => {
   })
 
   it('lists a class-level source by its own class level and takes a negative manual line', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([fighter, sorcererClass])
     const c = seedActive((ch) => {
       ch.classes = [

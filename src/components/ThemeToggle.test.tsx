@@ -10,7 +10,7 @@ beforeEach(() => {
 
 describe('ThemeToggle', () => {
   it('defaults to System and switches the active theme when an option is picked', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <ThemeProvider>
         <ThemeToggle />
@@ -33,7 +33,7 @@ describe('ThemeToggle', () => {
   })
 
   it('offers the detail pane style beside the theme and remembers the choice', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <ThemeProvider>
         <ThemeToggle />

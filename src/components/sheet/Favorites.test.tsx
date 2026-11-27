@@ -211,7 +211,7 @@ afterEach(() => {
 
 describe('the Favorites block', () => {
   it('leads the Actions tab with one line on how to add a favorite when it is empty', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const panel = await openTab(user, 'Actions')
@@ -225,7 +225,7 @@ describe('the Favorites block', () => {
   })
 
   it('pins an attack from its table without opening anything or recording history', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     const c = seed()
     renderSheet()
@@ -254,7 +254,7 @@ describe('the Favorites block', () => {
   })
 
   it('shows a limited use and a feature with counters that spend in place', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -290,7 +290,7 @@ describe('the Favorites block', () => {
   })
 
   it('shows an item with its charges counter and its text', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -309,7 +309,7 @@ describe('the Favorites block', () => {
   })
 
   it('shows a spell with its stats and opens its text', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -327,7 +327,7 @@ describe('the Favorites block', () => {
   })
 
   it('pins from the Spells, Inventory and Features tabs without opening the row', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -348,7 +348,7 @@ describe('the Favorites block', () => {
   })
 
   it('moves a favorite up and down and removes it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const favorites: Favorite[] = [
       { kind: 'feature', key: 'a' },
       { kind: 'use', key: WIND },
@@ -376,7 +376,7 @@ describe('the Favorites block', () => {
   })
 
   it('says so for a favorite that is no longer there, and offers only to remove it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed({
       favorites: [
         { kind: 'attack', key: 'attack|Vorpal Sword|DMG' },
@@ -401,7 +401,7 @@ describe('the Favorites block', () => {
   })
 
   it('keeps the Level up undo and the history when something is pinned', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     renderSheet()
     const panel = await openTab(user, 'Features & Traits')

@@ -174,7 +174,7 @@ describe('the sheet tabs', () => {
   })
 
   it('shows what is carried and opens an item in the sheet pane, not beside the table', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed(false)
     renderSheet()
@@ -193,7 +193,7 @@ describe('the sheet tabs', () => {
   })
 
   it('takes off a worn item from the Inventory tab', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(false)
     renderSheet()
     const panel = await openTab(user, 'Inventory')
@@ -204,7 +204,7 @@ describe('the sheet tabs', () => {
   })
 
   it('opens a row over the sheet on a narrower screen', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed(true)
     renderSheet()
     const panel = await openTab(user, 'Features & Traits')
@@ -217,7 +217,7 @@ describe('the sheet tabs', () => {
   })
 
   it('closes a row text when another tab is opened, and leaves a number breakdown open', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed(true)
     renderSheet()
@@ -234,7 +234,7 @@ describe('the sheet tabs', () => {
   })
 
   it('lists the features and opens one in full', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed(true)
     renderSheet()
@@ -245,7 +245,7 @@ describe('the sheet tabs', () => {
   })
 
   it('shows a caster the spell numbers and the spells, each openable', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed(true)
     renderSheet()
@@ -264,7 +264,7 @@ describe('the sheet tabs', () => {
   })
 
   it('reads the story in full and takes the player back to the editor to change it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed(false)
     renderSheet()
     const panel = await openTab(user, 'Story')
@@ -276,7 +276,7 @@ describe('the sheet tabs', () => {
   })
 
   it('says so when no story is written', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(false)
     useCharacterStore.setState({
       characters: {
@@ -290,7 +290,7 @@ describe('the sheet tabs', () => {
   })
 
   it('keeps the notes typed in the Notes tab', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(false)
     renderSheet()
     const panel = await openTab(user, 'Notes')
@@ -301,7 +301,7 @@ describe('the sheet tabs', () => {
   })
 
   it('shows the Wild Shape forms in Extras with their stat block', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed(true)
     renderSheet()

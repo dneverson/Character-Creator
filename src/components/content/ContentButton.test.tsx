@@ -56,7 +56,7 @@ describe('ContentButton', () => {
   })
 
   it('opens and closes the Book content window', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderButton()
     expect(screen.queryByRole('dialog')).toBeNull()
 

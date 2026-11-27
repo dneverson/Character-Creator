@@ -60,7 +60,7 @@ afterEach(() => {
 
 describe('ContentSettings on the free rules', () => {
   it('says so and offers the full content', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     open()
 
     expect(screen.getByRole('heading', { name: 'Free rules' })).toBeInTheDocument()
@@ -81,7 +81,7 @@ describe('ContentSettings on the free rules', () => {
   })
 
   it('carries the license of the free rules', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     open()
     const header = screen.getByRole('button', { name: 'License of the free rules' })
     expect(header).toHaveAttribute('aria-expanded', 'false')
@@ -93,7 +93,7 @@ describe('ContentSettings on the free rules', () => {
   })
 
   it('closes from its header', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onHide = open()
     await user.click(screen.getByRole('button', { name: 'Close' }))
     expect(onHide).toHaveBeenCalled()
@@ -123,7 +123,7 @@ describe('ContentSettings with the full content in use', () => {
   })
 
   it('checks for updates and says how it went', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     open()
 
     await user.click(screen.getByRole('button', { name: 'Check for updates' }))
@@ -152,7 +152,7 @@ describe('ContentSettings with the full content in use', () => {
   })
 
   it('says Checking... while it asks, then how the update went', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     let answer: (answered: boolean) => void = () => undefined
     fakeLibrary.checkForUpdate.mockImplementationOnce(
       () => new Promise<boolean>((resolve) => (answer = resolve)),
@@ -184,7 +184,7 @@ describe('ContentSettings with the full content in use', () => {
   })
 
   it('reports an update that could not be downloaded', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     fakeLibrary.checkForUpdate.mockImplementationOnce(() => {
       useContentStatus.setState({
         commit: 'abcdef0000000000000000000000000000000000',
@@ -201,14 +201,14 @@ describe('ContentSettings with the full content in use', () => {
   })
 
   it('switches back to the free rules', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     open()
     await user.click(screen.getByRole('button', { name: 'Use the free rules only' }))
     expect(fakeLibrary.disable).toHaveBeenCalledTimes(1)
   })
 
   it('removes the downloaded content only once the visitor confirms', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     open()
     const remove = screen.getByRole('button', { name: 'Remove downloaded content' })
 
@@ -243,7 +243,7 @@ describe('ContentSettings with the full content in use', () => {
   })
 
   it('offers to try again when the source cannot be reached', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     useContentStatus.setState({ unreachable: true })
     open()
 
@@ -277,7 +277,7 @@ describe('ContentSettings importing a copy from this device', () => {
   })
 
   it('stores the picked files and says how many', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     open()
     expect(screen.getByRole('button', { name: 'Import from this device' })).toBeEnabled()
     expect(screen.getByText(/Nothing is uploaded/)).toBeInTheDocument()
@@ -301,7 +301,7 @@ describe('ContentSettings importing a copy from this device', () => {
   })
 
   it('says when the folder held nothing usable, or could not be read', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     open()
 
     fakeLibrary.importFiles.mockResolvedValueOnce(0)
@@ -319,7 +319,7 @@ describe('ContentSettings importing a copy from this device', () => {
   })
 
   it('opens the folder picker from the button, and ignores an empty pick', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     open()
     const input = screen.getByLabelText('Folder to import')
     const clicked = vi.fn()
@@ -378,7 +378,7 @@ describe('ContentSettings source fields', () => {
   })
 
   it('shows what is wrong with a value and resets one field to its default', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     open()
     const data = screen.getByLabelText('Data repository')
     const reset = screen.getByRole('button', {
@@ -417,7 +417,7 @@ describe('ContentSettings content source', () => {
   })
 
   it('switches to another source once the visitor confirms', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     open()
     const data = screen.getByLabelText('Data repository')
     const use = screen.getByRole('button', { name: 'Use this source' })
@@ -440,7 +440,7 @@ describe('ContentSettings content source', () => {
   })
 
   it('refuses a repository or branch that cannot be right', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     open()
     const use = screen.getByRole('button', { name: 'Use this source' })
 
@@ -459,7 +459,7 @@ describe('ContentSettings content source', () => {
   })
 
   it('goes back to the default source in one step', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     useContentSettings.setState({
       source: { ...contentConfig.source, ref: 'next' },
     })

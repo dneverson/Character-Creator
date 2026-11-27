@@ -10,9 +10,13 @@
 //  - A save or a deletion is sent shortly after it, with others that follow it. A
 //    deletion is also written down on the device until the cloud has it, so that closing
 //    the page while offline does not bring the character back at the next sign-in.
+//  - After a character is in the cloud, the history entries the server's ledger has not
+//    been sent are sent to it (the character's row must exist first). What was sent is
+//    written down on the device, so a long history is not sent again at every sync; if
+//    that note is lost the entries are simply sent once more, which the ledger ignores.
 
 import { create } from 'zustand'
-import type { Character } from '../character/model'
+import type { Character, HistoryEntry } from '../character/model'
 import type { CharacterStorage } from '../storage/characters'
 import { CloudOfflineError, type CloudBackend, type RemoteRow } from './backend'
 import { deletedRow, liveRow, planSync, readRows } from './merge'
@@ -44,10 +48,22 @@ export interface RemovalStore {
   forgetUser(userId: string): void
 }
 
+/** The history entries already sent to the server's ledger, kept on the device. */
+export interface SentEventsStore {
+  /** Entry ids by character id, for one account. */
+  load(userId: string): Record<string, string[]>
+  save(userId: string, sent: Record<string, string[]>): void
+  /** Forget an account (it was deleted). */
+  forgetUser(userId: string): void
+}
+
 export interface SyncOptions {
   /** The characters on this device. */
   local: CharacterStorage
   removals: RemovalStore
+  sentEvents: SentEventsStore
+  /** How many history entries go to the ledger in one request. */
+  eventsPerRequest: number
   /** Told when the cloud changed characters on this device. */
   onRemote: (change: RemoteChange) => void
   /** How long saves wait for further saves before they are sent. */
@@ -73,7 +89,8 @@ export interface SyncEngine {
 }
 
 export function createSyncEngine(options: SyncOptions): SyncEngine {
-  const { local, removals, onRemote, debounceMs, retryMs } = options
+  const { local, removals, sentEvents, eventsPerRequest } = options
+  const { onRemote, debounceMs, retryMs } = options
   const now = options.now ?? Date.now
   const setState = (state: SyncState) => useSyncStatus.setState({ state })
 
@@ -88,8 +105,37 @@ export function createSyncEngine(options: SyncOptions): SyncEngine {
   // recognised here, so it is not sent straight back.
   const received = new WeakSet<Character>()
   const receivedRemovals = new Set<string>()
+  // Ids of the history entries the ledger has been sent, by character, for the account.
+  const sent = new Map<string, Set<string>>()
 
   const persistRemovals = () => removals.save(userId, Object.fromEntries(pendingRemovals))
+
+  const persistSent = () =>
+    sentEvents.save(
+      userId,
+      Object.fromEntries([...sent].map(([id, ids]) => [id, [...ids]])),
+    )
+
+  /** A deleted character takes its ledger with it, so nothing of it counts as sent. */
+  function forgetSent(id: string) {
+    if (sent.delete(id)) persistSent()
+  }
+
+  /** Send the entries of these characters that the ledger lacks, a request's worth at a time. */
+  async function sendEvents(cloud: CloudBackend, characters: Character[]) {
+    for (const { id, history } of characters) {
+      if (pendingRemovals.has(id)) continue
+      const known = sent.get(id) ?? new Set<string>()
+      const unsent = history.filter((entry) => !known.has(entry.id))
+      for (let at = 0; at < unsent.length; at += eventsPerRequest) {
+        const chunk: HistoryEntry[] = unsent.slice(at, at + eventsPerRequest)
+        await cloud.recordEvents(id, chunk)
+        for (const entry of chunk) known.add(entry.id)
+        sent.set(id, known)
+        persistSent()
+      }
+    }
+  }
 
   function clearTimers() {
     clearTimeout(flushTimer)
@@ -135,6 +181,7 @@ export function createSyncEngine(options: SyncOptions): SyncEngine {
       await local.save(character)
     }
     for (const id of plan.removeLocal) {
+      forgetSent(id)
       receivedRemovals.add(id)
       await local.remove(id)
     }
@@ -144,6 +191,11 @@ export function createSyncEngine(options: SyncOptions): SyncEngine {
     if (plan.writeLocal.length > 0 || plan.removeLocal.length > 0) {
       onRemote({ upserts: plan.writeLocal, removedIds: plan.removeLocal })
     }
+    // What the device holds now: the joined characters, less the deleted ones.
+    const joined = new Map(characters.map((character) => [character.id, character]))
+    for (const character of plan.writeLocal) joined.set(character.id, character)
+    for (const id of plan.removeLocal) joined.delete(id)
+    await sendEvents(cloud, [...joined.values()])
   }
 
   async function flush(cloud: CloudBackend) {
@@ -162,6 +214,7 @@ export function createSyncEngine(options: SyncOptions): SyncEngine {
       if (pendingRemovals.get(id) === at) pendingRemovals.delete(id)
     }
     persistRemovals()
+    await sendEvents(cloud, saves)
   }
 
   function schedule() {
@@ -184,6 +237,7 @@ export function createSyncEngine(options: SyncOptions): SyncEngine {
     window.removeEventListener('online', onOnline)
     pendingSaves.clear()
     pendingRemovals.clear()
+    sent.clear()
     useSyncStatus.setState({ state: 'idle', lastSyncedAt: null })
   }
 
@@ -195,6 +249,8 @@ export function createSyncEngine(options: SyncOptions): SyncEngine {
       removals.rememberUser(id)
       for (const [key, at] of Object.entries(removals.load(id)))
         pendingRemovals.set(key, at)
+      for (const [key, ids] of Object.entries(sentEvents.load(id)))
+        sent.set(key, new Set(ids))
       window.addEventListener('online', onOnline)
       return syncNow()
     },
@@ -214,13 +270,17 @@ export function createSyncEngine(options: SyncOptions): SyncEngine {
         if (last) removals.save(last, { ...removals.load(last), [id]: now() })
         return
       }
+      forgetSent(id)
       if (receivedRemovals.delete(id)) return
       pendingSaves.delete(id)
       pendingRemovals.set(id, now())
       persistRemovals()
       schedule()
     },
-    forget: (id) => removals.forgetUser(id),
+    forget(id) {
+      removals.forgetUser(id)
+      sentEvents.forgetUser(id)
+    },
     syncNow,
   }
 }

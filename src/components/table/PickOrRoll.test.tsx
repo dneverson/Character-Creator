@@ -77,7 +77,7 @@ const rowButton = (text: string) => screen.getByRole('button', { name: new RegEx
 
 describe('PickOrRoll', () => {
   it('takes rows by clicking them, and folds once all are taken', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness />)
 
     expect(screen.getByText('Choose 2 or roll - 0 of 2 chosen')).toBeInTheDocument()
@@ -107,7 +107,7 @@ describe('PickOrRoll', () => {
   })
 
   it('rolls every row still free in one click, never one already taken', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness initial={[0]} />)
 
     // The first die lands on the taken row and is rolled again.
@@ -118,7 +118,7 @@ describe('PickOrRoll', () => {
   })
 
   it('lists the rows taken under the folded line when asked, where nothing else shows them', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness initial={[1, 3]} showTaken />)
     expect(screen.getByText('2 of 2 from the table')).toBeInTheDocument()
     expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
@@ -131,7 +131,7 @@ describe('PickOrRoll', () => {
   })
 
   it('rerolls every row taken afresh', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness initial={[0, 1]} />)
 
     dice(4, 4, 3)
@@ -140,7 +140,7 @@ describe('PickOrRoll', () => {
   })
 
   it('reopens on Change, closes on Done, and holds back rows once all are taken', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness initial={[0, 1]} />)
 
     await user.click(screen.getByRole('button', { name: 'Change' }))
@@ -161,7 +161,7 @@ describe('PickOrRoll', () => {
   })
 
   it('moves a single row to the one clicked, and shows a range row as its range', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness table={objects} count={1} />)
 
     expect(screen.getByText('2-3')).toBeInTheDocument()
@@ -174,7 +174,7 @@ describe('PickOrRoll', () => {
   })
 
   it('stays folded on the player’s own text, and rolls the whole count from there', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness ownText count={1} />)
 
     expect(screen.getByText('Your own text')).toBeInTheDocument()

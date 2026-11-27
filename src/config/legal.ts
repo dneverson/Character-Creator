@@ -131,6 +131,7 @@ export const legalConfig = {
           bullets: [
             "Your email address, and the sign-in method and id of your account, to let you sign in and to tell your data apart from everyone else's.",
             'Your characters, with their history logs, once you sign in, so they follow you between devices and can be recovered. A character you delete is kept only as a bare deletion record, an id and a time with none of its content, so that your other devices delete it too.',
+            "A server record of each character's changes and rolls. With an account, the app also keeps a log of what is done to each character on the server, and it cannot be edited or removed, except by deleting the character or your account. It exists so that a Dungeon Master can trust a character's history, which a file on your own device cannot prove because anyone can edit it.",
             'A share link, if you make one: a random code that names one of your characters, kept until you stop sharing it or delete the character or your account.',
           ],
         },
@@ -311,7 +312,7 @@ export const legalConfig = {
           ],
           bullets: [
             'Your account, and the email address and sign-in details stored with it.',
-            'Every copy of your characters in the cloud, with their history, and any sharing links or public listings they had.',
+            'Every copy of your characters in the cloud, with their history and the server record of their changes, and any sharing links or public listings they had.',
             'Your comments and votes, once those exist, or, where they must stay so a discussion makes sense, they will be shown with no name on them.',
           ],
         },

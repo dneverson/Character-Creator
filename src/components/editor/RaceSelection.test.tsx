@@ -217,7 +217,7 @@ describe('RaceSelection', () => {
   })
 
   it('chooses a race with fixed increases and sums it up', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -243,7 +243,7 @@ describe('RaceSelection', () => {
   })
 
   it('swaps a language or proficiency of the race under Customizing Your Origin', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockRaces.mockResolvedValue([
       {
         ...dwarf,
@@ -282,7 +282,7 @@ describe('RaceSelection', () => {
   })
 
   it("moves a race's increases anywhere under Tasha's Customizing Your Origin", async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -309,7 +309,7 @@ describe('RaceSelection', () => {
   })
 
   it('places a single chosen increase and takes it back off', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -326,7 +326,7 @@ describe('RaceSelection', () => {
   })
 
   it('moves a single increase to another ability clicked', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -340,7 +340,7 @@ describe('RaceSelection', () => {
   })
 
   it('holds back the other abilities once every one of several increases is placed', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockRaces.mockResolvedValue([elf])
     const c = seedActive()
     renderSection()
@@ -357,7 +357,7 @@ describe('RaceSelection', () => {
   })
 
   it('switches to another way of taking the increases, starting it afresh', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockRaces.mockResolvedValue([variant])
     const c = seedActive()
     renderSection()
@@ -377,7 +377,7 @@ describe('RaceSelection', () => {
   })
 
   it('says where a 2024 species gets its increases, and leaves out a speed it lacks', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockRaces.mockResolvedValue([warforged])
     seedActive()
     renderSection()
@@ -397,7 +397,7 @@ describe('RaceSelection', () => {
   })
 
   it('says a 2014 race without increases gives none', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockRaces.mockResolvedValue([construct])
     seedActive()
     renderSection()
@@ -408,7 +408,7 @@ describe('RaceSelection', () => {
   })
 
   it('shows an unknown size as it is, names a boolean speed, and offers every ability', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockRaces.mockResolvedValue([oddling])
     seedActive()
     renderSection()
@@ -432,7 +432,7 @@ describe('RaceSelection', () => {
   })
 
   it('clears the race back to none from its row', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive(['PHB', 'XPHB'], dwarfRef)
     renderSection()
 
@@ -462,7 +462,7 @@ describe('RaceSelection', () => {
   })
 
   it('keeps the race when changing it is called off', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive(['PHB', 'XPHB'], dwarfRef)
     renderSection()
 
@@ -481,7 +481,7 @@ describe('RaceSelection', () => {
   })
 
   it('warns about a race outside the selected books, and removes it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive(['PHB', 'XPHB'], {
       name: 'Tabaxi',
       baseName: 'Tabaxi',
@@ -565,7 +565,7 @@ describe('a race with a trait to choose and a size to choose', () => {
   it('takes an option of the trait, keeps it on a change of size, and takes it back', async () => {
     mockRaces.mockResolvedValue([lineage])
     const c = seedActive(['TCE'], lineageRef)
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderSection()
     const table = await screen.findByRole('table', { name: 'Variable Trait options' })
     await user.click(

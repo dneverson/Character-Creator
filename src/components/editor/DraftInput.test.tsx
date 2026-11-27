@@ -6,7 +6,7 @@ import { DraftInput } from './DraftInput'
 
 describe('DraftInput', () => {
   it('holds typing locally and commits on blur', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onCommit = vi.fn()
     render(<DraftInput aria-label="Name" value="Ann" onCommit={onCommit} />)
     await user.type(screen.getByLabelText('Name'), 'ie')
@@ -18,7 +18,7 @@ describe('DraftInput', () => {
   })
 
   it('commits a single-line input on Enter but not a textarea', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onCommit = vi.fn()
     const onArea = vi.fn()
     render(
@@ -36,7 +36,7 @@ describe('DraftInput', () => {
   })
 
   it('does not commit an unchanged value', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onCommit = vi.fn()
     render(<DraftInput aria-label="Name" value="Ann" onCommit={onCommit} />)
     await user.click(screen.getByLabelText('Name'))
@@ -45,7 +45,7 @@ describe('DraftInput', () => {
   })
 
   it('resyncs when the stored value changes from outside', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     function Host() {
       const [value, setValue] = useState('one')
       return (
@@ -62,7 +62,7 @@ describe('DraftInput', () => {
   })
 
   it('shows the stored value after a commit the store normalised', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<DraftInput aria-label="Coins" value="0" onCommit={() => undefined} />)
     await user.type(screen.getByLabelText('Coins'), '5')
     await user.tab()
@@ -70,7 +70,7 @@ describe('DraftInput', () => {
   })
 
   it('commits what was typed when it unmounts', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onCommit = vi.fn()
     const { unmount } = render(
       <DraftInput aria-label="Name" value="Ann" onCommit={onCommit} />,
@@ -83,7 +83,7 @@ describe('DraftInput', () => {
 
 describe('DraftInput number steppers', () => {
   it('commits a step change at once but waits on typed digits', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onCommit = vi.fn()
     render(<DraftInput aria-label="Bonus" type="number" value="1" onCommit={onCommit} />)
     const input = screen.getByLabelText('Bonus')

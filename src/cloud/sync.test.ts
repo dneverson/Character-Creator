@@ -2,10 +2,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { character, fakeBackend, memoryCharacters, remoteOf } from '../test/cloudFixtures'
 import { deletedRow } from './merge'
 import { deviceRemovalStore } from './removals'
+import { deviceSentEventsStore } from './sentEvents'
 import { createSyncEngine, useSyncStatus } from './sync'
 
 const DEBOUNCE = 1000
 const RETRY = 5000
+const PER_REQUEST = 3
+
+/** The note of what the ledger was sent, over device settings held in memory. */
+function memorySent() {
+  const items = new Map<string, string>()
+  return deviceSentEventsStore(
+    {
+      getItem: (key) => items.get(key) ?? null,
+      setItem: (key, value) => void items.set(key, value),
+      removeItem: (key) => void items.delete(key),
+    },
+    'sent',
+  )
+}
 
 /** The removal store over device settings held in memory, as one account's. */
 function memoryRemovals(initial: Record<string, number> = {}) {
@@ -31,16 +46,19 @@ function setup(options: {
   const device = memoryCharacters(options.device)
   const cloud = fakeBackend(options.cloud)
   const removals = memoryRemovals(options.removals)
+  const sentEvents = memorySent()
   const onRemote = vi.fn()
   const engine = createSyncEngine({
     local: device.storage,
     removals: removals.store,
+    sentEvents,
+    eventsPerRequest: PER_REQUEST,
     onRemote,
     debounceMs: DEBOUNCE,
     retryMs: RETRY,
     now: () => 500,
   })
-  return { device, cloud, removals, onRemote, engine }
+  return { device, cloud, removals, sentEvents, onRemote, engine }
 }
 
 beforeEach(() => {
@@ -355,5 +373,159 @@ describe('stopping', () => {
     engine.stop()
     await Promise.all([first, second])
     expect(cloud.backend.upsertRows).not.toHaveBeenCalled()
+  })
+})
+
+describe('the server ledger of history entries', () => {
+  const idsOf = (cloud: ReturnType<typeof fakeBackend>, id: string) =>
+    [...(cloud.events.get(id)?.keys() ?? [])].sort()
+
+  it('sends the entries of a character after its row, at sign-in', async () => {
+    const mine = character('mine', 10, [1, 2])
+    const { cloud, engine } = setup({ device: [mine] })
+    await engine.start(cloud.backend, 'user')
+    expect(idsOf(cloud, 'mine')).toEqual(mine.history.map((entry) => entry.id).sort())
+    // The row went up first: the fake refuses events for a character it does not hold.
+    expect(cloud.backend.upsertRows.mock.invocationCallOrder[0]).toBeLessThan(
+      cloud.backend.recordEvents.mock.invocationCallOrder[0],
+    )
+  })
+
+  it('sends the entries of a character the cloud already holds', async () => {
+    const same = character('a', 10, [1])
+    const { cloud, engine } = setup({ device: [same], cloud: [remoteOf(same)] })
+    await engine.start(cloud.backend, 'user')
+    expect(idsOf(cloud, 'a')).toHaveLength(1)
+  })
+
+  it('sends only the entries it has not sent, after a save', async () => {
+    const first = character('a', 10, [1, 2])
+    const { cloud, engine } = setup({ device: [first] })
+    await engine.start(cloud.backend, 'user')
+    cloud.backend.recordEvents.mockClear()
+
+    const added = character('a', 0, [3]).history
+    const later = { ...first, updatedAt: 11, history: [...first.history, ...added] }
+    engine.noteSave(later)
+    await vi.advanceTimersByTimeAsync(DEBOUNCE)
+
+    expect(cloud.backend.recordEvents).toHaveBeenCalledTimes(1)
+    expect(cloud.backend.recordEvents.mock.calls[0][1]).toEqual(added)
+    // A sync that follows has nothing left to send.
+    await engine.syncNow()
+    expect(cloud.backend.recordEvents).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not send again after a restart on the same device', async () => {
+    const mine = character('mine', 10, [1])
+    const { cloud, engine } = setup({ device: [mine] })
+    await engine.start(cloud.backend, 'user')
+    cloud.backend.recordEvents.mockClear()
+    engine.stop()
+    await engine.start(cloud.backend, 'user')
+    expect(cloud.backend.recordEvents).not.toHaveBeenCalled()
+  })
+
+  it('sends an imported entry with its own time, and the server gives its own', async () => {
+    const mine = character('mine', 10, [5])
+    const { cloud, engine } = setup({ device: [mine] })
+    await engine.start(cloud.backend, 'user')
+    const [event] = await cloud.backend.readRecordedEvents('mine')
+    expect(event.entry.at).toBe(5)
+    expect(event.recordedAt).toBeGreaterThan(5)
+    expect(event.entry.by).toBe('device')
+  })
+
+  it('sends again after a failure, without sending again what got through', async () => {
+    const mine = character('mine', 10, [1, 2, 3, 4, 5])
+    const { cloud, engine } = setup({ device: [mine] })
+    const record = cloud.backend.recordEvents.getMockImplementation()
+    if (!record) throw new Error('the fake has no recordEvents')
+    cloud.backend.recordEvents.mockImplementationOnce(record)
+    cloud.backend.recordEvents.mockImplementationOnce(async () => {
+      throw new Error('refused')
+    })
+    await engine.start(cloud.backend, 'user')
+    expect(useSyncStatus.getState().state).toBe('error')
+    expect(idsOf(cloud, 'mine')).toHaveLength(PER_REQUEST)
+
+    await vi.advanceTimersByTimeAsync(RETRY)
+
+    expect(useSyncStatus.getState().state).toBe('idle')
+    expect(idsOf(cloud, 'mine')).toHaveLength(5)
+    // The retry sent only the two entries the first try had not.
+    expect(cloud.backend.recordEvents.mock.calls.at(-1)?.[1]).toHaveLength(2)
+  })
+
+  it('sends in requests of the configured size', async () => {
+    const mine = character('mine', 10, [1, 2, 3, 4, 5, 6, 7])
+    const { cloud, engine } = setup({ device: [mine] })
+    await engine.start(cloud.backend, 'user')
+    expect(cloud.backend.recordEvents.mock.calls.map(([, sent]) => sent.length)).toEqual([
+      3, 3, 1,
+    ])
+  })
+
+  it('sends nothing while signed out', async () => {
+    const { cloud, engine } = setup({})
+    engine.noteSave(character('a', 10, [1]))
+    await vi.advanceTimersByTimeAsync(DEBOUNCE * 2)
+    expect(cloud.backend.recordEvents).not.toHaveBeenCalled()
+  })
+
+  it('sends nothing for a deleted character, and sends its log again if it returns', async () => {
+    const mine = character('mine', 10, [1])
+    const { cloud, engine, sentEvents } = setup({ device: [mine] })
+    await engine.start(cloud.backend, 'user')
+    cloud.backend.recordEvents.mockClear()
+
+    engine.noteRemove('mine')
+    expect(sentEvents.load('user')).toEqual({})
+    await vi.advanceTimersByTimeAsync(DEBOUNCE)
+    expect(cloud.backend.recordEvents).not.toHaveBeenCalled()
+    expect(cloud.events.has('mine')).toBe(false)
+
+    // Brought back: its ledger went with the deletion, so the whole log is sent again.
+    engine.noteSave({ ...mine, updatedAt: 600 })
+    await vi.advanceTimersByTimeAsync(DEBOUNCE)
+    expect(idsOf(cloud, 'mine')).toHaveLength(1)
+  })
+
+  it('sends nothing for a character whose deletion is still waiting', async () => {
+    const gone = character('gone', 10, [1])
+    const { cloud, engine } = setup({ device: [gone], removals: { gone: 400 } })
+    await engine.start(cloud.backend, 'user')
+    expect(cloud.backend.recordEvents).not.toHaveBeenCalled()
+  })
+
+  it('drops the note of a character the cloud deleted', async () => {
+    const mine = character('mine', 10, [1])
+    const { cloud, engine, sentEvents } = setup({ device: [mine] })
+    await engine.start(cloud.backend, 'user')
+    expect(Object.keys(sentEvents.load('user'))).toEqual(['mine'])
+    cloud.rows.set('mine', deletedRow('mine', 50))
+    await engine.syncNow()
+    expect(sentEvents.load('user')).toEqual({})
+  })
+
+  it('keeps a save made offline and sends its entries when the connection returns', async () => {
+    const { cloud, engine, device } = setup({})
+    await engine.start(cloud.backend, 'user')
+    cloud.state.offline = true
+    const mine = character('mine', 10, [1])
+    device.records.set('mine', mine)
+    engine.noteSave(mine)
+    await vi.advanceTimersByTimeAsync(DEBOUNCE)
+    expect(useSyncStatus.getState().state).toBe('offline')
+    cloud.state.offline = false
+    await vi.advanceTimersByTimeAsync(RETRY)
+    expect(idsOf(cloud, 'mine')).toHaveLength(1)
+  })
+
+  it('forgets what an account was sent when the account is deleted', async () => {
+    const { cloud, engine, sentEvents } = setup({ device: [character('mine', 10, [1])] })
+    await engine.start(cloud.backend, 'user')
+    engine.forget('user')
+    expect(sentEvents.load('user')).toEqual({})
   })
 })

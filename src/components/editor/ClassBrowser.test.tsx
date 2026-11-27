@@ -127,7 +127,7 @@ describe('ClassBrowser', () => {
   })
 
   it('lets rows be multi-selected and compared side by side', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive()
     renderSection()
     await screen.findByText('Fighter')
@@ -159,7 +159,7 @@ describe('ClassBrowser', () => {
   })
 
   it('adds a class (with its subclass) to the build from a row action', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -186,7 +186,7 @@ describe('ClassBrowser', () => {
   })
 
   it('adds a class from the detail pane action', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -209,7 +209,7 @@ describe('ClassBrowser', () => {
   })
 
   it('shows rich detail with subclasses when a class is clicked', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive()
     renderSection()
 
@@ -225,7 +225,7 @@ describe('ClassBrowser', () => {
   })
 
   it('filters classes by free-text search', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive()
     renderSection()
 

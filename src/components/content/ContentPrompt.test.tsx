@@ -36,14 +36,14 @@ describe('ContentPrompt', () => {
   })
 
   it('downloads the full content when the visitor accepts', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<ContentPrompt mode="prompt" />)
     await user.click(screen.getByRole('button', { name: 'Download the full content' }))
     expect(fakeLibrary.enable).toHaveBeenCalledTimes(1)
   })
 
   it('stays on the free rules when the visitor declines', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<ContentPrompt mode="prompt" />)
     await user.click(screen.getByRole('button', { name: 'Use the free rules only' }))
     expect(fakeLibrary.disable).toHaveBeenCalledTimes(1)

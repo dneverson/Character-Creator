@@ -45,7 +45,7 @@ describe('StatGeneration', () => {
   })
 
   it('rolls a pool for a dice method and shows the generated scores', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -55,7 +55,7 @@ describe('StatGeneration', () => {
   })
 
   it('rolls a matrix grid and renders the table', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -66,7 +66,7 @@ describe('StatGeneration', () => {
   })
 
   it('lets the player pick which matrix line becomes the pool', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     // Deterministic dice: every d6 in row r shows (r % 6) + 1, so row r's cells
     // each sum to 3*(r+1) and row totals climb 18, 36, 54, 72, 90, 108.
     // rollMatrix fills the 6x6 grid row-major, 3 dice per cell (18 dice/row).
@@ -92,7 +92,7 @@ describe('StatGeneration', () => {
   })
 
   it('restores the rolled matrix after the section is remounted', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     const view = renderSection()
 
@@ -111,7 +111,7 @@ describe('StatGeneration', () => {
   })
 
   it('renders a perfect 18 in gold in the matrix', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     // Force every d6 to 6 so every cell sums to 18 (all cells are "best").
     vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation((array) => {
       ;(array as Uint8Array)[0] = 5 // 1 + (5 % 6) = 6
@@ -144,7 +144,7 @@ describe('StatGeneration', () => {
   })
 
   it('sets the standard array pool', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -154,7 +154,7 @@ describe('StatGeneration', () => {
   })
 
   it('switches to point buy and clears the pool', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 

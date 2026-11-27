@@ -191,7 +191,7 @@ afterEach(() => {
 
 describe('the hit points box', () => {
   it('takes damage from temporary hit points first, then heals, each in one click', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const box = await hpBox()
@@ -225,7 +225,7 @@ describe('the hit points box', () => {
   })
 
   it('does nothing for an empty amount, and records the change in the history', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     renderSheet()
     const box = await hpBox()
@@ -241,7 +241,7 @@ describe('the hit points box', () => {
   })
 
   it('sets the temporary hit points by hand', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const box = await hpBox()
@@ -252,7 +252,7 @@ describe('the hit points box', () => {
   })
 
   it('shows the death saves at 0 hit points, and brings them back with healing', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     const full = 24
     seed({ play: { ...c.play, damage: full * 10 } })
@@ -291,7 +291,7 @@ describe('the hit points box', () => {
 
 describe('the play strip', () => {
   it('flips inspiration, named for the edition', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     await user.click(await screen.findByRole('checkbox', { name: 'Inspiration' }))
@@ -307,7 +307,7 @@ describe('the play strip', () => {
   })
 
   it('steps exhaustion up and down within 0 and 6', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const raise = await screen.findByRole('button', { name: 'Raise exhaustion' })
@@ -321,7 +321,7 @@ describe('the play strip', () => {
   })
 
   it('opens what exhaustion does now: 2014 levels, then 2024 d20 and speed', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     const c = seed()
     seed({ play: { ...c.play, exhaustion: 2 } })
@@ -344,7 +344,7 @@ describe('the play strip', () => {
   })
 
   it('says so when there is no exhaustion', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -353,7 +353,7 @@ describe('the play strip', () => {
   })
 
   it('opens a condition and what exhaustion does in the book they are printed in', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -389,7 +389,7 @@ describe('the play strip', () => {
   })
 
   it('picks conditions with their text, shows them as tags and removes them', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -406,7 +406,7 @@ describe('the play strip', () => {
   })
 
   it('opens a condition tag on its own text, 2024 text for the 2024 rules', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     const c = seed({ classes: [], selectedBooks: ['XPHB'] })
     seed({
@@ -420,7 +420,7 @@ describe('the play strip', () => {
   })
 
   it('spends and regains a hit die of each size', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const dice = await screen.findByRole('group', { name: 'd8 hit dice' })
@@ -433,7 +433,7 @@ describe('the play strip', () => {
   })
 
   it('has slot pips named by level, number and state, and spends and restores them', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const slots = await screen.findByRole('group', { name: 'Spell slots' })
@@ -448,7 +448,7 @@ describe('the play strip', () => {
   })
 
   it('shows the Pact Magic slots apart from the others for a multiclass character', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed({
       classes: [
         { name: 'Cleric', source: 'PHB', level: 3 },
@@ -469,7 +469,7 @@ describe('the play strip', () => {
 
 describe('the Spells tab', () => {
   it('has the slot pips in its header, the same state as the strip', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     await user.click(await screen.findByRole('tab', { name: 'Spells' }))
@@ -484,7 +484,7 @@ describe('the Spells tab', () => {
   })
 
   it('starts and ends concentration from a concentration spell', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     await user.click(await screen.findByRole('tab', { name: 'Spells' }))
@@ -501,7 +501,7 @@ describe('the Spells tab', () => {
 
 describe('the rests', () => {
   it('takes a long rest: confirms the effects, and records the rest in the history', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     seed({
       play: {
@@ -534,7 +534,7 @@ describe('the rests', () => {
   })
 
   it('regains every spent die in the 2024 rules, and warns at 0 hit points', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed({
       classes: [{ name: 'Fighter', source: 'XPHB', level: 3 }],
       selectedBooks: ['XPHB'],
@@ -554,7 +554,7 @@ describe('the rests', () => {
   })
 
   it('cancels without changing anything', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     seed({ play: { ...c.play, damage: 5 } })
     renderSheet()
@@ -566,7 +566,7 @@ describe('the rests', () => {
   })
 
   it('spends hit dice in a short rest with a roll the player enters, and heals', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     seed({ play: { ...c.play, damage: 12 } })
     renderSheet()
@@ -595,7 +595,7 @@ describe('the rests', () => {
   })
 
   it('rolls a hit die and can clear the dice again', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     seed({ play: { ...c.play, damage: 12 } })
     renderSheet()
@@ -611,7 +611,7 @@ describe('the rests', () => {
   })
 
   it('restores Pact Magic slots on a short rest', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed({
       classes: [
         { name: 'Cleric', source: 'PHB', level: 3 },

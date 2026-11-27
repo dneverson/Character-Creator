@@ -38,7 +38,7 @@ function Host({ hidden }: { hidden: string[] }) {
 }
 
 async function open(hidden: string[] = []) {
-  const user = userEvent.setup()
+  const user = userEvent.setup({ delay: null })
   render(<Host hidden={hidden} />)
   await user.click(screen.getByRole('button', { name: 'Columns' }))
   return user

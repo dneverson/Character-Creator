@@ -10,12 +10,15 @@ import { appConfig } from '../config/app'
 import {
   CharacterNotInCloudError,
   CloudOfflineError,
+  parseEvents,
   parseRows,
   parseShared,
   parseToken,
+  toEventRecord,
   toRecord,
   type CloudBackend,
   type CloudSession,
+  type RecordedEvent,
 } from './backend'
 
 /** The database's codes for a missing referenced row and for a value that must be unique. */
@@ -24,6 +27,9 @@ const UNIQUE_VIOLATION = '23505'
 
 /** Rows sent in one request: a character with a portrait is large. */
 const ROWS_PER_REQUEST = 20
+
+/** Ledger entries read in one request (the service answers at most 1000). */
+const EVENTS_PER_READ = 1000
 
 function sessionOf(session: Session | null): CloudSession | null {
   if (!session) return null
@@ -116,6 +122,28 @@ export function createSupabaseBackend(): CloudBackend {
           .from('characters')
           .upsert(records, { onConflict: 'user_id,id' })
         if (error) fail(error)
+      }
+    },
+    async recordEvents(characterId, entries) {
+      const { error } = await client.from('character_events').upsert(
+        entries.map((entry) => toEventRecord(characterId, entry)),
+        { onConflict: 'user_id,character_id,event_id', ignoreDuplicates: true },
+      )
+      if (error) fail(error)
+    },
+    async readRecordedEvents(characterId) {
+      const events: RecordedEvent[] = []
+      for (let at = 0; ; at += EVENTS_PER_READ) {
+        const { data, error } = await client
+          .from('character_events')
+          .select('event_id, recorded_at, entry')
+          .eq('character_id', characterId)
+          .order('recorded_at')
+          .order('event_id')
+          .range(at, at + EVENTS_PER_READ - 1)
+        if (error) fail(error)
+        events.push(...parseEvents(data))
+        if (!Array.isArray(data) || data.length < EVENTS_PER_READ) return events
       }
     },
     async createShare(characterId) {

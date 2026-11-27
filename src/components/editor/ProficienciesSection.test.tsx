@@ -169,7 +169,7 @@ describe('ProficienciesSection', () => {
   })
 
   it('charges a pick to the card clicked and lists it with its source', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed((ch) => {
       ch.background = { name: 'Guild Artisan', source: 'PHB', abilityChoices: {} }
     })
@@ -197,7 +197,7 @@ describe('ProficienciesSection', () => {
   })
 
   it('takes one of two alternatives and drops the picks of the other', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed((ch) => {
       ch.background = { name: 'Smith', source: 'PHB', abilityChoices: {} }
       ch.grantAlt = { 'bg|toolProficiencies': 1 }
@@ -218,7 +218,7 @@ describe('ProficienciesSection', () => {
   })
 
   it('switches an optional grant on and says it depends on the DM', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed((ch) => {
       ch.classes = [{ name: 'Artificer', source: 'TCE', level: 1 }]
     })
@@ -236,7 +236,7 @@ describe('ProficienciesSection', () => {
   })
 
   it('flags a pick outside every list and lets a stray one be taken back', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed((ch) => {
       ch.grantPicks = { language: { sylvan: 'gone' } }
     })

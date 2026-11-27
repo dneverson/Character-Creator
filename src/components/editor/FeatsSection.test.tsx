@@ -228,7 +228,7 @@ describe('FeatsSection', () => {
   })
 
   it('names each slot and what it takes, and fills a granted feat automatically', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSection()
 
@@ -258,7 +258,7 @@ describe('FeatsSection', () => {
   })
 
   it('opens the first empty slot, and the next one after each pick', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     renderSection()
 
@@ -279,7 +279,7 @@ describe('FeatsSection', () => {
   })
 
   it('greys the feats that do not fit a slot, with the reason, and lists them last', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSection()
     await open(user, STYLE_LABEL)
@@ -300,7 +300,7 @@ describe('FeatsSection', () => {
   })
 
   it('narrows the table by the Category column filter', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSection()
     await open(user, STYLE_LABEL)
@@ -317,7 +317,7 @@ describe('FeatsSection', () => {
   })
 
   it('flags an off-category pick once the switch allows it, and clears it to no choice', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     renderSection()
     await open(user, STYLE_LABEL)
@@ -352,7 +352,7 @@ describe('FeatsSection', () => {
   })
 
   it('takes a feat, then the Ability Score Improvement row, in one slot', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     renderSection()
     await open(user, ASI_LABEL)
@@ -387,7 +387,7 @@ describe('FeatsSection', () => {
   })
 
   it('offers the Ability Score Improvement only on slots that take one', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSection()
     await open(user, STYLE_LABEL)
@@ -397,7 +397,7 @@ describe('FeatsSection', () => {
   })
 
   it('limits multi-ability picks to the option count', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed((ch) => {
       ch.feats.choices[ASI_SLOT] = { kind: 'asi', abilityOption: 0, abilityChoices: {} }
     })
@@ -415,7 +415,7 @@ describe('FeatsSection', () => {
   })
 
   it('places +2 on one ability with the improvement', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed((ch) => {
       ch.feats.choices[ASI_SLOT] = { kind: 'asi', abilityOption: 0, abilityChoices: {} }
     })
@@ -467,7 +467,7 @@ describe('FeatsSection', () => {
   })
 
   it('removes a saved feat that is not in the selected books', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed((ch) => {
       ch.feats.choices[RACE_SLOT] = {
         kind: 'feat',
@@ -483,7 +483,7 @@ describe('FeatsSection', () => {
   })
 
   it('adds and removes a bonus feat slot, its table open', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed((ch) => {
       ch.race = undefined
       ch.background = undefined

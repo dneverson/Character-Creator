@@ -30,7 +30,7 @@ afterEach(() => {
 
 describe('ThemeProvider', () => {
   it('applies the selected theme to the document and persists it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <ThemeProvider>
         <Probe />
@@ -88,7 +88,7 @@ describe('ThemeProvider', () => {
   })
 
   it('clears storage when switching back to auto', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     localStorage.setItem('cc-theme', 'dark')
     render(
       <ThemeProvider>
@@ -102,7 +102,7 @@ describe('ThemeProvider', () => {
   })
 
   it('tolerates localStorage failures on read and write', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked')
     })
@@ -134,7 +134,7 @@ describe('ThemeProvider', () => {
   })
 
   it('applies the detail pane style to the document and remembers it on the device', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <ThemeProvider>
         <Probe />

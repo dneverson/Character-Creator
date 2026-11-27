@@ -80,14 +80,14 @@ describe('CharacterList', () => {
   })
 
   it('creates a new character from the header button', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<CharacterList />)
     await user.click(screen.getByRole('button', { name: /New Character/i }))
     expect(useCharacterStore.getState().view).toBe('editor')
   })
 
   it('opens, duplicates, and exports a listed character', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const [id] = seed('Tordek')
     render(<CharacterList />)
 
@@ -105,7 +105,7 @@ describe('CharacterList', () => {
   })
 
   it('deletes only when the confirm dialog is accepted', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed('Doomed')
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     render(<CharacterList />)

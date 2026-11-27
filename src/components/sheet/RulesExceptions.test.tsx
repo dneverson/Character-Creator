@@ -97,7 +97,7 @@ async function openNotes(user: ReturnType<typeof userEvent.setup>) {
 
 describe('the rules exceptions on the Notes tab', () => {
   it('says the build follows the standard rules when nothing departs from them', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const panel = await openNotes(user)
@@ -106,7 +106,7 @@ describe('the rules exceptions on the Notes tab', () => {
   })
 
   it('lists an exception with its rule, and opens Edit at the section that sets it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     useCharacterStore.getState().updateActive({
       classes: [{ name: 'Fighter', source: 'PHB', level: 21 }],

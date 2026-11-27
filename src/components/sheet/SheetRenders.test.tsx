@@ -110,7 +110,7 @@ beforeEach(() => {
 
 describe('what a play update draws again', () => {
   it('spending a use draws its counter again, not the panels that do not show it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     render(
       <ThemeProvider>
@@ -145,7 +145,7 @@ describe('what a play update draws again', () => {
   })
 
   it('a change to the build draws the panels again', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     render(
       <ThemeProvider>

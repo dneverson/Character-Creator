@@ -102,7 +102,7 @@ describe('DataTable', () => {
   })
 
   it('filters rows by free-text search', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     await user.type(screen.getByLabelText('Search table'), 'bless')
     expect(visibleNames()).toEqual(['Bless'])
@@ -124,14 +124,14 @@ describe('DataTable', () => {
   }
 
   it('filters rows by a column facet', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     await filterColumn(user, 'School', ['Abjuration'])
     expect(visibleNames()).toEqual(['Counterspell', 'Aid'])
   })
 
   it('stacks column filters, each further narrowing the rows', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     // Every column is filterable by default, including Level (no filterValue).
     await filterColumn(user, 'School', ['Evocation'])
@@ -141,7 +141,7 @@ describe('DataTable', () => {
   })
 
   it('Clear filters appears only while a filter is active and resets every column', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     expect(
       screen.queryByRole('button', { name: 'Clear filters' }),
@@ -175,7 +175,7 @@ describe('DataTable', () => {
   })
 
   it('sorts by a sortable column and toggles direction', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     const nameHeader = screen.getByRole('button', { name: 'Name' })
     await user.click(nameHeader)
@@ -197,7 +197,7 @@ describe('DataTable', () => {
   })
 
   it('sorts a column that declares no sortValue by its displayed text', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     // School has no sortValue and was never marked sortable, yet it sorts.
     await user.click(screen.getByRole('button', { name: 'School' }))
@@ -211,7 +211,7 @@ describe('DataTable', () => {
   })
 
   it('keeps the detail pane absent until a row is focused', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     // No pane, and therefore no placeholder, before anything is focused.
     expect(screen.queryByText('Select a row to see its details.')).not.toBeInTheDocument()
@@ -223,7 +223,7 @@ describe('DataTable', () => {
   })
 
   it('closes the pane when the focused row is clicked again', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     await user.click(screen.getByText('Fireball'))
     expect(screen.getByText('Detail for Fireball')).toBeInTheDocument()
@@ -232,7 +232,7 @@ describe('DataTable', () => {
   })
 
   it('switches to a different row without closing', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     await user.click(screen.getByText('Fireball'))
     await user.click(screen.getByText('Bless'))
@@ -241,7 +241,7 @@ describe('DataTable', () => {
   })
 
   it('closes the pane via the close button', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     await user.click(screen.getByText('Fireball'))
     expect(screen.getByText('Detail for Fireball')).toBeInTheDocument()
@@ -250,7 +250,7 @@ describe('DataTable', () => {
   })
 
   it('closes the pane via the Escape key and returns focus to the row', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     await user.click(screen.getByText('Fireball'))
     expect(screen.getByText('Detail for Fireball')).toBeInTheDocument()
@@ -259,7 +259,7 @@ describe('DataTable', () => {
   })
 
   it('returns focus to the row when Escape is pressed inside the pane', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable({ renderDetail: (s) => <button>Act on {s.name}</button> })
     await user.click(screen.getByText('Fireball'))
     screen.getByRole('button', { name: 'Act on Fireball' }).focus()
@@ -269,7 +269,7 @@ describe('DataTable', () => {
   })
 
   it('single-select replaces the selection', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onSelectionChange = vi.fn()
     renderTable({ selectionMode: 'single', selectedIds: [], onSelectionChange })
     const radios = screen.getAllByRole('radio')
@@ -278,7 +278,7 @@ describe('DataTable', () => {
   })
 
   it('multi-select accumulates the selection', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     let selected: string[] = []
     const onSelectionChange = vi.fn((ids: string[]) => {
       selected = ids
@@ -311,7 +311,7 @@ describe('DataTable', () => {
   })
 
   it('toggles selection on row-body click when rowClick is "select"', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     let selected: string[] = []
     const onSelectionChange = vi.fn((ids: string[]) => {
       selected = ids
@@ -327,7 +327,7 @@ describe('DataTable', () => {
   })
 
   it('shift-clicking a row body selects the range from the last-clicked anchor', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     let selected: string[] = []
     const onSelectionChange = vi.fn((ids: string[]) => {
       selected = ids
@@ -365,7 +365,7 @@ describe('DataTable', () => {
   })
 
   it('header checkbox selects every visible selectable row, then clears it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     let selected: string[] = ['bless']
     const onSelectionChange = vi.fn((ids: string[]) => {
       selected = ids
@@ -422,7 +422,7 @@ describe('DataTable', () => {
   })
 
   it('renders no selection control in "none" mode but still drives detail on row click', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable({ selectionMode: 'none' })
     expect(screen.queryByRole('radio')).not.toBeInTheDocument()
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
@@ -470,7 +470,7 @@ describe('DataTable', () => {
   })
 
   it('lists standard rows first under any sort when asked', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const rows = [SPELLS[4], ...SPELLS.slice(0, 4)]
     renderTable({ rows, standardFirst: true })
     expect(visibleNames().at(-1)).toBe('Custom Bolt')
@@ -500,7 +500,7 @@ describe('DataTable', () => {
   }
 
   it('the Columns chooser hides a column and can restore it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     expect(hasHeader('School')).toBe(true)
 
@@ -514,7 +514,7 @@ describe('DataTable', () => {
   })
 
   it('the Columns chooser reorders a column', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     expect(headerTexts().map((t) => t.replace(/\s*\(.*/, ''))).toEqual([
       'Name',
@@ -534,7 +534,7 @@ describe('DataTable', () => {
   })
 
   it('a column that starts hidden is offered in the chooser and hidden again by Reset', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable({
       columns: [
         ...columns,
@@ -554,7 +554,7 @@ describe('DataTable', () => {
   })
 
   it('Reset restores the declared columns and order', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
 
     await user.click(screen.getByRole('button', { name: 'Columns' }))
@@ -585,7 +585,7 @@ describe('DataTable', () => {
   })
 
   it('gives the table its asked-for share of the width beside the detail pane', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { unmount } = renderTable()
     await user.click(screen.getByText('Fireball'))
     expect(screen.getByRole('separator', { name: 'Resize panes' })).toHaveAttribute(
@@ -603,7 +603,7 @@ describe('DataTable', () => {
   })
 
   it('hands a clicked row to the detail target and keeps no pane of its own', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const show = vi.fn()
     const { rerender } = renderTable({ detailTarget: { openId: null, show } })
     await user.click(screen.getByText('Fireball'))

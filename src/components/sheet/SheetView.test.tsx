@@ -194,7 +194,7 @@ describe('SheetView', () => {
   })
 
   it('holds the attacks in the Actions tab and the items in the Inventory tab', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const attacks = await screen.findByRole('table', { name: 'Attacks' })
@@ -211,7 +211,7 @@ describe('SheetView', () => {
   })
 
   it('moves the left column into the Core and Skills tabs on a phone', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setPhone()
     seed()
     renderSheet()
@@ -228,7 +228,7 @@ describe('SheetView', () => {
   })
 
   it('switches to the editor, keeps Level up off and goes back to the list', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     expect(screen.getByRole('button', { name: 'Sheet' })).toHaveAttribute(
@@ -248,7 +248,7 @@ describe('SheetView', () => {
   })
 
   it('shows the same switch in the editor, which goes back to the sheet', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     useCharacterStore.setState({ view: 'editor' })
     render(
@@ -267,7 +267,7 @@ describe('SheetView', () => {
   })
 
   it('wears the app look by default and switches to parchment, remembering it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     const { container, unmount } = renderSheet()
     const root = () => container.querySelector('.sheet-root') as HTMLElement
@@ -313,7 +313,7 @@ describe('SheetView', () => {
   })
 
   it('forgets the remembered look when the app look is chosen again', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     localStorage.setItem('cc-sheet-template', 'parchment')
     seed()
     renderSheet()
@@ -333,7 +333,7 @@ describe('SheetView', () => {
 
 describe('SheetView speed, senses and rules', () => {
   it('shows the speed and darkvision of the species, each with how it adds up', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     vi.mocked(loadRaces).mockResolvedValue([
@@ -364,7 +364,7 @@ describe('SheetView speed, senses and rules', () => {
   })
 
   it('names the other speeds under the speed, each with a table of its own', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     vi.mocked(loadRaces).mockResolvedValue([
@@ -446,7 +446,7 @@ describe('SheetView speed, senses and rules', () => {
   })
 
   it('shows what exhaustion does to the speed, as a line naming it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     const c = seed()
     c.play = { ...c.play, exhaustion: 2 }
@@ -475,7 +475,7 @@ describe('SheetView speed, senses and rules', () => {
 
 describe('SheetView breakdowns', () => {
   it('opens how armor class adds up over the sheet on a narrow screen, and Back closes it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const box = await screen.findByRole('group', { name: 'Armor class' })
@@ -495,7 +495,7 @@ describe('SheetView breakdowns', () => {
   })
 
   it('opens it in the pane beside the table on a wide screen and closes it three ways', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -520,7 +520,7 @@ describe('SheetView breakdowns', () => {
   })
 
   it('opens how an ability score, a saving throw and a skill add up', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -539,7 +539,7 @@ describe('SheetView breakdowns', () => {
   })
 
   it('moves the open breakdown from one number to the next', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -557,7 +557,7 @@ describe('SheetView breakdowns', () => {
   })
 
   it('opens the proficiency bonus, hit points and a passive score', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -579,7 +579,7 @@ describe('SheetView breakdowns', () => {
   })
 
   it('opens an attack bonus and its damage, with the two-handed damage under it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -605,7 +605,7 @@ describe('SheetView breakdowns', () => {
   })
 
   it('draws the pane as a book entry when the detail style is Book', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     localStorage.setItem('cc-detail-style', 'book')
     setWide()
     seed()
@@ -619,7 +619,7 @@ describe('SheetView breakdowns', () => {
   })
 
   it('names every info button and shows its words as a tooltip', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const open = await screen.findByRole('button', { name: 'How Initiative adds up' })
@@ -629,7 +629,7 @@ describe('SheetView breakdowns', () => {
   })
 
   it('opens the Share window for the open character from the header', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     renderSheet()
     await user.click(await screen.findByRole('button', { name: 'Share' }))

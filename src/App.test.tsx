@@ -46,7 +46,7 @@ beforeEach(() => {
 
 describe('App flow', () => {
   it('creates a character and opens the single-scroll editor', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderApp()
 
     expect(screen.getByRole('heading', { name: 'My Characters' })).toBeInTheDocument()
@@ -58,7 +58,7 @@ describe('App flow', () => {
   })
 
   it('toggles a book and reflects it in the active character', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderApp()
     await user.click(screen.getByRole('button', { name: /New Character/i }))
 
@@ -76,7 +76,7 @@ describe('App flow', () => {
   })
 
   it('shows the sheet of the open character and switches back to the editor', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderApp()
     await user.click(screen.getByRole('button', { name: /New Character/i }))
     await user.click(screen.getByRole('button', { name: 'Sheet' }))
@@ -88,7 +88,7 @@ describe('App flow', () => {
   })
 
   it('offers a way back to the list when the editor fails to render', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     // React reports the caught render error to the console; that report is expected here.
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     editor.fail = true

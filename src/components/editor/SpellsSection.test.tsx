@@ -290,7 +290,7 @@ describe('SpellsSection', () => {
   })
 
   it('lists a caster and lets you add a cantrip and a spell from the tables', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([cleric])
     mockSpells.mockResolvedValue([sacredFlame, bless])
     const c = seedActive((ch) => {
@@ -322,7 +322,7 @@ describe('SpellsSection', () => {
   })
 
   it('greys off-list and over-level spells with the reason until the switch allows them', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([cleric])
     mockSpells.mockResolvedValue([detectMagic, magicMissile, wish])
     const c = seedActive((ch) => {
@@ -368,7 +368,7 @@ describe('SpellsSection', () => {
   })
 
   it('searches the table', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([cleric])
     mockSpells.mockResolvedValue([sacredFlame])
     seedActive((ch) => {
@@ -406,7 +406,7 @@ describe('SpellsSection', () => {
   })
 
   it('lets an Eldritch Knight choose from its subclass list, with its own slots', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const knight: LoadedClass = {
       entry: {
         name: 'Fighter',
@@ -484,7 +484,7 @@ describe('SpellsSection', () => {
   })
 
   it('flags a cantrip overflow, removes a picked cantrip, and reads a lone slot singular', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     // A level-7 wizard has a single level-4 slot -> singular "slot".
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Wizard', source: 'PHB', level: 7 }]
@@ -514,7 +514,7 @@ describe('SpellsSection', () => {
   })
 
   it('shuts a full table by itself, opens the next, and greys what no longer fits', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([trickster])
     mockSpells.mockResolvedValue([trickCantrip, mageHand2, light])
     const c = seedActive((ch) => {
@@ -561,7 +561,7 @@ describe('SpellsSection', () => {
   })
 
   it('keeps and shows spells saved for a class that no longer casts', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Wizard', source: 'PHB', level: 3 }]
       ch.spells = {
@@ -581,7 +581,7 @@ describe('SpellsSection', () => {
   })
 
   it('says when a chosen spell is from a book that is not selected, and removes it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockSpells.mockResolvedValue([fireBolt, offBookCantrip])
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Wizard', source: 'PHB', level: 3 }]
@@ -602,7 +602,7 @@ describe('SpellsSection', () => {
   })
 
   it('caps a 2024 caster by its prepared table and marks the other edition', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([wizard2024])
     mockSpells.mockResolvedValue([shield2024, shield2014])
     seedActive((ch) => {
@@ -648,7 +648,7 @@ describe('Wizard tiers', () => {
   })
 
   it('adds cantrips, fills a spellbook, and prepares from the book', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Wizard', source: 'PHB', level: 3 }]
     })
@@ -683,7 +683,7 @@ describe('Wizard tiers', () => {
   })
 
   it('copies an off-list spell into the spellbook when non-standard choices are allowed', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockSpells.mockResolvedValue([magicMissile, cureWounds])
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Wizard', source: 'PHB', level: 3 }]
@@ -711,7 +711,7 @@ describe('Wizard tiers', () => {
   })
 
   it('flags over-preparing and unprepares a spell removed from the book', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockSpells.mockResolvedValue([fireBolt, magicMissile, detectMagic])
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Wizard', source: 'PHB', level: 1 }]
@@ -750,7 +750,7 @@ describe('Wizard tiers', () => {
   })
 
   it('treats a pre-spellbook wizard prepared spells as its starting book', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockSpells.mockResolvedValue([magicMissile])
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Wizard', source: 'PHB', level: 3 }]
@@ -844,7 +844,7 @@ function withFeat(c: Character, name: string) {
 
 describe('Granted spells', () => {
   it('shows what the subclass always prepares in the tier, costing no pick', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([domainCleric])
     mockSpells.mockResolvedValue([sacredFlame, bless, cureWounds])
     const c = seedActive((ch) => {
@@ -882,7 +882,7 @@ describe('Granted spells', () => {
   })
 
   it('lists the spells of a species and makes its choices, with no class at all', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockSpells.mockResolvedValue([thaumaturgy, poisonSpray, mistyStep])
     mockRaces.mockResolvedValue([
       raceOf('Tiefling', [
@@ -930,7 +930,7 @@ describe('Granted spells', () => {
   })
 
   it('lets a feat choose its cantrips from the table, held to the list it names', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockFeats.mockResolvedValue([
       feat('Magic Initiate', [
         {
@@ -970,7 +970,7 @@ describe('Granted spells', () => {
   })
 
   it('applies a fixed feat spell and a species cantrip choice', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockFeats.mockResolvedValue([
       feat('Fey Touched', [
         {
@@ -1032,7 +1032,7 @@ describe('Granted spells', () => {
   })
 
   it('reads the 2024 printing of a Circle spell as a printing a 2014 Druid has', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([starsDruid])
     mockSpells.mockResolvedValue([guidingBolt2014, guidingBolt2024])
     seedActive((ch) => {
@@ -1055,7 +1055,7 @@ describe('Granted spells', () => {
   })
 
   it('does not count a Circle spell before its level, in the table or for its twin', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([starsDruid])
     mockSpells.mockResolvedValue([guidingBolt2014, guidingBolt2024])
     seedActive((ch) => {
@@ -1073,7 +1073,7 @@ describe('Granted spells', () => {
   })
 
   it('reads an optional-list spell as the 2014 printing for a 2024 Druid', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([druid2024])
     mockSpells.mockResolvedValue([
       makeSpell({
@@ -1155,7 +1155,7 @@ const guidingBolt2024 = makeSpell({
 
 describe('Your spells', () => {
   it('lists every spell once with every source, and removes only what was picked', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([domainCleric])
     mockSpells.mockResolvedValue([sacredFlame, bless, cureWounds, thaumaturgy])
     mockRaces.mockResolvedValue([
@@ -1200,7 +1200,7 @@ describe('Your spells', () => {
   })
 
   it('removes a spell a feat let the player choose', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockFeats.mockResolvedValue([
       feat('Magic Initiate', [
         { ability: 'wis', known: { _: [{ choose: 'level=0|class=Cleric', count: 1 }] } },
@@ -1227,7 +1227,7 @@ describe('Your spells', () => {
   })
 
   it('shows choices kept for a source the character no longer has, and removes them', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockSpells.mockResolvedValue([guidance])
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Wizard', source: 'PHB', level: 1 }]

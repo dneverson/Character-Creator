@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { CloudOfflineError, parseRows, toRecord } from './backend'
+import { historyEntry } from '../character/model'
+import {
+  CloudOfflineError,
+  parseEvents,
+  parseRows,
+  toEventRecord,
+  toRecord,
+} from './backend'
 
 const when = '2026-11-20T10:00:00.000Z'
 
@@ -47,6 +54,39 @@ describe('toRecord', () => {
       toRecord({ id: 'a', data: {}, updatedAt: 0, deletedAt: Date.parse(when) })
         .deleted_at,
     ).toBe(when)
+  })
+})
+
+describe('parseEvents', () => {
+  const entry = historyEntry(5, { type: 'created' })
+
+  it('reads the entry and the time the server recorded it', () => {
+    expect(parseEvents([{ event_id: entry.id, recorded_at: when, entry }])).toEqual([
+      { eventId: entry.id, recordedAt: Date.parse(when), entry },
+    ])
+  })
+
+  it('leaves out what is not shaped as the app writes it', () => {
+    expect(
+      parseEvents([
+        null,
+        { event_id: 1, recorded_at: when, entry },
+        { event_id: 'a', recorded_at: 'never', entry },
+        { event_id: 'b', recorded_at: when, entry: { id: 'b' } },
+      ]),
+    ).toEqual([])
+    expect(parseEvents('nothing')).toEqual([])
+  })
+})
+
+describe('toEventRecord', () => {
+  it('names only what the ledger lets a device set: never the time or the user', () => {
+    const entry = historyEntry(5)
+    expect(toEventRecord('c1', entry)).toEqual({
+      character_id: 'c1',
+      event_id: entry.id,
+      entry,
+    })
   })
 })
 

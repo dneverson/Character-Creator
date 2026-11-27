@@ -81,7 +81,7 @@ describe('GrantVariantChooser', () => {
   })
 
   it('compares sets side by side and takes one from its row', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const editChoice = vi.fn()
     render(<GrantVariantChooser set={SET} byName={byName} editChoice={editChoice} />)
     for (const box of screen.getAllByRole('checkbox').slice(-2)) await user.click(box)
@@ -105,7 +105,7 @@ describe('GrantVariantChooser', () => {
   })
 
   it('shrinks to the taken set and lets it be changed', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const editChoice = vi.fn()
     render(
       <GrantVariantChooser

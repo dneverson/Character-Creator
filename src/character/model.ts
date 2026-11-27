@@ -1048,7 +1048,7 @@ function normalizePlay(raw: Partial<PlayState> | undefined): PlayState {
   }
 }
 
-function isHistoryEntry(value: unknown): value is HistoryEntry {
+export function isHistoryEntry(value: unknown): value is HistoryEntry {
   return (
     typeof value === 'object' &&
     value !== null &&

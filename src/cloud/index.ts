@@ -10,6 +10,7 @@ import { cloudCharacterStorage } from './cloudStorage'
 import { applyRemoteChange } from './remote'
 import { sessionKey, signInRedirect, takeAuthCode } from './redirect'
 import { deviceRemovalStore } from './removals'
+import { deviceSentEventsStore } from './sentEvents'
 import { createSyncEngine } from './sync'
 
 const sync = createSyncEngine({
@@ -19,6 +20,11 @@ const sync = createSyncEngine({
     appConfig.storageKeys.cloudRemovals,
     appConfig.storageKeys.cloudLastUser,
   ),
+  sentEvents: deviceSentEventsStore(
+    deviceSettings,
+    appConfig.storageKeys.cloudSentEvents,
+  ),
+  eventsPerRequest: appConfig.cloud.eventsPerRequest,
   onRemote: applyRemoteChange,
   debounceMs: appConfig.cloud.syncDebounceMs,
   retryMs: appConfig.cloud.retryMs,

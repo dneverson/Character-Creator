@@ -111,7 +111,7 @@ function renderSheet() {
 
 describe('the purse in play', () => {
   it('adds coins, spends them with change, and records both', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(10)
     renderSheet()
     const panel = await openInventory(user)
@@ -134,7 +134,7 @@ describe('the purse in play', () => {
   })
 
   it('flags a spend the purse cannot meet and still empties the purse', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(3)
     renderSheet()
     const panel = await openInventory(user)
@@ -148,7 +148,7 @@ describe('the purse in play', () => {
   })
 
   it('changes coins of one kind for another', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(0)
     useCharacterStore.getState().updateActive({
       equipment: {
@@ -167,7 +167,7 @@ describe('the purse in play', () => {
   })
 
   it('records a count typed into the purse as a play change', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(1)
     renderSheet()
     const panel = await openInventory(user)
@@ -181,7 +181,7 @@ describe('the purse in play', () => {
 
 describe('items in play', () => {
   it('adds an item for nothing, and buys one with the purse', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(5)
     renderSheet()
     const panel = await openInventory(user)
@@ -207,7 +207,7 @@ describe('items in play', () => {
   })
 
   it('flags a purchase the purse is short for, and takes what it has', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(0)
     renderSheet()
     const panel = await openInventory(user)
@@ -221,7 +221,7 @@ describe('items in play', () => {
   })
 
   it('sells part of a stack at half price', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(0)
     renderSheet()
     const panel = await openInventory(user)
@@ -241,7 +241,7 @@ describe('items in play', () => {
   })
 
   it('drops a whole stack for nothing', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(0)
     renderSheet()
     const panel = await openInventory(user)
@@ -260,7 +260,7 @@ describe('items in play', () => {
   })
 
   it('steps a quantity up and down in place, and drops the stack at none', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(0)
     renderSheet()
     const panel = await openInventory(user)
@@ -282,7 +282,7 @@ describe('items in play', () => {
   })
 
   it('records wearing as play, which leaves the level up undo alone', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(0)
     renderSheet()
     const panel = await openInventory(user)

@@ -56,6 +56,15 @@ describe('the legal pages', () => {
     )
   })
 
+  it('says the server keeps a log of changes that only deleting can remove, for Dungeon Masters', () => {
+    render(<LegalPage page="privacy" />)
+    expect(
+      screen.getByText(/A server record of each character's changes/),
+    ).toHaveTextContent(
+      /cannot be edited or removed, except by deleting the character or your account.*Dungeon Master can trust/,
+    )
+  })
+
   it('states the truth about trackers, the host, the children rule and the contact', () => {
     render(<LegalPage page="privacy" />)
     expect(screen.getAllByText(/no analytics, no advertising/)).toHaveLength(2)

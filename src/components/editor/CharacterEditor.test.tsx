@@ -90,7 +90,7 @@ describe('CharacterEditor', () => {
   })
 
   it('renames, exports JSON, and returns to the list', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderEditor()
 
@@ -107,7 +107,7 @@ describe('CharacterEditor', () => {
   })
 
   it('does not write the store while the name is typed, only when it is committed', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderEditor()
 
@@ -119,7 +119,7 @@ describe('CharacterEditor', () => {
   })
 
   it('exports a PDF and surfaces export errors', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive()
     renderEditor()
 
@@ -133,7 +133,7 @@ describe('CharacterEditor', () => {
   })
 
   it('collapses and expands every section from the toolbar', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive()
     renderEditor()
 
@@ -174,7 +174,7 @@ describe('CharacterEditor', () => {
   })
 
   it('shows a generic message when a non-Error is thrown', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive()
     mockPdf.mockRejectedValueOnce('boom')
     renderEditor()
@@ -191,7 +191,7 @@ describe('CharacterEditor', () => {
     }
 
     it('lists the open choices, and finishes anyway without them being made', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       const c = seedActive('New Character')
       renderEditor()
 
@@ -217,7 +217,7 @@ describe('CharacterEditor', () => {
     })
 
     it('opens the section a link points to and scrolls it under the navbar', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       seedActive()
       const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => {})
       renderEditor()
@@ -268,7 +268,7 @@ describe('CharacterEditor', () => {
     })
 
     it('takes the name link to the name field', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       seedActive('New Character')
       vi.spyOn(window, 'scrollBy').mockImplementation(() => {})
       renderEditor()

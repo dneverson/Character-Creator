@@ -75,7 +75,7 @@ describe('BookSelection', () => {
   }
 
   it('toggles selection via the row checkbox and filters by query', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive(['PHB'])
     renderSection()
 
@@ -95,7 +95,7 @@ describe('BookSelection', () => {
   })
 
   it('a row-body click focuses without changing selection', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive([])
     renderSection()
 
@@ -105,7 +105,7 @@ describe('BookSelection', () => {
   })
 
   it('selects all and clears all', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive(['PHB'])
     renderSection()
     await screen.findByText("Player's Handbook")
@@ -178,7 +178,7 @@ describe('BookSelection detail pane', () => {
   })
 
   it('enlarges the cover from the grid thumbnail in a lightbox', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive([])
     renderSection()
 
@@ -194,7 +194,7 @@ describe('BookSelection detail pane', () => {
   })
 
   it('renders full book details when a book is focused', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive([])
     renderSection()
 
@@ -217,7 +217,7 @@ describe('BookSelection detail pane', () => {
   })
 
   it('collapses chapters by default and expands them on click, showing page numbers', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive([])
     renderSection()
 
@@ -237,7 +237,7 @@ describe('BookSelection detail pane', () => {
   })
 
   it('jumps from the book and from each contents line into the reader', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const sections = [
       { type: 'section', name: 'Introduction', page: 4, entries: ['Hello.'] },
       {
@@ -284,7 +284,7 @@ describe('BookSelection detail pane', () => {
   })
 
   it('shows the contents at once and fills in the page numbers when they are ready', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive([])
     let finish: (contents: NonNullable<Book['contents']>) => void = () => undefined
     mockContents.mockReturnValue(
@@ -306,7 +306,7 @@ describe('BookSelection detail pane', () => {
   })
 
   it('keeps the contents without page numbers when they cannot be worked out', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive([])
     mockContents.mockRejectedValue(new Error('offline'))
     renderSection()
@@ -316,7 +316,7 @@ describe('BookSelection detail pane', () => {
   })
 
   it('searches contents by title, auto-expanding and filtering to matches', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive([])
     renderSection()
 
@@ -333,7 +333,7 @@ describe('BookSelection detail pane', () => {
   })
 
   it('enlarges the cover in a lightbox on click', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive([])
     renderSection()
 
@@ -353,7 +353,7 @@ describe('BookSelection detail pane', () => {
   })
 
   it('falls back for unknown group codes and non-ISO dates', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive([])
     renderSection()
 

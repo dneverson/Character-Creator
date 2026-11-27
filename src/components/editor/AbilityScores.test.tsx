@@ -72,7 +72,7 @@ describe('AbilityScores', () => {
   })
 
   it('assigns a pooled score from the dropdown, clears it, and edits the other bonus', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.statMethod = 'array'
       ch.statPool = [15, 14, 13, 12, 10, 8]
@@ -97,7 +97,7 @@ describe('AbilityScores', () => {
   })
 
   it('assigns all six scores in any order', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.statMethod = 'array'
       ch.statPool = [15, 14, 13, 12, 10, 8]
@@ -126,7 +126,7 @@ describe('AbilityScores', () => {
   })
 
   it('offers each score once: a score held by another ability is not listed', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive((ch) => {
       ch.statMethod = 'array'
       ch.statPool = [15, 14, 13, 12, 10, 8]
@@ -148,7 +148,7 @@ describe('AbilityScores', () => {
   })
 
   it('lists duplicate scores of a rolled pool as many times as they were rolled', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.statMethod = 'roll'
       ch.statPool = [14, 14, 10, 9, 8, 7]
@@ -168,7 +168,7 @@ describe('AbilityScores', () => {
   })
 
   it('keeps an assigned score after the section is shown again', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive((ch) => {
       ch.statMethod = 'array'
       ch.statPool = [15, 14, 13, 12, 10, 8]
@@ -181,7 +181,7 @@ describe('AbilityScores', () => {
   })
 
   it('sets point-buy scores from the scale within budget and bounds', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.statMethod = 'pointbuy'
       for (const k of Object.keys(ch.abilities) as (keyof typeof ch.abilities)[]) {
@@ -229,7 +229,7 @@ describe('AbilityScores', () => {
   })
 
   it('sets a score from an unset point-buy base', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     // Point-buy with the default null bases: the floor shows as current.
     const c = seedActive((ch) => {
       ch.statMethod = 'pointbuy'
@@ -242,7 +242,7 @@ describe('AbilityScores', () => {
   })
 
   it('resets all scores to the point-buy floor', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.statMethod = 'pointbuy'
       ch.abilities.str = { base: 15, other: 3 }
@@ -282,7 +282,7 @@ describe('AbilityScores', () => {
   })
 
   it('clears pooled scores to empty on reset', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.statMethod = 'array'
       ch.statPool = [15, 14, 13, 12, 10, 8]

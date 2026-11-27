@@ -58,7 +58,7 @@ describe('BrowseTable', () => {
   })
 
   it('compares the ticked rows, and clears the ticks', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable({ tagsOf: (p) => [p.year] })
     const compare = screen.getByRole('button', { name: 'Compare' })
     expect(compare).toBeDisabled()
@@ -82,7 +82,7 @@ describe('BrowseTable', () => {
   })
 
   it('shows a clicked row in full, with its tags and anything further', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable({
       tagsOf: (p) => [p.year],
       detailFooter: (p) => <p>More about {p.name}</p>,
@@ -96,7 +96,7 @@ describe('BrowseTable', () => {
   })
 
   it('leads each row with its action, which does not open the row', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const adopt = vi.fn()
     renderTable({
       action: {
@@ -119,7 +119,7 @@ describe('BrowseTable', () => {
   })
 
   it('repeats the action in the detail pane, saying more where there is room', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const release = vi.fn()
     renderTable({
       action: {
@@ -142,7 +142,7 @@ describe('BrowseTable', () => {
   })
 
   it('shows a row action as a plus (add) or a minus (remove) icon, and the pane keeps its words', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable({
       action: {
         header: 'Keep',
@@ -177,7 +177,7 @@ describe('BrowseTable', () => {
   })
 
   it('uses the short label in the detail pane when there is no longer one', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable({ action: { header: 'Adopt', of: () => ({ label: 'Adopt', run() {} }) } })
     await user.click(screen.getByText('Cat'))
     expect(within(detailPane()).getByRole('button', { name: 'Adopt' })).toHaveClass(
@@ -238,7 +238,7 @@ describe('BrowseTable', () => {
     })
 
     it('offers the Rules column hidden, right after the name once chosen', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderTable({ rowMeta })
       expect(headerTexts().some((text) => text.includes('Rules'))).toBe(false)
       await user.click(screen.getByRole('button', { name: 'Columns' }))
@@ -261,7 +261,7 @@ describe('BrowseTable', () => {
     })
 
     it('holds the action of a non-standard row until the switch is on, in the table and the pane', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderTable({ rowMeta, action })
       const toggle = screen.getByLabelText(SWITCH)
       expect(toggle).not.toBeChecked()
@@ -300,7 +300,7 @@ describe('BrowseTable', () => {
       beforeEach(() => localStorage.removeItem(KEY))
 
       it('lists them by default, and hides them with their count when switched off', async () => {
-        const user = userEvent.setup()
+        const user = userEvent.setup({ delay: null })
         renderTable({ rowMeta, action })
         const toggle = screen.getByLabelText(SHOW)
         expect(toggle).toBeChecked()
@@ -319,7 +319,7 @@ describe('BrowseTable', () => {
       })
 
       it('remembers the choice for the table on this device', async () => {
-        const user = userEvent.setup()
+        const user = userEvent.setup({ delay: null })
         const { unmount } = renderTable({ rowMeta, action })
         await user.click(screen.getByLabelText(SHOW))
         unmount()
@@ -330,7 +330,7 @@ describe('BrowseTable', () => {
       })
 
       it('never hides a row that can be taken away', async () => {
-        const user = userEvent.setup()
+        const user = userEvent.setup({ delay: null })
         renderTable({
           rowMeta,
           action: {
@@ -350,7 +350,7 @@ describe('BrowseTable', () => {
     })
 
     it('can be controlled by the section, which owns the switch', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       const onChange = vi.fn()
       renderTable({
         rowMeta,
@@ -365,7 +365,7 @@ describe('BrowseTable', () => {
     })
 
     it('names the reason in the compare window too', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderTable({ rowMeta })
       await user.click(within(rowOf('Cat')).getByRole('checkbox'))
       await user.click(within(rowOf('Wolf')).getByRole('checkbox'))
@@ -376,7 +376,7 @@ describe('BrowseTable', () => {
     })
 
     it('says so when a non-standard row has no reason', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderTable({ rowMeta: (p) => ({ standard: !p.wild }) })
       await user.click(screen.getByText('Wolf'))
       expect(within(detailPane()).getByText('Not a standard choice')).toBeInTheDocument()
@@ -384,7 +384,7 @@ describe('BrowseTable', () => {
   })
 
   it('takes Compare and Clear selection into full screen with the table', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable()
     await user.click(screen.getAllByRole('checkbox', { name: 'Select row' })[0])
     await user.click(screen.getByRole('button', { name: 'Full screen' }))
@@ -399,7 +399,7 @@ describe('BrowseTable', () => {
   })
 
   it('puts further controls beside Compare, given the ticked rows', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderTable({
       toolbar: (selected) => (
         <span>Ticked: {selected.map((p) => p.name).join(', ') || 'none'}</span>
@@ -413,7 +413,7 @@ describe('BrowseTable', () => {
   })
 
   it('gives the table its asked-for share of the width beside the detail pane', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { unmount } = renderTable()
     await user.click(screen.getByText('Dog'))
     const split = () => screen.getByRole('separator', { name: 'Resize panes' })
@@ -430,7 +430,7 @@ describe('BrowseTable', () => {
       p.wild ? { standard: false, reason: 'Not a pet' } : { standard: true }
 
     it('drops the search box and the column chooser, and keeps the rest', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       renderTable({ compact: true, tagsOf: (p) => [p.year] })
       expect(screen.queryByPlaceholderText('Search pets…')).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /Columns/ })).not.toBeInTheDocument()

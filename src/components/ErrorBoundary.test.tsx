@@ -56,7 +56,7 @@ describe('ErrorBoundary', () => {
   })
 
   it('shows the content again after "Try again" once the cause is gone', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     failure = new Error('boom')
     render(
       <ErrorBoundary title="Spells">
@@ -70,7 +70,7 @@ describe('ErrorBoundary', () => {
   })
 
   it('keeps the notice when the failure repeats on "Try again"', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     failure = new Error('boom')
     render(
       <ErrorBoundary title="Spells">

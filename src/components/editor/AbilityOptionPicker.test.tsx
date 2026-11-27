@@ -65,7 +65,7 @@ describe('AbilityOptionPicker', () => {
   })
 
   it('offers each way to take the increases when there are several', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { onOption } = renderPicker({ options: [dwarf, spread], optionIndex: 1 })
     const ways = within(
       screen.getByRole('radiogroup', { name: 'How to take the increases' }),
@@ -105,7 +105,7 @@ describe('AbilityOptionPicker', () => {
   })
 
   it('places an increase on the ability clicked, and takes a placed one back off', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { onChoices, unmount } = renderPicker({ options: [oneOfTwo] })
     expect(screen.getByText('0 of 1 chosen')).toBeInTheDocument()
     await user.click(button('+2', 'Strength'))
@@ -118,7 +118,7 @@ describe('AbilityOptionPicker', () => {
   })
 
   it('moves a single increase to another ability', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { onChoices } = renderPicker({ options: [oneOfTwo], choices: { str: 2 } })
     const dex = button('+2', 'Dexterity')
     expect(dex).toBeEnabled()
@@ -127,7 +127,7 @@ describe('AbilityOptionPicker', () => {
   })
 
   it('holds the rest back once every one of several increases is placed', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { onChoices } = renderPicker({
       options: [halfElf],
       choices: { str: 1, con: 1 },
@@ -149,7 +149,7 @@ describe('AbilityOptionPicker', () => {
   })
 
   it('ignores placed increases the option does not allow', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     // Charisma is not offered, +3 is not an amount it gives, and Strength's +2 is
     // a second +2 where the option gives one.
     const { onChoices } = renderPicker({

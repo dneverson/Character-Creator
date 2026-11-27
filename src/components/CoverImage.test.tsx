@@ -13,7 +13,7 @@ function preloader(container: HTMLElement): HTMLImageElement {
 
 describe('CoverImage', () => {
   it('opens a lightbox on click and closes it again', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { container } = render(<CoverImage sources={SOURCES} alt={ALT} />)
     fireEvent.load(preloader(container))
 
@@ -76,7 +76,7 @@ describe('CoverImage', () => {
   })
 
   it('keeps the thumbnail when the full image cannot be had', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { container } = render(
       <CoverImage
         sources={SOURCES}
@@ -142,7 +142,7 @@ describe('CoverImage, compact', () => {
   })
 
   it('fetches the full image when enlarged, with a spinner until it arrives', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <CoverImage
         compact

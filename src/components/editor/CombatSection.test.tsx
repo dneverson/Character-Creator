@@ -103,7 +103,7 @@ describe('CombatSection', () => {
   })
 
   it('edits the manual armor class bonus', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     renderSection()
     const input = await screen.findByLabelText('Other AC bonus')
@@ -116,7 +116,7 @@ describe('CombatSection', () => {
   })
 
   it('lists an equipped weapon and opens how its numbers add up', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed((c) => {
       c.equipment.items = [stack('Longsword')]
     })
@@ -146,7 +146,7 @@ describe('CombatSection', () => {
   })
 
   it('shows an unarmed strike as one total and lists each line behind it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSection()
     await screen.findByRole('table', { name: 'Attacks' })
@@ -161,7 +161,7 @@ describe('CombatSection', () => {
   })
 
   it('shows spell numbers for a caster and none for a fighter', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const wizard = {
       entry: {
         name: 'Wizard',
@@ -202,7 +202,7 @@ describe('CombatSection', () => {
   })
 
   it('edits the manual initiative bonus and opens how a passive score adds up', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     renderSection()
     const input = await screen.findByLabelText('Other initiative bonus')
@@ -222,7 +222,7 @@ describe('CombatSection', () => {
   })
 
   it('picks a fighting style here and applies its rule', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const fighter = {
       ...FIGHTER,
       entry: {

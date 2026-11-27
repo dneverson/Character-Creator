@@ -30,7 +30,7 @@ describe('ContentNotice', () => {
   })
 
   it('says the source could not be reached and tries again when asked', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     useContentStatus.setState({ unreachable: true })
     render(<ContentNotice />)
 
@@ -41,7 +41,7 @@ describe('ContentNotice', () => {
   })
 
   it('survives a retry that fails outright', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     fakeLibrary.retry.mockRejectedValueOnce(new Error('storage failed'))
     useContentStatus.setState({ unreachable: true })
     render(<ContentNotice />)
@@ -51,7 +51,7 @@ describe('ContentNotice', () => {
   })
 
   it('can be put away until the source next fails', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     useContentStatus.setState({ unreachable: true })
     const { container } = render(<ContentNotice />)
 

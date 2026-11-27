@@ -141,7 +141,7 @@ describe('BackgroundStory', () => {
   })
 
   it('edits the alignment and a narrative field', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -155,7 +155,7 @@ describe('BackgroundStory', () => {
   })
 
   it('picks trait rows into the field, then folds the table', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive(watch)
     renderSection()
 
@@ -177,7 +177,7 @@ describe('BackgroundStory', () => {
   })
 
   it('grows a field to fit its text', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive(watch)
     renderSection()
 
@@ -192,11 +192,13 @@ describe('BackgroundStory', () => {
   })
 
   it('records each roll and reroll on a table, and writes a shared field’s line with its title', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive(watch)
     renderSection()
 
     await screen.findByText('Beat')
+    // The roll record names the background the section loaded after it first drew.
+    await settle()
     dice(2)
     await user.click(within(chooser('Beat')).getByRole('button', { name: 'Roll d2' }))
     expect(story(c.id).backstory).toBe('Beat: Market')
@@ -219,7 +221,7 @@ describe('BackgroundStory', () => {
   })
 
   it('keeps the player’s own text beside a row picked after Change', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive(watch)
     renderSection()
 
@@ -235,7 +237,7 @@ describe('BackgroundStory', () => {
   })
 
   it('rolls every table still unset at once, one roll recorded for each', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive(watch)
     renderSection()
 

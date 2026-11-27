@@ -4,7 +4,11 @@
 // implementation (supabaseBackend.ts) is loaded only when someone signs in or already
 // has a session, so a visitor with no account never downloads or runs any of it.
 
-import type { StoredCharacter } from '../character/model'
+import {
+  isHistoryEntry,
+  type HistoryEntry,
+  type StoredCharacter,
+} from '../character/model'
 
 /** Who is signed in. The email is shown on the account page and goes nowhere else. */
 export interface CloudSession {
@@ -24,6 +28,17 @@ export interface RemoteRow {
   deletedAt: number | null
 }
 
+/**
+ * One history entry as the server's ledger holds it: the entry exactly as a device sent
+ * it, and when the server received it (the device cannot set that).
+ */
+export interface RecordedEvent {
+  eventId: string
+  /** When the server received the entry, in milliseconds since the epoch. */
+  recordedAt: number
+  entry: HistoryEntry
+}
+
 export interface CloudBackend {
   /** The session this browser holds, if any. */
   getSession(): Promise<CloudSession | null>
@@ -40,6 +55,14 @@ export interface CloudBackend {
   deleteAccount(): Promise<void>
   fetchRows(): Promise<RemoteRow[]>
   upsertRows(rows: RemoteRow[]): Promise<void>
+  /**
+   * Add history entries of a character to the server's ledger. An entry the ledger
+   * already holds is left as it is, so sending again is harmless. The character's row
+   * must already be in the cloud. The caller keeps each call to a request's worth.
+   */
+  recordEvents(characterId: string, entries: HistoryEntry[]): Promise<void>
+  /** The ledger of a character, oldest first. Nothing in the app shows it yet. */
+  readRecordedEvents(characterId: string): Promise<RecordedEvent[]>
   /** Share a character read-only by link; returns the token of the new link. */
   createShare(characterId: string): Promise<string>
   /** Stop sharing a character: its link stops working at once. */
@@ -111,6 +134,22 @@ export function parseShared(answer: unknown): StoredCharacter | null {
 /** The token an answer from the cloud holds, if it holds one. */
 export function parseToken(answer: unknown): string | null {
   return isObject(answer) && typeof answer.token === 'string' ? answer.token : null
+}
+
+/** The events an answer from the cloud holds; one not shaped as the app wrote it is left out. */
+export function parseEvents(answer: unknown): RecordedEvent[] {
+  if (!Array.isArray(answer)) return []
+  return answer.flatMap((item: unknown): RecordedEvent[] => {
+    if (!isObject(item) || typeof item.event_id !== 'string') return []
+    const recordedAt = time(item.recorded_at)
+    if (recordedAt === null || !isHistoryEntry(item.entry)) return []
+    return [{ eventId: item.event_id, recordedAt, entry: item.entry }]
+  })
+}
+
+/** A history entry as it is sent to the ledger: the time is the server's to set. */
+export function toEventRecord(characterId: string, entry: HistoryEntry) {
+  return { character_id: characterId, event_id: entry.id, entry }
 }
 
 /** A row as it is sent to the database. */

@@ -49,6 +49,8 @@ export const appConfig = {
     cloudRemovals: 'cc-cloud-removals',
     /** The account last signed in on this device, which a deletion made signed out is for. */
     cloudLastUser: 'cc-cloud-last-user',
+    /** The history entries the server's ledger has already been sent, per character. */
+    cloudSentEvents: 'cc-cloud-sent-events',
   },
   /**
    * The optional account and the cloud copy of the characters (src/cloud). Both values are
@@ -62,6 +64,8 @@ export const appConfig = {
     syncDebounceMs: 2000,
     /** How long after a failed sync the next try is made, in milliseconds. */
     retryMs: 30_000,
+    /** How many history entries are sent to the server's ledger in one request. */
+    eventsPerRequest: 500,
     /** How many digits the sign-in code from the email has. */
     codeLength: 6,
     /** How long, in seconds, before another sign-in code can be asked for. */

@@ -136,7 +136,7 @@ describe('EquipmentSection', () => {
   })
 
   it('adds an item, adjusts quantity, removes it, and edits coins', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -174,7 +174,7 @@ describe('EquipmentSection', () => {
   })
 
   it('stacks a re-added item, labels rarity, and adjusts one item among several', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockItems.mockResolvedValue([rope, wand])
     const c = seedActive()
     renderSection()
@@ -209,7 +209,7 @@ describe('EquipmentSection', () => {
   })
 
   it('records an add, a quantity change and a remove in the character history', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
     const at = (...path: string[]) =>
@@ -236,7 +236,7 @@ describe('EquipmentSection', () => {
   })
 
   it('equips and attunes, flagging a fourth attuned item without blocking it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockItems.mockResolvedValue([ring(1), ring(2), ring(3), ring(4)])
     const c = seedActive((ch) => {
       ch.equipment.items = [1, 2, 3, 4].map((n) => ({
@@ -258,7 +258,7 @@ describe('EquipmentSection', () => {
   })
 
   it('flags armor that needs more Strength and an item for another class, never blocking', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockItems.mockResolvedValue([
       makeItem({
         name: 'Plate',
@@ -295,7 +295,7 @@ describe('EquipmentSection', () => {
   })
 
   it('labels each coin with its name, the code in a tooltip', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seedActive()
     renderSection()
     const label = await screen.findByText('Platinum pieces')
@@ -305,7 +305,7 @@ describe('EquipmentSection', () => {
   })
 
   it('flags weight over what the character can carry, and keeps a note', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockItems.mockResolvedValue([makeItem({ name: 'Anvil', weight: 200 })])
     const c = seedActive((ch) => {
       ch.abilities.str.base = 10
@@ -321,7 +321,7 @@ describe('EquipmentSection', () => {
   })
 
   it('asks which base item a generic variant is made of, and keeps the result', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockItems.mockResolvedValue([rope, longsword, plusOne])
     const c = seedActive((ch) => {
       ch.selectedBooks = ['PHB', 'XPHB', 'XDMG']
@@ -353,7 +353,7 @@ describe('EquipmentSection', () => {
   })
 
   it('adds an item of the player own, and edits it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 

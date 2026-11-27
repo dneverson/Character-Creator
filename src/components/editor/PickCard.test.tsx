@@ -35,7 +35,7 @@ const card = (chips: PickChip[], used = 0): PickCardModel => ({
 
 describe('PickCard with described options', () => {
   it('lists each option with its rules text and picks from the row', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onPick = vi.fn()
     render(
       <PickCard
@@ -54,7 +54,7 @@ describe('PickCard with described options', () => {
   })
 
   it('compares two options side by side', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <PickCard
         card={card([
@@ -70,7 +70,7 @@ describe('PickCard with described options', () => {
   })
 
   it('collapses to the chosen option and shows its details on request', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <PickCard
         card={card(

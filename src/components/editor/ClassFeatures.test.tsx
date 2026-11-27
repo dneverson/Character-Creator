@@ -391,7 +391,7 @@ describe('ClassFeatures', () => {
   })
 
   it('greys an option whose prerequisite is not met and still allows it with DM approval', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const warlock: LoadedClass = {
       entry: {
         name: 'Warlock',
@@ -454,7 +454,7 @@ describe('ClassFeatures', () => {
   })
 
   it('offers an optional class feature and lists only the one of the pair taken', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const feature = (name: string, source: string, entries: string[]) => ({
       name,
       source,

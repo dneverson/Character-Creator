@@ -73,7 +73,7 @@ describe('sheet side panels', () => {
   })
 
   it('lists the defenses, a conditional one with its reason, and opens its sources', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const sheet = sheetOf()
     const source = { kind: 'race' as const, tag: 'race', label: 'Tiefling' }
     const held = quantity([
@@ -130,7 +130,7 @@ describe('sheet side panels', () => {
   })
 
   it('lists each proficiency group as a comma line that opens where each comes from', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const sheet = sheetOf()
     render(
       <SheetDetailProvider>

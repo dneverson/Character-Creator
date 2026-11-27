@@ -17,7 +17,7 @@ describe('Abbr', () => {
   })
 
   it('shows the category and full name on hover', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Abbr code="STR" kind="ability" />)
     await user.hover(screen.getByText('STR'))
     const tip = await screen.findByRole('tooltip')
@@ -27,7 +27,7 @@ describe('Abbr', () => {
 
   it('expands a registered book source', async () => {
     registerBookSources([{ source: 'PHB', name: "Player's Handbook (2014)" }])
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Abbr code="PHB" kind="source" />)
     await user.hover(screen.getByText('PHB'))
     const tip = await screen.findByRole('tooltip')
@@ -50,7 +50,7 @@ describe('Abbr', () => {
 
 describe('AbbrText', () => {
   it('wraps an acronym embedded in a string, leaving the rest as text', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { container } = render(<AbbrText text="Wizards RPG Team" />)
     const el = screen.getByText('RPG')
     expect(el.tagName).toBe('ABBR')

@@ -27,7 +27,7 @@ function activeAbilities() {
 
 describe('Ability scores flow', () => {
   it('point buy: increment spends points and raises the score', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderApp()
     await user.click(screen.getByRole('button', { name: /New Character/i }))
 
@@ -46,7 +46,7 @@ describe('Ability scores flow', () => {
   })
 
   it('standard array: assigning a value updates the total', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderApp()
     await user.click(screen.getByRole('button', { name: /New Character/i }))
 

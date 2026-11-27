@@ -134,7 +134,7 @@ describe('SkillsSection', () => {
   })
 
   it('flags an off-standard pick when no source offers the skill', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive()
     renderSection()
 
@@ -147,7 +147,7 @@ describe('SkillsSection', () => {
   })
 
   it('grants a fixed background skill and charges chosen skills to its card', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.background = { name: 'Acolyte', source: 'XPHB', abilityChoices: {} }
     })
@@ -225,7 +225,7 @@ describe('SkillsSection', () => {
   it('shows an unrecognized stored source tag verbatim under Other skills', async () => {
     // An imported character can carry a source tag the app no longer emits;
     // it shows with its stored tag, flagged, and a click clears it.
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.grantPicks = { skill: { acrobatics: 'legacy' } }
     })
@@ -239,7 +239,7 @@ describe('SkillsSection', () => {
   })
 
   it('charges a chosen skill to its class and labels the source', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockClasses.mockResolvedValue([rogue])
     mockBackgrounds.mockResolvedValue([])
     const c = seedActive((ch) => {
@@ -283,7 +283,7 @@ describe('SkillsSection', () => {
   })
 
   it('picks expertise from the skills the character has and doubles the bonus', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const expert: LoadedClass = {
       entry: {
         ...rogue.entry,

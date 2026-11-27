@@ -34,7 +34,7 @@ beforeEach(() => localStorage.clear())
 
 describe('DataTable full screen', () => {
   it('shows the same table, with its state, in a window and back', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Table />)
     await user.type(screen.getByLabelText('Search table'), 'c')
     await user.click(screen.getByText('Cat'))
@@ -61,7 +61,7 @@ describe('DataTable full screen', () => {
   })
 
   it('closes on Escape, first closing an open detail pane', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Table />)
     await user.click(screen.getByText('Dog'))
     await user.click(screen.getByRole('button', { name: 'Full screen' }))
@@ -76,7 +76,7 @@ describe('DataTable full screen', () => {
   })
 
   it('works for a table with no detail pane', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Table withDetail={false} />)
     await user.click(screen.getByRole('button', { name: 'Full screen' }))
     expect(await screen.findByRole('dialog')).toBeInTheDocument()

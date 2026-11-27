@@ -168,7 +168,7 @@ afterEach(() => {
 
 describe('limited uses on the Features tab', () => {
   it('puts a counter on the row of the feature, spent and regained there', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     renderSheet()
     const panel = await openTab(user, 'Features & Traits')
@@ -188,7 +188,7 @@ describe('limited uses on the Features tab', () => {
   })
 
   it('spends without opening the row, and says in the feature text how many uses it has', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -210,7 +210,7 @@ describe('limited uses on the Features tab', () => {
 
 describe('limited uses on the Actions tab', () => {
   it('lists every counter with what restores it and where it comes from', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     setWide()
     seed()
     renderSheet()
@@ -230,7 +230,7 @@ describe('limited uses on the Actions tab', () => {
   })
 
   it('counts a pool larger than the pips as a number with a minus and a plus', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const panel = await openTab(user, 'Actions')
@@ -250,7 +250,7 @@ describe('limited uses on the Actions tab', () => {
 
 describe('charges on the Inventory tab', () => {
   it('counts the charges of an equipped item, and names only how many the others hold', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     seed()
     renderSheet()
     const panel = await openTab(user, 'Inventory')
@@ -266,7 +266,7 @@ describe('charges on the Inventory tab', () => {
 
 describe('limited uses at a rest', () => {
   it('a short rest lists the uses it restores, restores them and records them', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     seed({ play: { ...c.play, uses: { [WIND]: 1, [SURGE]: 1, [WAND]: 3 } } })
     renderSheet()
@@ -291,7 +291,7 @@ describe('limited uses at a rest', () => {
   })
 
   it('a long rest restores the item charges too, and says when nothing comes back', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     seed({ play: { ...c.play, uses: { [WAND]: 3 } } })
     const first = renderSheet()

@@ -104,7 +104,7 @@ describe('experience points in play', () => {
   })
 
   it('starts at the points of the character level, and adds points with a history entry', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed()
     renderSheet()
     await user.click(await screen.findByRole('checkbox', { name: /Track experience/ }))
@@ -126,7 +126,7 @@ describe('experience points in play', () => {
   })
 
   it('turns tracking off and back to milestones', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seed(5000)
     renderSheet()
     await user.click(await screen.findByRole('checkbox', { name: /Track experience/ }))

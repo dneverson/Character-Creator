@@ -32,7 +32,7 @@ beforeEach(() => {
 
 describe('DataTable export', () => {
   it('exports the rows as filtered, sorted and with the columns as shown', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <DataTable<Pet>
         tableId="pets"
@@ -52,7 +52,7 @@ describe('DataTable export', () => {
     expect(downloads[0].name).toMatch(/^pets-\d{4}-\d{2}-\d{2}\.csv$/)
   })
   it('leaves out an action column: only data columns are exported', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <DataTable<Pet>
         tableId="pets-action"

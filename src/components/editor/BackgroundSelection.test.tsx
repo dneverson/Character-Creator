@@ -165,7 +165,7 @@ beforeEach(() => {
 
 describe('BackgroundSelection story tables', () => {
   it('takes a row in the details of the chosen background, the same row as in Story', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockBackgrounds.mockResolvedValue([drifterWithTable])
     const c = seedActive((ch) => {
       ch.background = {
@@ -196,7 +196,7 @@ describe('BackgroundSelection story tables', () => {
   })
 
   it('only reads the story tables of a background that is not the chosen one', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockBackgrounds.mockResolvedValue([drifterWithTable, acolyte])
     seedActive((ch) => {
       ch.background = {
@@ -224,7 +224,7 @@ describe('BackgroundSelection', () => {
   })
 
   it('chooses a background from the table, takes a way and places an increase', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     // Race already grants ability bonuses -> placing one here trips the edition-mix badge.
     const c = seedActive((ch) => {
       ch.race = elf
@@ -261,7 +261,7 @@ describe('BackgroundSelection', () => {
   })
 
   it('takes the increases another way, starting it afresh', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.background = {
         name: 'Acolyte',
@@ -281,7 +281,7 @@ describe('BackgroundSelection', () => {
   })
 
   it('clears the background back to none from its row', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.background = { name: 'Acolyte', source: 'XPHB', abilityChoices: {} }
     })
@@ -293,7 +293,7 @@ describe('BackgroundSelection', () => {
   })
 
   it('offers no choice of ways for a background with one, and no skill hint without choices', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockBackgrounds.mockResolvedValue([drifter])
     const c = seedActive()
     renderSection()
@@ -308,7 +308,7 @@ describe('BackgroundSelection', () => {
   })
 
   it('moves an ability to another amount, clearing the first', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.background = {
         name: 'Acolyte',
@@ -329,7 +329,7 @@ describe('BackgroundSelection', () => {
   })
 
   it('trips the edition-mix badge from a race ability choice', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     // A race that grants a *chosen* bonus (no fixed) exercises the OR fallback.
     const c = seedActive((ch) => {
       ch.race = { ...elf, abilityFixed: {}, abilityChoices: { str: 1 } }
@@ -355,7 +355,7 @@ describe('BackgroundSelection', () => {
       'a 2014 race and a 2014 background. Standard play takes them from one of the two',
     ],
   ])('names what is mixed for %s', async (_, background, reason) => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockBackgrounds.mockResolvedValue([background])
     mockRaces.mockResolvedValue([
       {
@@ -385,7 +385,7 @@ describe('BackgroundSelection', () => {
   })
 
   it('names the race without its edition while the races are not loaded', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockRaces.mockReturnValue(new Promise(() => {}))
     seedActive((ch) => {
       ch.race = elf
@@ -404,7 +404,7 @@ describe('BackgroundSelection', () => {
   })
 
   it('says a 2014 background leaves the increases to the race', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockBackgrounds.mockResolvedValue([sailor, plain])
     seedActive((ch) => {
       ch.race = elf
@@ -425,7 +425,7 @@ describe('BackgroundSelection', () => {
   })
 
   it('says plainly when neither a 2024 species nor a 2014 background gives increases', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockBackgrounds.mockResolvedValue([sailor])
     seedActive((ch) => {
       ch.race = {
@@ -445,7 +445,7 @@ describe('BackgroundSelection', () => {
   })
 
   it('warns about a background outside the selected books, and removes it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.background = { name: 'Haunted One', source: 'VRGR', abilityChoices: {} }
     })

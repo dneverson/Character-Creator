@@ -73,7 +73,7 @@ beforeEach(() => {
 
 describe('Quick lookup', () => {
   it('opens from the header button and says what it holds', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderLookup()
     expect(screen.queryByRole('searchbox')).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Lookup' }))
@@ -83,7 +83,7 @@ describe('Quick lookup', () => {
   })
 
   it('opens with the "/" key unless a field has the focus', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderLookup()
     const field = document.body.appendChild(document.createElement('input'))
     field.focus()
@@ -98,7 +98,7 @@ describe('Quick lookup', () => {
   })
 
   it('does not open with "/" while typing in a select or an editable element', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderLookup()
     const select = document.body.appendChild(document.createElement('select'))
     const editable = document.body.appendChild(document.createElement('div'))
@@ -114,7 +114,7 @@ describe('Quick lookup', () => {
   })
 
   it('gives the focus back to the button that opened it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderLookup()
     const opener = screen.getByRole('button', { name: 'Lookup' })
     await user.click(opener)
@@ -125,7 +125,7 @@ describe('Quick lookup', () => {
   })
 
   it('searches names and text, shows the book, the kind and where the text matches', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderLookup()
     await user.click(screen.getByRole('button', { name: 'Lookup' }))
     await user.type(await screen.findByRole('searchbox'), 'druid')
@@ -144,7 +144,7 @@ describe('Quick lookup', () => {
   })
 
   it('filters by kind and opens an entry in the detail pane beside the table', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderLookup()
     await user.click(screen.getByRole('button', { name: 'Lookup' }))
     await user.selectOptions(await screen.findByLabelText('Kind of entry'), 'Condition')
@@ -165,7 +165,7 @@ describe('Quick lookup', () => {
   })
 
   it('heads the rows with an entry the index does not hold, until the search changes', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderLookup()
     act(() => useLookupStore.getState().openLookup(MADE.id))
     expect(await screen.findByDisplayValue('+1 Longsword')).toBeInTheDocument()
@@ -180,7 +180,7 @@ describe('Quick lookup', () => {
   })
 
   it('closes the detail pane on Escape first, and the lookup on the next', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderLookup()
     await user.click(screen.getByRole('button', { name: 'Lookup' }))
     await user.selectOptions(await screen.findByLabelText('Kind of entry'), 'Condition')
@@ -196,7 +196,7 @@ describe('Quick lookup', () => {
   })
 
   it('says so while the search is prepared, when it cannot be, and when nothing matches', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     vi.mocked(useLookupIndex).mockReturnValue({ data: null, error: null, loading: true })
     renderLookup()
     await user.click(screen.getByRole('button', { name: 'Lookup' }))

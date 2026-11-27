@@ -143,7 +143,7 @@ describe('WildShapeSection', () => {
   })
 
   it('shows in-limit beasts as standard, greys the rest with the reason and flags an over-limit pick', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mockBeasts.mockResolvedValue([wolf, giantEagle, swarm, spirit])
     const c = druid(4)
     renderSection()
@@ -194,7 +194,7 @@ describe('WildShapeSection', () => {
   })
 
   it('removes a beast when its form is taken off again', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = druid(4)
     renderSection()
 
@@ -221,7 +221,7 @@ describe('WildShapeSection', () => {
   })
 
   it('says so when no beast matches the search', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     druid(4)
     renderSection()
 
@@ -237,7 +237,7 @@ describe('WildShapeSection', () => {
   })
 
   it('lists a form from a book that is no longer selected, to remove it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const c = seedActive((ch) => {
       ch.classes = [{ name: 'Druid', source: 'PHB', level: 4 }]
       ch.wildShapes = [{ name: 'Dire Wolf', source: 'GONE' }]
@@ -262,7 +262,7 @@ describe('WildShapeSection', () => {
   })
 
   it('2024: a full list of forms blocks adding another until the switch, and shows the count of picks', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const four = ['A', 'B', 'C', 'D'].map((n) =>
       makeBeast({ name: `Beast ${n}`, cr: '1/4', crValue: 0.25 }),
     )

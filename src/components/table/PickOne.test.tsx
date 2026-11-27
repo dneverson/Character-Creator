@@ -106,7 +106,7 @@ describe('PickOne', () => {
   })
 
   it('chooses from a row, then folds the table into a summary of the choice', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onPick = vi.fn()
     render(<Harness onPick={onPick} summary={[sound, habitat]} />)
 
@@ -124,7 +124,7 @@ describe('PickOne', () => {
   })
 
   it('chooses from the detail pane too', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onPick = vi.fn()
     render(<Harness onPick={onPick} />)
     await user.click(screen.getByText('Fish'))
@@ -157,7 +157,7 @@ describe('PickOne', () => {
   })
 
   it('shows and hides the full details of the choice', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness initial="cat" />)
     const toggle = screen.getByRole('button', { name: 'Show details' })
     expect(toggle).toHaveAttribute('aria-expanded', 'false')
@@ -179,7 +179,7 @@ describe('PickOne', () => {
   })
 
   it('reopens the table to change the choice, and keeps it without changing anything', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onPick = vi.fn()
     const onClear = vi.fn()
     render(<Harness initial="cat" onPick={onPick} onClear={onClear} />)
@@ -198,7 +198,7 @@ describe('PickOne', () => {
   })
 
   it('offers to remove the current choice, and to choose any other', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onClear = vi.fn()
     render(<Harness initial="cat" onClear={onClear} />)
     await user.click(screen.getByRole('button', { name: 'Change pet' }))
@@ -225,7 +225,7 @@ describe('PickOne', () => {
   })
 
   it('changes to another choice and folds the table again', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onPick = vi.fn()
     render(<Harness initial="cat" onPick={onPick} />)
     await user.click(screen.getByRole('button', { name: 'Change pet' }))
@@ -272,7 +272,7 @@ describe('PickOne', () => {
     })
 
     it('opens the table from that line, and shuts it on a choice', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       const onBrowsingChange = vi.fn()
       render(<Controlled onBrowsingChange={onBrowsingChange} />)
       await user.click(screen.getByRole('button', { name: 'Choose pet' }))
@@ -292,7 +292,7 @@ describe('PickOne', () => {
     })
 
     it('opens to change a choice, and Keep shuts it again', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       const onBrowsingChange = vi.fn()
       render(<Controlled initial="cat" onBrowsingChange={onBrowsingChange} />)
       expect(table()).not.toBeInTheDocument()
@@ -304,7 +304,7 @@ describe('PickOne', () => {
     })
 
     it('shuts the table on Remove, leaving the line to choose again', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       const onClear = vi.fn()
       render(<Controlled initial="cat" open onClear={onClear} />)
       await user.click(within(rowOf('Cat')).getByRole('button', { name: 'Remove' }))
@@ -313,7 +313,7 @@ describe('PickOne', () => {
     })
 
     it('does not need a listener to be told of changes', async () => {
-      const user = userEvent.setup()
+      const user = userEvent.setup({ delay: null })
       render(<Harness browsing={false} initial="cat" />)
       await user.click(screen.getByRole('button', { name: 'Change pet' }))
       expect(table()).not.toBeInTheDocument()

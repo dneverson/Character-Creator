@@ -22,7 +22,7 @@ function mockBox(element: Element, top: number, bottom: number) {
 
 describe('EditorSection', () => {
   it('collapses from a real button with its state and target', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <EditorSection title="Skills" subtitle="Pick some">
         <p>Body text</p>
@@ -43,7 +43,7 @@ describe('EditorSection', () => {
   })
 
   it('toggles from the bar around the text, but not from the text or the actions', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(
       <EditorSection title="Skills" subtitle="Pick some" actions={<button>Extra</button>}>
         <p>Body text</p>
@@ -78,7 +78,7 @@ describe('EditorSection', () => {
   })
 
   it('brings its header back under the navbar when collapsed from far down', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     document.documentElement.style.setProperty('--app-navbar-height', '56px')
     const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => {})
     const { container } = render(
@@ -93,7 +93,7 @@ describe('EditorSection', () => {
   })
 
   it('does not scroll when the section top is already in view', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => {})
     render(
       <EditorSection title="Skills">

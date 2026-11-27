@@ -109,7 +109,7 @@ describe('PickMany', () => {
   })
 
   it('removes from the open table', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onRemove = vi.fn()
     render(<Harness initial={['cat']} onRemove={onRemove} />)
     await user.click(button('Change'))
@@ -119,7 +119,7 @@ describe('PickMany', () => {
   })
 
   it('adds and removes from the detail pane too', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onAdd = vi.fn()
     render(<Harness onAdd={onAdd} />)
     await user.click(screen.getByText('Dog'))
@@ -132,7 +132,7 @@ describe('PickMany', () => {
   })
 
   it('folds into a short table of the picks on Done, each with its Remove', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onRemove = vi.fn()
     render(<Harness onRemove={onRemove} />)
     await add('Cat')
@@ -155,7 +155,7 @@ describe('PickMany', () => {
   })
 
   it('shows a line to choose when nothing is picked and the table is shut', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness />)
     await user.click(button('Done'))
     expect(openTable()).not.toBeInTheDocument()
@@ -165,7 +165,7 @@ describe('PickMany', () => {
   })
 
   it('starts shut when something is already picked, and Change reopens the table', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness initial={['dog']} />)
     expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument()
     expect(scroll).not.toHaveBeenCalled()
@@ -181,7 +181,7 @@ describe('PickMany', () => {
   })
 
   it('heads the short table with fixed entries: no Remove, not counted', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness initial={['dog']} fixed={[PETS[2]]} aside="+1 always there" />)
     expect(screen.getByText('Pets 1')).toBeInTheDocument()
     expect(screen.getByText('+1 always there')).toBeInTheDocument()
@@ -199,7 +199,7 @@ describe('PickMany', () => {
   })
 
   it('lists fixed entries even when nothing is picked and the table is shut', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness fixed={[PETS[2]]} />)
     await user.click(button('Done'))
     expect(screen.queryByText('No pets chosen yet')).not.toBeInTheDocument()
@@ -207,7 +207,7 @@ describe('PickMany', () => {
   })
 
   it('shows the count against the limit, and warns when over it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Harness limit={{ max: 1, reason: 'Only 1 pet allowed' }} initial={['cat']} />)
     expect(screen.getByText('Pets 1 of 1')).toBeInTheDocument()
     expect(screen.queryByText('Non-standard')).not.toBeInTheDocument()
@@ -240,7 +240,7 @@ describe('PickMany', () => {
   })
 
   it('adds every ticked row in one click', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onAdd = vi.fn()
     render(<Harness onAdd={onAdd} limit={{ max: 2 }} autoCloseAtLimit />)
     expect(button('Add 0 ticked')).toBeDisabled()
@@ -252,7 +252,7 @@ describe('PickMany', () => {
   })
 
   it('leaves out of "Add ticked" what is picked already and what is not standard', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onAdd = vi.fn()
     render(<Harness initial={['cat']} rowMeta={noLegs} onAdd={onAdd} />)
     await user.click(button('Change'))
@@ -263,7 +263,7 @@ describe('PickMany', () => {
   })
 
   it('adds a non-standard row only once the switch is on', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onAdd = vi.fn()
     render(<Harness rowMeta={noLegs} onAdd={onAdd} />)
     expect(within(rowOf('Fish')).getByRole('button', { name: 'Add' })).toBeDisabled()
@@ -273,7 +273,7 @@ describe('PickMany', () => {
   })
 
   it('takes the switch from its section when the section keeps it', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onAllow = vi.fn()
     render(
       <Harness allowNonStandard onAllowNonStandardChange={onAllow} rowMeta={noLegs} />,
@@ -309,7 +309,7 @@ describe('PickMany', () => {
   })
 
   it('lets the section hold the table open or shut, and hears of Done and Change', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const onBrowsingChange = vi.fn()
     const { rerender } = render(
       <Harness initial={['cat']} browsing onBrowsingChange={onBrowsingChange} />,
@@ -366,7 +366,7 @@ describe('PickMany with a quantity', () => {
   }
 
   it('adds one more on a row already picked, and never offers Remove there', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Counted />)
     await user.click(button('Change'))
     expect(within(rowOf('Cat')).queryByRole('button', { name: 'Remove' })).toBeNull()
@@ -376,7 +376,7 @@ describe('PickMany with a quantity', () => {
   })
 
   it('adds one more to ticked rows that are already picked', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Counted />)
     await user.click(button('Change'))
     await user.click(within(rowOf('Cat')).getByRole('checkbox'))
@@ -386,7 +386,7 @@ describe('PickMany with a quantity', () => {
   })
 
   it('steps and types the quantity in the short table', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Counted />)
     const box = screen.getByRole('spinbutton', { name: 'Quantity of Cat' })
     // The steppers are the same plus and minus icons as a row's action.
@@ -403,7 +403,7 @@ describe('PickMany with a quantity', () => {
   })
 
   it('removes the pick when the quantity reaches 0', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     render(<Counted />)
     await user.click(button('One fewer Cat'))
     expect(screen.queryByRole('spinbutton')).toBeNull()
